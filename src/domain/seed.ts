@@ -85,15 +85,39 @@ export function seedDB(): DryTrackDB {
       { id: "d-3", projekt_id: "p-1", typ: "schadensaufnahme_doku", speicher_referenz: "storage://p-1/aufnahme.pdf", erstellt_von: "u-monteur", erstellt_am: tage(8) },
     ],
     materialdatenbank: [
-      { id: "m-perlite", bezeichnung: "Perlite", kategorie: "Dämmstoff", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 80 },
-      { id: "m-styropor", bezeichnung: "Styropor (EPS)", kategorie: "Dämmstoff", trocknungsfaehig: false, austauschpflichtig: true, bewertungsmodell: "status_checkliste", praxisgrenzwert_digit: null },
-      { id: "m-estrich", bezeichnung: "Zementestrich", kategorie: "Estrich", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 90 },
-      { id: "m-mauerwerk", bezeichnung: "Kalksandstein", kategorie: "Mauerwerk", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "vergleichsmessung", praxisgrenzwert_digit: null },
+      // Oberbeläge
+      { id: "mat-fliese", bezeichnung: "Fliese", kategorie: "Oberbelag", trocknungsfaehig: false, austauschpflichtig: false, bewertungsmodell: "vergleichsmessung", praxisgrenzwert_digit: null, schicht_typ: "oberbelag" },
+      { id: "mat-parkett", bezeichnung: "Parkett", kategorie: "Oberbelag", trocknungsfaehig: true, austauschpflichtig: true, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 40, schicht_typ: "oberbelag" },
+      { id: "mat-pvc", bezeichnung: "PVC / Vinyl", kategorie: "Oberbelag", trocknungsfaehig: false, austauschpflichtig: true, bewertungsmodell: "vergleichsmessung", praxisgrenzwert_digit: null, schicht_typ: "oberbelag" },
+      { id: "mat-teppich", bezeichnung: "Teppich", kategorie: "Oberbelag", trocknungsfaehig: false, austauschpflichtig: true, bewertungsmodell: "status_checkliste", praxisgrenzwert_digit: null, schicht_typ: "oberbelag" },
+      // Estriche (FR-MESS-002 Praxis-Grenzwerte)
+      { id: "mat-schwimm", bezeichnung: "Schwimmender Estrich", kategorie: "Estrich", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 50, schicht_typ: "estrich" },
+      { id: "mat-zement", bezeichnung: "Zementestrich", kategorie: "Estrich", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 50, schicht_typ: "estrich" },
+      { id: "mat-anhydrit", bezeichnung: "Anhydritestrich", kategorie: "Estrich", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 50, schicht_typ: "estrich" },
+      { id: "mat-trocken", bezeichnung: "Trockenestrich", kategorie: "Estrich", trocknungsfaehig: false, austauschpflichtig: true, bewertungsmodell: "status_checkliste", praxisgrenzwert_digit: null, schicht_typ: "estrich" },
+      // Dämmstoffe — KMF/Dämmstoffe: Status-Checkliste statt Digit (FR-MESS-001)
+      { id: "mat-kmf", bezeichnung: "KMF (Mineralwolle)", kategorie: "Dämmstoff", trocknungsfaehig: false, austauschpflichtig: true, bewertungsmodell: "status_checkliste", praxisgrenzwert_digit: null, schicht_typ: "daemmung" },
+      { id: "mat-perlite", bezeichnung: "Perlite", kategorie: "Dämmstoff", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "status_checkliste", praxisgrenzwert_digit: null, schicht_typ: "daemmung" },
+      { id: "mat-eps", bezeichnung: "Styropor (EPS)", kategorie: "Dämmstoff", trocknungsfaehig: false, austauschpflichtig: true, bewertungsmodell: "status_checkliste", praxisgrenzwert_digit: null, schicht_typ: "daemmung" },
+      { id: "mat-styrodur", bezeichnung: "Styrodur (XPS)", kategorie: "Dämmstoff", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "status_checkliste", praxisgrenzwert_digit: null, schicht_typ: "daemmung" },
+      // Weitere Bauteile
+      { id: "mat-randfuge", bezeichnung: "Randfuge / Dämmschicht", kategorie: "Bauteil", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 20, schicht_typ: null },
+      { id: "mat-beton", bezeichnung: "Beton", kategorie: "Bauteil", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 50, schicht_typ: null },
+      { id: "mat-putz", bezeichnung: "Putz", kategorie: "Bauteil", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 50, schicht_typ: null },
+      { id: "mat-gipskarton", bezeichnung: "Gipskarton", kategorie: "Bauteil", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 20, schicht_typ: null },
+      { id: "mat-mauerwerk", bezeichnung: "Mauerwerk (Kalksandstein)", kategorie: "Mauerwerk", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "vergleichsmessung", praxisgrenzwert_digit: null, schicht_typ: null },
+    ],
+    // Beispiel-Bodenaufbau für die Küche (r-1): Fliese › Schwimmender Estrich › KMF
+    bodenaufbau_schicht: [
+      { id: "bs-1", raum_id: "r-1", reihenfolge: 0, schicht_typ: "oberbelag", material_id: "mat-fliese" },
+      { id: "bs-2", raum_id: "r-1", reihenfolge: 1, schicht_typ: "estrich", material_id: "mat-schwimm" },
+      { id: "bs-3", raum_id: "r-1", reihenfolge: 2, schicht_typ: "daemmung", material_id: "mat-kmf" },
     ],
     messung: [
-      { id: "me-1", raum_id: "r-1", material_id: "m-estrich", messverfahren: "widerstand", anzeige_digit: 145, absolute_feuchte_g_kg: null, temperatur_c: 21, rel_luftfeuchte_prozent: 62, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(8) },
-      { id: "me-2", raum_id: "r-1", material_id: "m-estrich", messverfahren: "widerstand", anzeige_digit: 96, absolute_feuchte_g_kg: null, temperatur_c: 22, rel_luftfeuchte_prozent: 51, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(3) },
-      { id: "me-3", raum_id: "r-4", material_id: "m-estrich", messverfahren: "widerstand", anzeige_digit: 70, absolute_feuchte_g_kg: null, temperatur_c: 23, rel_luftfeuchte_prozent: 45, anlass: "freimessung", gemessen_von: "u-monteur", gemessen_am: tage(24) },
+      { id: "me-1", raum_id: "r-1", material_id: "mat-schwimm", messverfahren: "widerstand", anzeige_digit: 78, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 11.9, temperatur_c: 21, rel_luftfeuchte_prozent: 62, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(8) },
+      { id: "me-2", raum_id: "r-1", material_id: "mat-schwimm", messverfahren: "widerstand", anzeige_digit: 54, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 8.9, temperatur_c: 22, rel_luftfeuchte_prozent: 51, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(3) },
+      { id: "me-3", raum_id: "r-1", material_id: "mat-kmf", messverfahren: "widerstand", anzeige_digit: null, referenz_digit: null, status_checkliste: { trocken: false, feucht: true, kontaminiert: false, austausch_erforderlich: true }, absolute_feuchte_g_kg: null, temperatur_c: null, rel_luftfeuchte_prozent: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(5) },
+      { id: "me-4", raum_id: "r-4", material_id: "mat-zement", messverfahren: "widerstand", anzeige_digit: 44, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 7.1, temperatur_c: 23, rel_luftfeuchte_prozent: 45, anlass: "freimessung", gemessen_von: "u-monteur", gemessen_am: tage(24) },
     ],
     grundriss: [],
     grundriss_markierung: [],

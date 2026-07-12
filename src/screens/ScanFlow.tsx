@@ -17,6 +17,7 @@ export function ScanFlow() {
   const [eingabe, setEingabe] = useState("");
   const [inv, setInv] = useState<string | null>(null);
   const [abbau, setAbbau] = useState<Einsatz | null>(null);
+  const [modus, setModus] = useState<"barcode" | "qr">("barcode");
 
   const geraet = inv ? db.geraet.find((g) => g.inventarnummer === inv) : undefined;
   const typ = geraet ? db.geraetetyp.find((t) => t.id === geraet.geraetetyp_id) : undefined;
@@ -33,10 +34,18 @@ export function ScanFlow() {
   return (
     <div className="screen">
       <h1>Scan</h1>
-      <p className="muted">Barcode scannen oder Inventarnummer eingeben (FR-SCAN-001).</p>
+      <p className="muted">Code scannen oder Inventarnummer eingeben (FR-SCAN-001).</p>
+
+      <div className="segmented">
+        <button className={modus === "barcode" ? "seg active" : "seg"} onClick={() => setModus("barcode")}>▏▎▏ Barcode</button>
+        <button className={modus === "qr" ? "seg active" : "seg"} onClick={() => setModus("qr")}>▚▞ QR-Code</button>
+      </div>
 
       <div className="scanbox">
-        <div className="scan-visual"><span>▚▚ ▚ ▚▚▚ ▚</span></div>
+        {modus === "barcode"
+          ? <div className="scan-visual barcode"><span>█▏█▎▏█▏▎█▏█▎▏█▏</span></div>
+          : <div className="scan-visual qr"><QrDemo /></div>}
+        <p className="muted small">Beide Formate codieren dieselbe Inventarnummer — die Umstellung von Barcode auf QR ist jederzeit möglich (nur das Etikett ändert sich).</p>
         <div className="inline-add">
           <input
             className="scan-input" placeholder="z. B. KT-1001" value={eingabe}
@@ -88,6 +97,23 @@ export function ScanFlow() {
       )}
 
       {abbau && <AbbauModal einsatz={abbau} onClose={() => { setAbbau(null); reset(); }} />}
+    </div>
+  );
+}
+
+// Dekoratives QR-Muster (deterministisch). Ein echter Kamera-Scan (jsQR o. ä.) dockt hier an.
+function QrDemo() {
+  const zellen = 11;
+  const gefuellt = (r: number, c: number) => {
+    const finder = (r < 3 && c < 3) || (r < 3 && c > zellen - 4) || (r > zellen - 4 && c < 3);
+    return finder || ((r * 7 + c * 3 + ((r ^ c) & 3)) % 2 === 0);
+  };
+  return (
+    <div className="qr-grid" aria-hidden="true">
+      {Array.from({ length: zellen * zellen }, (_, i) => {
+        const r = Math.floor(i / zellen), c = i % zellen;
+        return <span key={i} className={gefuellt(r, c) ? "qr-on" : ""} />;
+      })}
     </div>
   );
 }

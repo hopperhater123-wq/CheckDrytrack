@@ -3,8 +3,10 @@
 // Über das `storage`-Event synchronisieren offene Tabs live (Annäherung an FR-Realtime).
 
 import type {
-  DryTrackDB, Einsatz, FeedEintrag, FeedKategorie, Geraet, Projekt, ProjektStatus, Raum,
+  DryTrackDB, Einsatz, FeedEintrag, FeedKategorie, Geraet, Messanlass, MessStatusCheckliste,
+  Messverfahren, Projekt, ProjektStatus, Raum, SchichtTyp,
 } from "./types";
+import { absoluteFeuchteGKg } from "./mess";
 import { seedDB } from "./seed";
 
 const STORAGE_KEY = "drytrack.db.v1";
@@ -183,6 +185,46 @@ class Store {
     const raum: Raum = { id: uid("r"), projekt_id, bezeichnung, daemmstoff_status: "unbekannt", daemmstoff_material_id: null };
     this.commit((db) => { db.raum.push(raum); });
     return raum;
+  }
+
+  /** Bodenaufbau eines Raums setzen (Oberbelag › Estrich › Dämmstoff). null = Schicht entfernen. */
+  setBodenaufbau(raum_id: string, schichten: { schicht_typ: SchichtTyp; material_id: string | null }[]) {
+    this.commit((db) => {
+      db.bodenaufbau_schicht = db.bodenaufbau_schicht.filter((s) => s.raum_id !== raum_id);
+      schichten.forEach((s, i) => {
+        if (!s.material_id) return;
+        db.bodenaufbau_schicht.push({ id: uid("bs"), raum_id, reihenfolge: i, schicht_typ: s.schicht_typ, material_id: s.material_id });
+      });
+      // Dämmstoff-Status am Raum mitziehen (006 Datenbank): Dämmschicht bekannt → mind. "verdacht".
+      const raum = db.raum.find((r) => r.id === raum_id);
+      const daemmung = schichten.find((s) => s.schicht_typ === "daemmung" && s.material_id);
+      if (raum) {
+        raum.daemmstoff_material_id = daemmung?.material_id ?? null;
+        if (daemmung && raum.daemmstoff_status === "unbekannt") raum.daemmstoff_status = "verdacht";
+      }
+    });
+  }
+
+  /** Messung erfassen (FR-MESS-001/003/006). Absolute Feuchte wird aus Temp + rel. Feuchte berechnet. */
+  addMessung(params: {
+    raum_id: string; material_id: string; messverfahren: Messverfahren; anlass: Messanlass;
+    anzeige_digit: number | null; referenz_digit: number | null;
+    status_checkliste: MessStatusCheckliste | null;
+    temperatur_c: number | null; rel_luftfeuchte_prozent: number | null;
+    gemessen_von: string;
+  }) {
+    const abs = params.temperatur_c != null && params.rel_luftfeuchte_prozent != null
+      ? absoluteFeuchteGKg(params.temperatur_c, params.rel_luftfeuchte_prozent) : null;
+    this.commit((db) => {
+      db.messung.push({
+        id: uid("me"), raum_id: params.raum_id, material_id: params.material_id,
+        messverfahren: params.messverfahren, anzeige_digit: params.anzeige_digit,
+        referenz_digit: params.referenz_digit, status_checkliste: params.status_checkliste,
+        absolute_feuchte_g_kg: abs, temperatur_c: params.temperatur_c,
+        rel_luftfeuchte_prozent: params.rel_luftfeuchte_prozent, anlass: params.anlass,
+        gemessen_von: params.gemessen_von, gemessen_am: new Date().toISOString(),
+      });
+    });
   }
 
   geraetById(inv: string): Geraet | undefined {

@@ -58,6 +58,17 @@ export type Bewertungsmodell = "digit_grenzwert" | "vergleichsmessung" | "status
 export type Messverfahren = "widerstand" | "dielektrisch";
 export type Messanlass = "eingangsmessung" | "freimessung";
 
+// Bodenaufbau-Schichten (Oberbelag › Estrich › Dämmstoff), FR-KI-001-Dämmstoff-Konzept (006 Datenbank).
+export type SchichtTyp = "oberbelag" | "estrich" | "daemmung";
+
+// Status-Checkliste für Dämmstoffe/KMF (FR-MESS-001).
+export interface MessStatusCheckliste {
+  trocken: boolean;
+  feucht: boolean;
+  kontaminiert: boolean;
+  austausch_erforderlich: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Entitäten (17 Tabellen)
 // ---------------------------------------------------------------------------
@@ -165,6 +176,17 @@ export interface Materialdatenbank {
   austauschpflichtig: boolean | null;
   bewertungsmodell: Bewertungsmodell;
   praxisgrenzwert_digit: number | null;
+  // Ergänzung: in welcher Bodenaufbau-Schicht dieses Material vorkommt (für den Aufbau-Selektor).
+  schicht_typ: SchichtTyp | null;
+}
+
+// Eine Schicht im Bodenaufbau eines Raums (Ergänzung — Dämmstoff-/Bauteil-Konzept aus 006 Datenbank).
+export interface BodenaufbauSchicht {
+  id: string;
+  raum_id: string;
+  reihenfolge: number; // 0 = oberste Schicht (Oberbelag)
+  schicht_typ: SchichtTyp;
+  material_id: string;
 }
 
 export interface Messung {
@@ -173,6 +195,10 @@ export interface Messung {
   material_id: string;
   messverfahren: Messverfahren;
   anzeige_digit: number | null;
+  // Vergleichsmessung (FR-MESS-001): Referenz an garantiert trockener Vergleichsstelle.
+  referenz_digit: number | null;
+  // Status-Checkliste (FR-MESS-001) für Dämmstoffe/KMF statt eines Zahlenwerts.
+  status_checkliste: MessStatusCheckliste | null;
   absolute_feuchte_g_kg: number | null;
   temperatur_c: number | null;
   rel_luftfeuchte_prozent: number | null;
@@ -237,6 +263,7 @@ export interface DryTrackDB {
   feed_kommentar: FeedKommentar[];
   dokument: Dokument[];
   materialdatenbank: Materialdatenbank[];
+  bodenaufbau_schicht: BodenaufbauSchicht[];
   messung: Messung[];
   grundriss: Grundriss[];
   grundriss_markierung: GrundrissMarkierung[];

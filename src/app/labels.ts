@@ -1,5 +1,6 @@
 import type {
-  DokumentTyp, FeedKategorie, FeedUrsprung, GeraetStatus, KontaminationArt, ProjektStatus,
+  DokumentTyp, FeedKategorie, FeedUrsprung, GeraetStatus, KontaminationArt, Messanlass,
+  Messverfahren, ProjektStatus, SchichtTyp,
 } from "../domain/types";
 
 export const PROJEKT_STATUS_LABEL: Record<ProjektStatus, string> = {
@@ -35,6 +36,18 @@ export const FEED_KATEGORIE_LABEL: Record<FeedKategorie, string> = {
 export const FEED_URSPRUNG_LABEL: Record<FeedUrsprung, string> = {
   scan: "Scan", zaehlerstand: "Zählerstand", teilabbau: "Abbau", e_check_faellig: "E-Check fällig",
   check_in: "Check-in", check_out: "Check-out", manuell: "Manuell",
+};
+
+export const SCHICHT_TYP_LABEL: Record<SchichtTyp, string> = {
+  oberbelag: "Oberbelag", estrich: "Estrich", daemmung: "Dämmstoff",
+};
+
+export const MESSVERFAHREN_LABEL: Record<Messverfahren, string> = {
+  widerstand: "Widerstand (maßgeblich)", dielektrisch: "Dielektrisch (Schätzung)",
+};
+
+export const MESSANLASS_LABEL: Record<Messanlass, string> = {
+  eingangsmessung: "Eingangsmessung", freimessung: "Freimessung",
 };
 
 export const DOKUMENT_TYP_LABEL: Record<DokumentTyp, string> = {
