@@ -9,7 +9,7 @@ import type {
 import { absoluteFeuchteGKg } from "./mess";
 import { seedDB } from "./seed";
 
-const STORAGE_KEY = "drytrack.db.v1";
+const STORAGE_KEY = "drytrack.db.v2"; // v2: Bodenaufbau/Messung-Felder ergänzt (Migration)
 type Listener = () => void;
 
 function uid(prefix: string): string {
@@ -35,13 +35,25 @@ class Store {
   private load(): DryTrackDB {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) return this.normalize(JSON.parse(raw));
     } catch {
       /* fällt auf Seed zurück */
     }
     const fresh = seedDB();
     this.persist(fresh);
     return fresh;
+  }
+
+  /** Robust gegen ältere/teilweise Datenstände: fehlende Tabellen werden zu leeren Arrays. */
+  private normalize(parsed: Partial<DryTrackDB>): DryTrackDB {
+    const leer: DryTrackDB = {
+      benutzer: [], geraetetyp: [], geraet: [], versicherung: [], projekt: [], raum: [],
+      einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
+      bodenaufbau_schicht: [], messung: [], grundriss: [], grundriss_markierung: [],
+      bemusterung: [], raum_foto: [], firmen_einstellung: [],
+    };
+    const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
+    return { ...base, ...parsed } as DryTrackDB;
   }
 
   private persist(db: DryTrackDB) {
@@ -229,6 +241,25 @@ class Store {
 
   geraetById(inv: string): Geraet | undefined {
     return this.db.geraet.find((g) => g.inventarnummer === inv);
+  }
+
+  /** Grundriss anlegen/ersetzen (FR-KI-004 MagicPlan bevorzugt, FR-KI-005 Skizze/Foto Fallback). */
+  setGrundriss(projekt_id: string, quelle: "magicplan" | "skizze_foto", datei_referenz: string) {
+    this.commit((db) => {
+      db.grundriss = db.grundriss.filter((g) => g.projekt_id !== projekt_id);
+      db.grundriss.push({ id: uid("gr"), projekt_id, quelle, datei_referenz, erstellt_am: new Date().toISOString() });
+    });
+  }
+
+  /** Markierung auf dem Grundriss (FR-PROJ-025): Hinweis für Sanierer oder Trocknungsmonteur. */
+  addMarkierung(params: { grundriss_id: string; raum_id: string | null; zielgruppe: "sanierer" | "trocknungsmonteur"; text: string; erstellt_von: string }) {
+    this.commit((db) => {
+      db.grundriss_markierung.push({
+        id: uid("gm"), grundriss_id: params.grundriss_id, raum_id: params.raum_id,
+        zielgruppe: params.zielgruppe, text: params.text, erstellt_von: params.erstellt_von,
+        erstellt_am: new Date().toISOString(),
+      });
+    });
   }
 }
 

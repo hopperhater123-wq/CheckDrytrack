@@ -6,6 +6,7 @@ import { store } from "../domain/store";
 import { GERAET_STATUS_LABEL } from "../app/labels";
 import { fmtZahl } from "../app/format";
 import { AbbauModal } from "./AbbauModal";
+import { Icon } from "../ui/Icon";
 import type { Einsatz } from "../domain/types";
 
 // Scanner-Flow (08 Scanner / 10 Einsätze). Kamera-Scan in Produktion;
@@ -37,14 +38,14 @@ export function ScanFlow() {
       <p className="muted">Code scannen oder Inventarnummer eingeben (FR-SCAN-001).</p>
 
       <div className="segmented">
-        <button className={modus === "barcode" ? "seg active" : "seg"} onClick={() => setModus("barcode")}>▏▎▏ Barcode</button>
-        <button className={modus === "qr" ? "seg active" : "seg"} onClick={() => setModus("qr")}>▚▞ QR-Code</button>
+        <button className={modus === "barcode" ? "seg active" : "seg"} onClick={() => setModus("barcode")}><Icon name="barcode" size={16} /> Barcode</button>
+        <button className={modus === "qr" ? "seg active" : "seg"} onClick={() => setModus("qr")}><Icon name="qr" size={16} /> QR-Code</button>
       </div>
 
       <div className="scanbox">
         {modus === "barcode"
-          ? <div className="scan-visual barcode"><span>█▏█▎▏█▏▎█▏█▎▏█▏</span></div>
-          : <div className="scan-visual qr"><QrDemo /></div>}
+          ? <div className="scan-visual barcode">{Array.from({ length: 15 }, (_, i) => <i key={i} />)}<div className="scanline" /></div>
+          : <div className="scan-visual qr"><QrDemo /><div className="scanline" /></div>}
         <p className="muted small">Beide Formate codieren dieselbe Inventarnummer — die Umstellung von Barcode auf QR ist jederzeit möglich (nur das Etikett ändert sich).</p>
         <div className="inline-add">
           <input

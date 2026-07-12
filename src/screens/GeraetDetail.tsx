@@ -3,6 +3,7 @@ import { useNav } from "../app/nav";
 import { GERAET_STATUS_LABEL } from "../app/labels";
 import { fmtDatum, fmtDatumZeit, fmtZahl } from "../app/format";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "../domain/einsatz";
+import { Icon } from "../ui/Icon";
 
 // Geräte-Historie = gefilterte Sicht auf dieselben Einsatz-/Feed-Daten (FR-KOMM-002).
 export function GeraetDetail({ inv }: { inv: string }) {
@@ -21,7 +22,7 @@ export function GeraetDetail({ inv }: { inv: string }) {
 
   return (
     <div className="screen">
-      <button className="back" onClick={() => nav({ name: "geraete" })}>‹ Geräte</button>
+      <button className="back" onClick={() => nav({ name: "geraete" })}><Icon name="chevronLeft" size={16} /> Geräte</button>
       <div className="detail-head">
         <div>
           <h1>{g.inventarnummer}</h1>

@@ -11,6 +11,7 @@ import { GeraetDetail } from "./screens/GeraetDetail";
 import { ScanFlow } from "./screens/ScanFlow";
 import { Einstellungen } from "./screens/Einstellungen";
 import { ROLLEN_LABEL } from "./domain/roles";
+import { Icon, type IconName } from "./ui/Icon";
 
 export function App() {
   const db = useDB();
@@ -32,12 +33,12 @@ function Shell() {
       <div className="app">
         <header className="topbar">
           <div className="brand" onClick={() => setRoute({ name: "dashboard" })}>
-            <span className="logo">◐</span> DryTrack
+            <span className="logo"><Icon name="droplet" size={16} strokeWidth={2} /></span> DryTrack
           </div>
           <div className="whoami">
             <span className="whoami-name">{user.name}</span>
             <span className="badge">{ROLLEN_LABEL[user.rolle]}</span>
-            <button className="linkbtn" onClick={logout}>Abmelden</button>
+            <button className="iconbtn" onClick={logout} title="Abmelden" aria-label="Abmelden"><Icon name="logout" size={18} /></button>
           </div>
         </header>
 
@@ -46,11 +47,11 @@ function Shell() {
         </main>
 
         <nav className="tabbar">
-          <Tab active={route.name === "dashboard"} onClick={() => setRoute({ name: "dashboard" })} icon="▤" label="Dashboard" />
-          <Tab active={route.name === "projekte" || route.name === "projekt"} onClick={() => setRoute({ name: "projekte" })} icon="◆" label="Projekte" />
-          <Tab active={route.name === "scan"} onClick={() => setRoute({ name: "scan" })} icon="⊕" label="Scan" primary />
-          <Tab active={route.name === "geraete" || route.name === "geraet"} onClick={() => setRoute({ name: "geraete" })} icon="⚙" label="Geräte" />
-          <Tab active={route.name === "einstellungen"} onClick={() => setRoute({ name: "einstellungen" })} icon="≡" label="Mehr" />
+          <Tab active={route.name === "dashboard"} onClick={() => setRoute({ name: "dashboard" })} icon="dashboard" label="Dashboard" />
+          <Tab active={route.name === "projekte" || route.name === "projekt"} onClick={() => setRoute({ name: "projekte" })} icon="folder" label="Projekte" />
+          <Tab active={route.name === "scan"} onClick={() => setRoute({ name: "scan" })} icon="scan" label="Scan" primary />
+          <Tab active={route.name === "geraete" || route.name === "geraet"} onClick={() => setRoute({ name: "geraete" })} icon="wind" label="Geräte" />
+          <Tab active={route.name === "einstellungen"} onClick={() => setRoute({ name: "einstellungen" })} icon="menu" label="Mehr" />
         </nav>
       </div>
     </NavCtx.Provider>
@@ -69,10 +70,10 @@ function Screen({ route }: { route: Route }) {
   }
 }
 
-function Tab({ active, onClick, icon, label, primary }: { active: boolean; onClick: () => void; icon: string; label: string; primary?: boolean }) {
+function Tab({ active, onClick, icon, label, primary }: { active: boolean; onClick: () => void; icon: IconName; label: string; primary?: boolean }) {
   return (
-    <button className={`tab${active ? " active" : ""}${primary ? " primary" : ""}`} onClick={onClick}>
-      <span className="tab-icon">{icon}</span>
+    <button className={`tab${active ? " active" : ""}${primary ? " primary" : ""}`} onClick={onClick} aria-label={label}>
+      {primary ? <span className="tab-icon"><Icon name={icon} size={24} /></span> : <Icon name={icon} size={22} />}
       <span className="tab-label">{label}</span>
     </button>
   );

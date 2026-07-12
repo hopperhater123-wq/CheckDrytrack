@@ -4,6 +4,8 @@ import { store } from "../domain/store";
 import { MESSANLASS_LABEL, MESSVERFAHREN_LABEL, SCHICHT_TYP_LABEL } from "../app/labels";
 import { fmtDatum, fmtZahl } from "../app/format";
 import { BEWERTUNG_LABEL, GKG_RICHTWERT, absoluteFeuchteGKg, bewerteMessung, type Bewertung } from "../domain/mess";
+import { messprotokollHtml, printHtml } from "../domain/report";
+import { Icon } from "../ui/Icon";
 import type {
   Materialdatenbank, Messanlass, MessStatusCheckliste, Messverfahren, Raum, SchichtTyp,
 } from "../domain/types";
@@ -19,12 +21,19 @@ const BEWERTUNG_CHIP: Record<Bewertung, string> = {
 export function MessprotokollTab({ projektId, userId }: { projektId: string; userId: string }) {
   const db = useDB();
   const raeume = db.raum.filter((r) => r.projekt_id === projektId);
+  const projekt = db.projekt.find((p) => p.id === projektId);
+
+  const exportPdf = () => { if (projekt) printHtml(messprotokollHtml(projekt, db)); };
 
   if (raeume.length === 0) {
     return <section className="card"><p className="muted">Noch keine Räume erfasst. Räume unter „Übersicht" anlegen.</p></section>;
   }
   return (
     <>
+      <div className="screen-head" style={{ alignItems: "center" }}>
+        <span className="eyebrow">Feuchtemessung je Raum</span>
+        <button className="btn btn-sm" onClick={exportPdf}><Icon name="fileText" size={15} /> Als PDF exportieren</button>
+      </div>
       {raeume.map((r) => <RaumMessblock key={r.id} raum={r} userId={userId} />)}
     </>
   );

@@ -12,8 +12,10 @@ import { berechneVerbrauch, einsatzTage, istLaufend } from "../domain/einsatz";
 import type { Einsatz, FeedKategorie } from "../domain/types";
 import { AbbauModal } from "./AbbauModal";
 import { MessprotokollTab } from "./MessprotokollTab";
+import { GrundrissTab } from "./GrundrissTab";
+import { Icon } from "../ui/Icon";
 
-type Tab = "uebersicht" | "einsaetze" | "messung" | "feed" | "dokumente";
+type Tab = "uebersicht" | "einsaetze" | "messung" | "grundriss" | "feed" | "dokumente";
 
 export function ProjektDetail({ id }: { id: string }) {
   const db = useDB();
@@ -31,7 +33,7 @@ export function ProjektDetail({ id }: { id: string }) {
 
   return (
     <div className="screen">
-      <button className="back" onClick={() => nav({ name: "projekte" })}>‹ Projekte</button>
+      <button className="back" onClick={() => nav({ name: "projekte" })}><Icon name="chevronLeft" size={16} /> Projekte</button>
       <div className="detail-head">
         <div>
           <h1>{p.bezeichnung}</h1>
@@ -50,6 +52,7 @@ export function ProjektDetail({ id }: { id: string }) {
         <button className={tab === "uebersicht" ? "tabh active" : "tabh"} onClick={() => setTab("uebersicht")}>Übersicht</button>
         <button className={tab === "einsaetze" ? "tabh active" : "tabh"} onClick={() => setTab("einsaetze")}>Einsätze <span className="count">{einsaetze.length}</span></button>
         <button className={tab === "messung" ? "tabh active" : "tabh"} onClick={() => setTab("messung")}>Messprotokoll</button>
+        <button className={tab === "grundriss" ? "tabh active" : "tabh"} onClick={() => setTab("grundriss")}>Grundriss</button>
         <button className={tab === "feed" ? "tabh active" : "tabh"} onClick={() => setTab("feed")}>Feed</button>
         <button className={tab === "dokumente" ? "tabh active" : "tabh"} onClick={() => setTab("dokumente")}>Dokumente</button>
       </div>
@@ -67,6 +70,8 @@ export function ProjektDetail({ id }: { id: string }) {
       {tab === "einsaetze" && <EinsaetzeTab projektId={id} einsaetze={einsaetze} />}
 
       {tab === "messung" && <MessprotokollTab projektId={id} userId={user.id} />}
+
+      {tab === "grundriss" && <GrundrissTab projektId={id} userId={user.id} />}
 
       {tab === "feed" && <FeedTab projektId={id} userId={user.id} />}
 
