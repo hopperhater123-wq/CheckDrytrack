@@ -5,4 +5,16 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: { host: true, port: 5173 },
+  build: {
+    cssCodeSplit: false,
+    assetsInlineLimit: 100_000_000,
+    rollupOptions: {
+      output: {
+        format: "iife",
+        inlineDynamicImports: true,
+        entryFileNames: "app.js",
+        assetFileNames: "app.[ext]",
+      },
+    },
+  },
 });
