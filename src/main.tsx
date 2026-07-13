@@ -8,3 +8,11 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </StrictMode>,
 );
+
+// PWA: App-Shell offline verfügbar machen. Nur in sicheren Kontexten (https/localhost);
+// in der Single-File-Demo (Artifact) gibt es kein sw.js — der catch schluckt das.
+if ("serviceWorker" in navigator && !import.meta.env.DEV) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {});
+  });
+}

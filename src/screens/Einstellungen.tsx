@@ -1,7 +1,56 @@
+import { useEffect, useState } from "react";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { store } from "../domain/store";
 import { ROLLEN_LABEL } from "../domain/roles";
+import { Icon } from "../ui/Icon";
+
+// beforeinstallprompt ist Chromium-only und untypisiert.
+interface InstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+}
+
+function InstallCard() {
+  const [evt, setEvt] = useState<InstallPromptEvent | null>(null);
+  const [installiert, setInstalliert] = useState(
+    () => window.matchMedia("(display-mode: standalone)").matches,
+  );
+
+  useEffect(() => {
+    const onPrompt = (e: Event) => { e.preventDefault(); setEvt(e as InstallPromptEvent); };
+    const onInstalled = () => { setInstalliert(true); setEvt(null); };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Als App installieren</h2>
+        {installiert && <span className="chip chip-live">installiert</span>}
+      </div>
+      {installiert ? (
+        <p className="muted small">DryTrack läuft als installierte App — Startbildschirm-Icon, Vollbild, offline.</p>
+      ) : evt ? (
+        <>
+          <p className="muted small">DryTrack aufs Handy oder den Desktop holen: eigenes Icon, Vollbild ohne Browser-Leiste, funktioniert offline.</p>
+          <button className="btn btn-primary" onClick={() => evt.prompt()}>
+            <Icon name="droplet" size={16} /> Jetzt installieren
+          </button>
+        </>
+      ) : (
+        <p className="muted small">
+          <strong>iPhone/iPad:</strong> In Safari „Teilen" → „Zum Home-Bildschirm". ·{" "}
+          <strong>Android/Chrome:</strong> Menü ⋮ → „App installieren".
+          Voraussetzung: Die App läuft über HTTPS (nicht in dieser eingebetteten Demo).
+        </p>
+      )}
+    </section>
+  );
+}
 
 export function Einstellungen() {
   const db = useDB();
@@ -24,6 +73,8 @@ export function Einstellungen() {
   return (
     <div className="screen">
       <h1>Mehr</h1>
+
+      <InstallCard />
 
       <section className="card">
         <div className="card-head"><h2>Angemeldet als</h2></div>
