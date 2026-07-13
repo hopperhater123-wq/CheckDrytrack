@@ -6,13 +6,13 @@ import { store } from "../domain/store";
 import { PROJEKT_STATUS_LABEL } from "../app/labels";
 import { istLaufend } from "../domain/einsatz";
 
-export function ProjekteListe() {
+export function ProjekteListe({ neuInitial = false }: { neuInitial?: boolean }) {
   const db = useDB();
   const { user, can } = useSession();
   const nav = useNav();
   const [suche, setSuche] = useState("");
   const [zeigeArchiv, setZeigeArchiv] = useState(false);
-  const [neu, setNeu] = useState(false);
+  const [neu, setNeu] = useState(neuInitial);
 
   const projekte = db.projekt
     .filter((p) => zeigeArchiv || (p.status !== "abgeschlossen" && !p.storniert))

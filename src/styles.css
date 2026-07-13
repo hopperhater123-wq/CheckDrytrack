@@ -438,3 +438,36 @@ input::placeholder { color: var(--muted); }
 .activity .iconbox { width: 30px; height: 30px; border-radius: 9px; }
 .activity-text { font-size: 0.85rem; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .activity:hover .activity-text { color: var(--accent); }
+
+/* ---- Desktop / Office-Ansicht (Sidebar ab 1024px) ---- */
+.sidebar { display: none; }
+.maincol { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+.navitem { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px;
+  color: var(--muted); font-weight: 500; font-size: 0.9rem; border: none; background: none; cursor: pointer;
+  width: 100%; text-align: left; transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
+.navitem:hover { background: var(--surface-2); color: var(--text); }
+.navitem.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.navitem:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 2px; }
+.sidebar-cta { width: 100%; justify-content: center; margin: 12px 0 14px; }
+.sidebar-user { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 14px 6px 0;
+  border-top: 1px solid var(--hairline); }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-soft); color: var(--accent);
+  display: grid; place-items: center; font-weight: 700; font-size: 0.78rem; flex: none; letter-spacing: 0.02em; }
+.sidebar-user-name { font-weight: 600; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user .iconbtn { margin-left: auto; }
+
+@media (min-width: 1024px) {
+  .app { flex-direction: row; max-width: none; }
+  .topbar, .tabbar { display: none; }
+  .sidebar { display: flex; flex-direction: column; width: 250px; flex: none;
+    position: sticky; top: 0; height: 100vh; height: 100dvh;
+    padding: 22px 14px 18px; background: var(--surface); border-right: 1px solid var(--hairline); }
+  .sidebar .brand { padding: 0 8px 10px; }
+  .content { padding: 30px 36px 48px; max-width: 1200px; width: 100%; margin: 0 auto; }
+}
+
+/* ---- Einsatzkarte ---- */
+.karte { width: 100%; height: auto; display: block; margin-bottom: 10px; }
+.karte .pin { cursor: pointer; }
+.karte .pin:hover circle:nth-child(2) { fill: var(--accent-hover); }

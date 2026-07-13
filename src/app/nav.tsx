@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 
 export type Route =
   | { name: "dashboard" }
-  | { name: "projekte" }
+  | { name: "projekte"; neu?: boolean }
   | { name: "projekt"; id: string }
   | { name: "geraete" }
   | { name: "geraet"; inv: string }

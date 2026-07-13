@@ -24,35 +24,83 @@ export function App() {
   );
 }
 
+// Navigationsziele — mobil als Bottom-Tabs, am Desktop als Sidebar (Office-Ansicht).
+const NAV_ITEMS: { icon: IconName; label: string; ziel: Route; match: Route["name"][] }[] = [
+  { icon: "dashboard", label: "Dashboard", ziel: { name: "dashboard" }, match: ["dashboard"] },
+  { icon: "folder", label: "Projekte", ziel: { name: "projekte" }, match: ["projekte", "projekt"] },
+  { icon: "scan", label: "Scan", ziel: { name: "scan" }, match: ["scan"] },
+  { icon: "wind", label: "Geräte", ziel: { name: "geraete" }, match: ["geraete", "geraet"] },
+  { icon: "menu", label: "Einstellungen", ziel: { name: "einstellungen" }, match: ["einstellungen"] },
+];
+
 function Shell() {
   const [route, setRoute] = useState<Route>({ name: "dashboard" });
   const { user, logout } = useSession();
+  const initialen = user.name.split(" ").map((t) => t[0]).slice(0, 2).join("");
 
   return (
     <NavCtx.Provider value={setRoute}>
       <div className="app">
-        <header className="topbar">
+        {/* Sidebar — nur Desktop (Office) */}
+        <aside className="sidebar">
           <div className="brand" onClick={() => setRoute({ name: "dashboard" })}>
             <span className="logo"><Icon name="droplet" size={16} strokeWidth={2} /></span> DryTrack
           </div>
-          <div className="whoami">
-            <span className="whoami-name">{user.name}</span>
-            <span className="badge">{ROLLEN_LABEL[user.rolle]}</span>
-            <button className="iconbtn" onClick={logout} title="Abmelden" aria-label="Abmelden"><Icon name="logout" size={18} /></button>
+          <button className="btn btn-primary sidebar-cta" onClick={() => setRoute({ name: "projekte", neu: true })}>
+            <Icon name="plus" size={16} /> Neues Projekt
+          </button>
+          <nav className="sidebar-nav">
+            {NAV_ITEMS.map((n) => (
+              <button
+                key={n.label}
+                className={`navitem${n.match.includes(route.name) ? " active" : ""}`}
+                onClick={() => setRoute(n.ziel)}
+              >
+                <Icon name={n.icon} size={18} /> {n.label}
+              </button>
+            ))}
+          </nav>
+          <div className="sidebar-user">
+            <span className="avatar">{initialen}</span>
+            <div style={{ minWidth: 0 }}>
+              <div className="sidebar-user-name">{user.name}</div>
+              <div className="muted small">{ROLLEN_LABEL[user.rolle]}</div>
+            </div>
+            <button className="iconbtn" onClick={logout} title="Abmelden" aria-label="Abmelden"><Icon name="logout" size={17} /></button>
           </div>
-        </header>
+        </aside>
 
-        <main className="content">
-          <Screen route={route} />
-        </main>
+        <div className="maincol">
+          {/* Topbar — nur mobil */}
+          <header className="topbar">
+            <div className="brand" onClick={() => setRoute({ name: "dashboard" })}>
+              <span className="logo"><Icon name="droplet" size={16} strokeWidth={2} /></span> DryTrack
+            </div>
+            <div className="whoami">
+              <span className="whoami-name">{user.name}</span>
+              <span className="badge">{ROLLEN_LABEL[user.rolle]}</span>
+              <button className="iconbtn" onClick={logout} title="Abmelden" aria-label="Abmelden"><Icon name="logout" size={18} /></button>
+            </div>
+          </header>
 
-        <nav className="tabbar">
-          <Tab active={route.name === "dashboard"} onClick={() => setRoute({ name: "dashboard" })} icon="dashboard" label="Dashboard" />
-          <Tab active={route.name === "projekte" || route.name === "projekt"} onClick={() => setRoute({ name: "projekte" })} icon="folder" label="Projekte" />
-          <Tab active={route.name === "scan"} onClick={() => setRoute({ name: "scan" })} icon="scan" label="Scan" primary />
-          <Tab active={route.name === "geraete" || route.name === "geraet"} onClick={() => setRoute({ name: "geraete" })} icon="wind" label="Geräte" />
-          <Tab active={route.name === "einstellungen"} onClick={() => setRoute({ name: "einstellungen" })} icon="menu" label="Mehr" />
-        </nav>
+          <main className="content">
+            <Screen route={route} />
+          </main>
+
+          {/* Bottom-Tabs — nur mobil */}
+          <nav className="tabbar">
+            {NAV_ITEMS.map((n) => (
+              <Tab
+                key={n.label}
+                active={n.match.includes(route.name)}
+                onClick={() => setRoute(n.ziel)}
+                icon={n.icon}
+                label={n.label === "Einstellungen" ? "Mehr" : n.label}
+                primary={n.icon === "scan"}
+              />
+            ))}
+          </nav>
+        </div>
       </div>
     </NavCtx.Provider>
   );
@@ -61,7 +109,7 @@ function Shell() {
 function Screen({ route }: { route: Route }) {
   switch (route.name) {
     case "dashboard": return <Dashboard />;
-    case "projekte": return <ProjekteListe />;
+    case "projekte": return <ProjekteListe key={route.neu ? "neu" : "std"} neuInitial={route.neu} />;
     case "projekt": return <ProjektDetail id={route.id} />;
     case "geraete": return <GeraeteListe />;
     case "geraet": return <GeraetDetail inv={route.inv} />;

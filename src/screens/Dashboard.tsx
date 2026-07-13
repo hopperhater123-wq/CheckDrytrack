@@ -114,6 +114,9 @@ export function Dashboard() {
           <button className="linkbtn" style={{ marginTop: 10 }} onClick={() => nav({ name: "geraete" })}>Zur Geräteübersicht →</button>
         </section>
 
+        {/* Einsätze auf einen Blick (schematische Karte aus Geo-Koordinaten) */}
+        <EinsatzKarte />
+
         {/* Geräteverteilung */}
         <section className="tile col-2">
           <div className="card-head"><h2>Geräteverteilung</h2></div>
@@ -149,6 +152,57 @@ export function Dashboard() {
         </section>
       </div>
     </div>
+  );
+}
+
+/**
+ * Schematische Einsatzkarte: Projekt-Pins aus geo_lat/geo_lng (relative Lage, Luftlinie),
+ * Pin-Zahl = laufende Geräte. Bewusst ohne externe Karten-Tiles (offlinefähig, CSP-sicher) —
+ * echtes Kartenmaterial + Geocoding kommt mit der Office-Anbindung.
+ */
+function EinsatzKarte() {
+  const db = useDB();
+  const nav = useNav();
+  const punkte = db.projekt
+    .filter((p) => !p.storniert && p.status !== "abgeschlossen" && p.geo_lat != null && p.geo_lng != null)
+    .map((p) => ({
+      p,
+      laufend: db.einsatz.filter((e) => e.projekt_id === p.id && istLaufend(e)).length,
+      ort: (p.adresse.split(",").pop() ?? "").replace(/\d+/g, "").trim(),
+    }));
+  if (punkte.length === 0) return null;
+
+  const lats = punkte.map((x) => x.p.geo_lat!), lngs = punkte.map((x) => x.p.geo_lng!);
+  const spanLat = Math.max(0.2, Math.max(...lats) - Math.min(...lats));
+  const spanLng = Math.max(0.3, Math.max(...lngs) - Math.min(...lngs));
+  const W = 400, H = 210, PAD = 56;
+  const x = (lng: number) => PAD + ((lng - Math.min(...lngs)) / spanLng) * (W - 2 * PAD);
+  const y = (lat: number) => H - PAD - ((lat - Math.min(...lats)) / spanLat) * (H - 2 * PAD);
+
+  return (
+    <section className="tile col-2">
+      <div className="card-head"><h2>Einsätze auf einen Blick</h2>
+        <span className="muted small">schematisch</span>
+      </div>
+      <svg className="karte" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Schematische Karte der Einsatzorte">
+        <defs>
+          <pattern id="kgrid" width="22" height="22" patternUnits="userSpaceOnUse">
+            <circle cx="1.5" cy="1.5" r="1.2" fill="var(--border)" />
+          </pattern>
+        </defs>
+        <rect width={W} height={H} rx="12" fill="var(--surface-2)" />
+        <rect width={W} height={H} rx="12" fill="url(#kgrid)" />
+        {punkte.map(({ p, laufend, ort }) => (
+          <g key={p.id} className="pin" onClick={() => nav({ name: "projekt", id: p.id })}>
+            <circle cx={x(p.geo_lng!)} cy={y(p.geo_lat!)} r="17" fill="var(--accent)" opacity="0.18" />
+            <circle cx={x(p.geo_lng!)} cy={y(p.geo_lat!)} r="11" fill="var(--accent)" />
+            <text x={x(p.geo_lng!)} y={y(p.geo_lat!) + 3.5} textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--on-accent)">{laufend}</text>
+            <text x={x(p.geo_lng!)} y={y(p.geo_lat!) + 30} textAnchor="middle" fontSize="9.5" fill="var(--muted)">{ort}</text>
+          </g>
+        ))}
+      </svg>
+      <p className="muted small" style={{ marginBottom: 0 }}>Zahl im Pin = laufende Geräte · Tippen öffnet das Projekt · relative Lage (Luftlinie)</p>
+    </section>
   );
 }
 
