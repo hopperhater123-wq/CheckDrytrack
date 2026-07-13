@@ -272,6 +272,10 @@ export interface Besuchsbericht {
   fahrtkilometer: number | null;
   bemerkungen: string | null;
   geleistete_arbeiten: string;
+  // Unterschriften auf dem Gerät (Backlog ②): PNG als Data-URL — wird im PDF angezeigt.
+  unterschrift_kunde: string | null;
+  unterschrift_kunde_name: string | null; // wer unterschrieben hat (VN/Auftraggeber)
+  unterschrift_mitarbeiter: string | null;
   erstellt_von: string; // FK benutzer
   erstellt_am: string;
 }

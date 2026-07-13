@@ -127,6 +127,7 @@ export function seedDB(): DryTrackDB {
       { id: "bb-1", projekt_id: "p-1", datum: datum(-8), naechster_termin: datum(2), fahrtkilometer: 24,
         bemerkungen: "Kunde ist mit Fliesenauswahl Cera Vogue einverstanden. Keine Bohrungen im Duschbereich gewünscht.",
         geleistete_arbeiten: "Schutz und Bewegung 3h\nFM + TRO Aufbau\nStrömungskontrolle 0,5h\nBemusterung Cera Vogue",
+        unterschrift_kunde: null, unterschrift_kunde_name: null, unterschrift_mitarbeiter: null,
         erstellt_von: "u-monteur", erstellt_am: tage(8) },
     ],
     stunden_eintrag: [

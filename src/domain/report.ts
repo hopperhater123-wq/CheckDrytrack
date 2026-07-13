@@ -113,6 +113,11 @@ export function besuchsberichtHtml(bericht: Besuchsbericht, projekt: Projekt, db
     td { padding: 7px 8px; border-bottom: 1px solid #f0f1f4; }
     tfoot td { border-top: 2px solid #e7e9ee; border-bottom: none; font-weight: 700; }
     .text { border: 1px solid #e7e9ee; border-radius: 8px; padding: 10px 12px; line-height: 1.5; }
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 8px; page-break-inside: avoid; }
+    .sig img { height: 64px; max-width: 100%; object-fit: contain; display: block; }
+    .sig-leer { height: 64px; }
+    .sig-linie { border-bottom: 1px solid #0b0d12; margin-top: 2px; }
+    .sig-label { font-size: 11px; color: #667085; margin-top: 4px; }
     footer { margin-top: 28px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
@@ -139,6 +144,20 @@ export function besuchsberichtHtml(bericht: Besuchsbericht, projekt: Projekt, db
 
     ${bericht.bemerkungen ? `<h3>Bemerkungen</h3><div class="text">${absatz(bericht.bemerkungen)}</div>` : ""}
     <h3>Geleistete Arbeiten</h3><div class="text">${absatz(bericht.geleistete_arbeiten)}</div>
+
+    <h3>Unterschriften</h3>
+    <div class="sig-grid">
+      <div class="sig">
+        ${bericht.unterschrift_kunde ? `<img src="${bericht.unterschrift_kunde}" alt="Unterschrift Kunde">` : `<div class="sig-leer"></div>`}
+        <div class="sig-linie"></div>
+        <div class="sig-label">Kunde / Auftraggeber${bericht.unterschrift_kunde_name ? ` · ${esc(bericht.unterschrift_kunde_name)}` : ""}</div>
+      </div>
+      <div class="sig">
+        ${bericht.unterschrift_mitarbeiter ? `<img src="${bericht.unterschrift_mitarbeiter}" alt="Unterschrift Mitarbeiter">` : `<div class="sig-leer"></div>`}
+        <div class="sig-linie"></div>
+        <div class="sig-label">Mitarbeiter · ${esc(benutzer(bericht.erstellt_von))}</div>
+      </div>
+    </div>
 
     <footer>DryTrack · Besuchsbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
   </body></html>`;

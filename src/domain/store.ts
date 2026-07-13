@@ -301,6 +301,7 @@ class Store {
     projekt_id: string; datum: string; naechster_termin: string | null; fahrtkilometer: number | null;
     bemerkungen: string | null; geleistete_arbeiten: string;
     stunden: { mitarbeiter_name: string; gewerk: string; von: string; bis: string; pause_min: number }[];
+    unterschrift_kunde: string | null; unterschrift_kunde_name: string | null; unterschrift_mitarbeiter: string | null;
     erstellt_von: string;
   }) {
     const berichtId = uid("bb");
@@ -309,6 +310,8 @@ class Store {
         id: berichtId, projekt_id: params.projekt_id, datum: params.datum,
         naechster_termin: params.naechster_termin, fahrtkilometer: params.fahrtkilometer,
         bemerkungen: params.bemerkungen, geleistete_arbeiten: params.geleistete_arbeiten,
+        unterschrift_kunde: params.unterschrift_kunde, unterschrift_kunde_name: params.unterschrift_kunde_name,
+        unterschrift_mitarbeiter: params.unterschrift_mitarbeiter,
         erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
       });
       params.stunden.forEach((s) => {

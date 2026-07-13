@@ -489,3 +489,9 @@ textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--border); bor
   background: var(--surface-2); color: var(--text); font-size: 0.92rem; font-family: inherit; resize: vertical;
   transition: border-color var(--dur) var(--ease), background var(--dur); }
 textarea:focus { outline: none; border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-ring); }
+
+/* Signatur-Pad */
+.signatur { border: 1.5px dashed var(--border); border-radius: var(--radius-sm); background: var(--surface); overflow: hidden; }
+.signatur-canvas { display: block; touch-action: none; cursor: crosshair; width: 100%; }
+.signatur-fuss { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px;
+  border-top: 1px solid var(--hairline); background: var(--surface-2); }

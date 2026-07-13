@@ -5,6 +5,7 @@ import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
 import { besuchsberichtHtml, printHtml } from "../domain/report";
 import { Icon } from "../ui/Icon";
+import { SignaturPad } from "../ui/SignaturPad";
 
 // Besuchsberichte mit Stundennachweis (Alt-System-Analyse 13.07.2026, Backlog ①).
 export function BerichteTab({ projektId, userId }: { projektId: string; userId: string }) {
@@ -41,6 +42,9 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
                   {b.naechster_termin ? ` · nächster Termin ${fmtDatum(b.naechster_termin)}` : ""}
                 </span>
               </div>
+              <div className="listrow-side">
+                {b.unterschrift_kunde && <span className="chip small chip-live"><Icon name="check" size={12} /> unterschrieben</span>}
+              </div>
               <button className="btn btn-sm" onClick={() => projekt && printHtml(besuchsberichtHtml(b, projekt, db))}>
                 <Icon name="fileText" size={14} /> PDF
               </button>
@@ -69,6 +73,9 @@ function BerichtForm({ projektId, userId, onClose }: { projektId: string; userId
   const [bemerkungen, setBemerkungen] = useState("");
   const [arbeiten, setArbeiten] = useState("");
   const [zeilen, setZeilen] = useState<StundenZeile[]>([{ ...NEUE_ZEILE, mitarbeiter_name: ich?.name ?? "" }]);
+  const [sigKunde, setSigKunde] = useState<string | null>(null);
+  const [sigKundeName, setSigKundeName] = useState("");
+  const [sigMitarbeiter, setSigMitarbeiter] = useState<string | null>(null);
 
   const setZeile = (i: number, patch: Partial<StundenZeile>) =>
     setZeilen((z) => z.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
@@ -89,13 +96,17 @@ function BerichtForm({ projektId, userId, onClose }: { projektId: string; userId
         mitarbeiter_name: z.mitarbeiter_name.trim(), gewerk: z.gewerk.trim() || "Trocknung",
         von: z.von, bis: z.bis, pause_min: parseInt(z.pause, 10) || 0,
       })),
+      unterschrift_kunde: sigKunde, unterschrift_kunde_name: sigKunde ? (sigKundeName.trim() || null) : null,
+      unterschrift_mitarbeiter: sigMitarbeiter,
       erstellt_von: userId,
     });
     onClose();
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    // Bewusst KEIN Schließen per Backdrop-Klick: ein versehentlicher Tap daneben
+    // würde sonst Stunden + Unterschriften verwerfen. Schließen nur über die Buttons.
+    <div className="modal-backdrop">
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Besuchsbericht</h2>
 
@@ -145,6 +156,14 @@ function BerichtForm({ projektId, userId, onClose }: { projektId: string; userId
         <label className="field"><span>Geleistete Arbeiten *</span>
           <textarea rows={4} value={arbeiten} onChange={(e) => setArbeiten(e.target.value)} placeholder={"z. B.\nFM + TRO Aufbau\nStrömungskontrolle 0,5h"} />
         </label>
+
+        <h3>Unterschriften <span className="muted small">(optional — direkt auf dem Gerät)</span></h3>
+        <label className="field"><span>Kunde / Auftraggeber</span>
+          <input value={sigKundeName} onChange={(e) => setSigKundeName(e.target.value)} placeholder="Name des Unterzeichnenden" />
+        </label>
+        <SignaturPad value={sigKunde} onChange={setSigKunde} />
+        <label className="field" style={{ marginTop: 14 }}><span>Mitarbeiter ({ich?.name ?? ""})</span></label>
+        <SignaturPad value={sigMitarbeiter} onChange={setSigMitarbeiter} />
 
         <div className="modal-actions">
           <button className="btn" onClick={onClose}>Abbrechen</button>
