@@ -476,3 +476,16 @@ input::placeholder { color: var(--muted); }
 .estrich-detail { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 4px 0 2px 32px; }
 .estrich-detail select { width: auto; flex: 1; min-width: 180px; }
 .checkchip.on.danger { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+
+/* Stundennachweis (Besuchsbericht) */
+.stunden-zeile { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 10px;
+  display: flex; flex-direction: column; gap: 8px; background: var(--surface-2); }
+.stunden-zeile input { background: var(--surface); }
+.zeiten-row { display: flex; align-items: center; gap: 8px; }
+.zeiten-row input[type=time] { flex: 1; min-width: 0; }
+.zeiten-row .pause { width: 64px; flex: none; text-align: center; }
+.zeit-summe { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 46px; text-align: right; }
+textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface-2); color: var(--text); font-size: 0.92rem; font-family: inherit; resize: vertical;
+  transition: border-color var(--dur) var(--ease), background var(--dur); }
+textarea:focus { outline: none; border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-ring); }

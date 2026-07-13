@@ -123,6 +123,16 @@ export function seedDB(): DryTrackDB {
     grundriss_markierung: [],
     bemusterung: [],
     raum_foto: [],
+    besuchsbericht: [
+      { id: "bb-1", projekt_id: "p-1", datum: datum(-8), naechster_termin: datum(2), fahrtkilometer: 24,
+        bemerkungen: "Kunde ist mit Fliesenauswahl Cera Vogue einverstanden. Keine Bohrungen im Duschbereich gewünscht.",
+        geleistete_arbeiten: "Schutz und Bewegung 3h\nFM + TRO Aufbau\nStrömungskontrolle 0,5h\nBemusterung Cera Vogue",
+        erstellt_von: "u-monteur", erstellt_am: tage(8) },
+    ],
+    stunden_eintrag: [
+      { id: "st-1", besuchsbericht_id: "bb-1", mitarbeiter_name: "Kevin Berg", gewerk: "Trocknung", von: "08:30", bis: "14:30", pause_min: 0 },
+      { id: "st-2", besuchsbericht_id: "bb-1", mitarbeiter_name: "M. Pilic", gewerk: "Trocknung", von: "08:30", bis: "14:30", pause_min: 30 },
+    ],
     firmen_einstellung: [
       { schluessel: "freigabegrenze_eur", wert: "1500" },
     ],

@@ -263,6 +263,29 @@ export interface RaumFoto {
   aufgenommen_am: string;
 }
 
+// Besuchsbericht mit Stundennachweis (Alt-System-Analyse 13.07.2026, Backlog ①).
+export interface Besuchsbericht {
+  id: string;
+  projekt_id: string;
+  datum: string; // ISO-Date des Besuchs
+  naechster_termin: string | null; // ISO-Date
+  fahrtkilometer: number | null;
+  bemerkungen: string | null;
+  geleistete_arbeiten: string;
+  erstellt_von: string; // FK benutzer
+  erstellt_am: string;
+}
+
+export interface StundenEintrag {
+  id: string;
+  besuchsbericht_id: string;
+  mitarbeiter_name: string; // Freitext wie im Alt-System (nicht jeder Kollege ist App-Benutzer)
+  gewerk: string; // z. B. "Trocknung"
+  von: string; // "08:30"
+  bis: string; // "14:30"
+  pause_min: number;
+}
+
 export interface FirmenEinstellung {
   schluessel: string; // z.B. freigabegrenze_eur
   wert: string;
@@ -290,5 +313,7 @@ export interface DryTrackDB {
   grundriss_markierung: GrundrissMarkierung[];
   bemusterung: Bemusterung[];
   raum_foto: RaumFoto[];
+  besuchsbericht: Besuchsbericht[];
+  stunden_eintrag: StundenEintrag[];
   firmen_einstellung: FirmenEinstellung[];
 }

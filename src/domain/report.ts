@@ -1,7 +1,8 @@
 // PDF-Export via Druckdialog. Der Report wird in ein isoliertes iframe geschrieben
 // und dort gedruckt (sandbox-sicher) — der Browser bietet „Als PDF speichern" an.
-import type { DryTrackDB, Projekt } from "./types";
+import type { Besuchsbericht, DryTrackDB, Projekt } from "./types";
 import { bewerteMessung, BEWERTUNG_LABEL } from "./mess";
+import { arbeitszeitMin, minutenZuText } from "./zeit";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -72,6 +73,74 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
     </header>
     ${raumBlocks || "<p class='muted'>Keine Räume erfasst.</p>"}
     <footer>¹ Praxisrichtwert (kein DIN-Normwert). Widerstandsmessung maßgeblich; dielektrische Werte sind Orientierung. Richtwert absolute Feuchte ≤ 10 g/kg = trocken.</footer>
+  </body></html>`;
+}
+
+/** Besuchsbericht mit Stundennachweis — Layout angelehnt an den Alt-System-Bericht. */
+export function besuchsberichtHtml(bericht: Besuchsbericht, projekt: Projekt, db: DryTrackDB): string {
+  const benutzer = (id: string) => db.benutzer.find((b) => b.id === id)?.name ?? "—";
+  const stunden = db.stunden_eintrag.filter((s) => s.besuchsbericht_id === bericht.id);
+
+  let gesamtMin = 0;
+  const zeilen = stunden.map((s) => {
+    const min = arbeitszeitMin(s.von, s.bis, s.pause_min);
+    if (min !== null) gesamtMin += min;
+    return `<tr>
+      <td>${esc(s.mitarbeiter_name)}</td>
+      <td>${esc(s.gewerk)}</td>
+      <td>${esc(s.von)}</td>
+      <td>${esc(s.bis)}</td>
+      <td>${s.pause_min}</td>
+      <td><b>${min !== null ? minutenZuText(min) : "—"}</b></td>
+    </tr>`;
+  }).join("");
+
+  const absatz = (t: string) => esc(t).replace(/\n/g, "<br>");
+
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Besuchsbericht ${esc(projekt.projektnummer)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
+    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
+    .meta { color: #667085; font-size: 12px; text-align: right; }
+    .kopf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 6px; }
+    .kopf div { border: 1px solid #e7e9ee; border-radius: 8px; padding: 8px 10px; }
+    .kopf .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #667085; display: block; }
+    table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #667085; border-bottom: 1px solid #e7e9ee; padding: 6px 8px; }
+    td { padding: 7px 8px; border-bottom: 1px solid #f0f1f4; }
+    tfoot td { border-top: 2px solid #e7e9ee; border-bottom: none; font-weight: 700; }
+    .text { border: 1px solid #e7e9ee; border-radius: 8px; padding: 10px 12px; line-height: 1.5; }
+    footer { margin-top: 28px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
+  </style></head><body>
+    <header>
+      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Besuchsbericht · Stundennachweis</h1></div>
+      <div class="meta">
+        <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
+        <div>${esc(projekt.adresse)}</div>
+        <div>Erstellt von ${esc(benutzer(bericht.erstellt_von))}</div>
+      </div>
+    </header>
+
+    <div class="kopf">
+      <div><span class="lbl">Datum</span><b>${new Date(bericht.datum).toLocaleDateString("de-DE")}</b></div>
+      <div><span class="lbl">Nächster Termin</span><b>${bericht.naechster_termin ? new Date(bericht.naechster_termin).toLocaleDateString("de-DE") : "—"}</b></div>
+      <div><span class="lbl">Fahrtkilometer</span><b>${bericht.fahrtkilometer ?? 0} km</b></div>
+    </div>
+
+    <h3>Stundennachweis</h3>
+    <table>
+      <thead><tr><th>Mitarbeiter</th><th>Gewerk</th><th>Von</th><th>Bis</th><th>Pause (min)</th><th>Arbeitszeit</th></tr></thead>
+      <tbody>${zeilen || "<tr><td colspan='6' style='color:#98a1b0'>Keine Einträge</td></tr>"}</tbody>
+      <tfoot><tr><td colspan="5">Gesamt</td><td>${minutenZuText(gesamtMin)}</td></tr></tfoot>
+    </table>
+
+    ${bericht.bemerkungen ? `<h3>Bemerkungen</h3><div class="text">${absatz(bericht.bemerkungen)}</div>` : ""}
+    <h3>Geleistete Arbeiten</h3><div class="text">${absatz(bericht.geleistete_arbeiten)}</div>
+
+    <footer>DryTrack · Besuchsbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
   </body></html>`;
 }
 

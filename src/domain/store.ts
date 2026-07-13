@@ -51,7 +51,7 @@ class Store {
       benutzer: [], geraetetyp: [], geraet: [], versicherung: [], projekt: [], raum: [],
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messung: [], grundriss: [], grundriss_markierung: [],
-      bemusterung: [], raum_foto: [], firmen_einstellung: [],
+      bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], firmen_einstellung: [],
     };
     const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
     return { ...base, ...parsed } as DryTrackDB;
@@ -294,6 +294,30 @@ class Store {
         gemessen_von: params.gemessen_von, gemessen_am: new Date().toISOString(),
       });
     });
+  }
+
+  /** Besuchsbericht mit Stundennachweis anlegen (Alt-System-Analyse, Backlog ①). */
+  addBesuchsbericht(params: {
+    projekt_id: string; datum: string; naechster_termin: string | null; fahrtkilometer: number | null;
+    bemerkungen: string | null; geleistete_arbeiten: string;
+    stunden: { mitarbeiter_name: string; gewerk: string; von: string; bis: string; pause_min: number }[];
+    erstellt_von: string;
+  }) {
+    const berichtId = uid("bb");
+    this.commit((db) => {
+      db.besuchsbericht.push({
+        id: berichtId, projekt_id: params.projekt_id, datum: params.datum,
+        naechster_termin: params.naechster_termin, fahrtkilometer: params.fahrtkilometer,
+        bemerkungen: params.bemerkungen, geleistete_arbeiten: params.geleistete_arbeiten,
+        erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
+      });
+      params.stunden.forEach((s) => {
+        db.stunden_eintrag.push({ id: uid("st"), besuchsbericht_id: berichtId, ...s });
+      });
+      db.feed_eintrag.push(autoFeed(params.projekt_id, null, "check_out", params.erstellt_von,
+        `Besuchsbericht vom ${new Date(params.datum).toLocaleDateString("de-DE")} erstellt (${params.stunden.length} Stunden-Einträge).`));
+    });
+    return berichtId;
   }
 
   geraetById(inv: string): Geraet | undefined {
