@@ -134,6 +134,12 @@ export function seedDB(): DryTrackDB {
       { id: "st-1", besuchsbericht_id: "bb-1", mitarbeiter_name: "Kevin Berg", gewerk: "Trocknung", von: "08:30", bis: "14:30", pause_min: 0 },
       { id: "st-2", besuchsbericht_id: "bb-1", mitarbeiter_name: "M. Pilic", gewerk: "Trocknung", von: "08:30", bis: "14:30", pause_min: 30 },
     ],
+    termin: [
+      { id: "t-1", projekt_id: "p-1", datum: datum(0), uhrzeit: "08:30", mitarbeiter_id: "u-monteur", beschreibung: "TRO Abbau / Strömungskontrolle / WH aufnehmen", erledigt: false, erstellt_von: "u-dispo", erstellt_am: tage(2) },
+      { id: "t-2", projekt_id: "p-2", datum: datum(1), uhrzeit: "07:00", mitarbeiter_id: "u-monteur", beschreibung: "Messwerte nachtragen 4.OT", erledigt: false, erstellt_von: "u-dispo", erstellt_am: tage(2) },
+      { id: "t-3", projekt_id: "p-2", datum: datum(2), uhrzeit: "09:00", mitarbeiter_id: null, beschreibung: "Gefährdungsbeurteilung abschließen (Fäkalien)", erledigt: false, erstellt_von: "u-pl", erstellt_am: tage(1) },
+      { id: "t-4", projekt_id: "p-1", datum: datum(-1), uhrzeit: "10:00", mitarbeiter_id: "u-monteur", beschreibung: "Kontrollmessung Küche", erledigt: true, erstellt_von: "u-dispo", erstellt_am: tage(4) },
+    ],
     firmen_einstellung: [
       { schluessel: "freigabegrenze_eur", wert: "1500" },
     ],

@@ -10,6 +10,7 @@ import { GeraeteListe } from "./screens/GeraeteListe";
 import { GeraetDetail } from "./screens/GeraetDetail";
 import { ScanFlow } from "./screens/ScanFlow";
 import { Einstellungen } from "./screens/Einstellungen";
+import { TermineScreen } from "./screens/TermineScreen";
 import { ROLLEN_LABEL } from "./domain/roles";
 import { Icon, type IconName } from "./ui/Icon";
 
@@ -25,10 +26,11 @@ export function App() {
 }
 
 // Navigationsziele — mobil als Bottom-Tabs, am Desktop als Sidebar (Office-Ansicht).
-const NAV_ITEMS: { icon: IconName; label: string; ziel: Route; match: Route["name"][] }[] = [
+const NAV_ITEMS: { icon: IconName; label: string; ziel: Route; match: Route["name"][]; nurDesktop?: boolean }[] = [
   { icon: "dashboard", label: "Dashboard", ziel: { name: "dashboard" }, match: ["dashboard"] },
   { icon: "folder", label: "Projekte", ziel: { name: "projekte" }, match: ["projekte", "projekt"] },
   { icon: "scan", label: "Scan", ziel: { name: "scan" }, match: ["scan"] },
+  { icon: "calendar", label: "Termine", ziel: { name: "termine" }, match: ["termine"], nurDesktop: true },
   { icon: "wind", label: "Geräte", ziel: { name: "geraete" }, match: ["geraete", "geraet"] },
   { icon: "menu", label: "Einstellungen", ziel: { name: "einstellungen" }, match: ["einstellungen"] },
 ];
@@ -89,7 +91,7 @@ function Shell() {
 
           {/* Bottom-Tabs — nur mobil */}
           <nav className="tabbar">
-            {NAV_ITEMS.map((n) => (
+            {NAV_ITEMS.filter((n) => !n.nurDesktop).map((n) => (
               <Tab
                 key={n.label}
                 active={n.match.includes(route.name)}
@@ -114,6 +116,7 @@ function Screen({ route }: { route: Route }) {
     case "geraete": return <GeraeteListe />;
     case "geraet": return <GeraetDetail inv={route.inv} />;
     case "scan": return <ScanFlow />;
+    case "termine": return <TermineScreen />;
     case "einstellungen": return <Einstellungen />;
   }
 }

@@ -2,7 +2,7 @@
 type IconName =
   | "dashboard" | "folder" | "scan" | "wind" | "menu" | "plus" | "chevronRight" | "chevronLeft"
   | "alert" | "droplet" | "fileText" | "map" | "search" | "check" | "x" | "gauge" | "clock"
-  | "layers" | "logout" | "qr" | "barcode" | "spark";
+  | "layers" | "logout" | "qr" | "barcode" | "spark" | "calendar";
 
 const PATHS: Record<IconName, JSX.Element> = {
   dashboard: <><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></>,
@@ -27,6 +27,7 @@ const PATHS: Record<IconName, JSX.Element> = {
   qr: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3" /><path d="M20 14v7" /><path d="M14 20h3" /></>,
   barcode: <><path d="M4 6v12" /><path d="M8 6v12" /><path d="M12 6v12" /><path d="M16 6v12" /><path d="M20 6v12" /></>,
   spark: <path d="M12 3v4m0 10v4m9-9h-4M7 12H3m13.5-6.5-2.8 2.8m-5.4 5.4-2.8 2.8m11 0-2.8-2.8m-5.4-5.4L5.5 5.5" />,
+  calendar: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M8 2v4" /><path d="M16 2v4" /><path d="M3 9h18" /></>,
 };
 
 export function Icon({ name, size = 22, className, strokeWidth = 1.75 }: { name: IconName; size?: number; className?: string; strokeWidth?: number }) {

@@ -263,6 +263,19 @@ export interface RaumFoto {
   aufgenommen_am: string;
 }
 
+// Termin für die Wochenplanung (Alt-System-Analyse 13.07.2026, Backlog ③).
+export interface Termin {
+  id: string;
+  projekt_id: string;
+  datum: string; // ISO-Date
+  uhrzeit: string | null; // "08:30"
+  mitarbeiter_id: string | null; // FK benutzer, null = noch nicht zugewiesen
+  beschreibung: string; // z. B. "TRO Abbau / CeraVogue setzen / WH aufnehmen"
+  erledigt: boolean;
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 // Besuchsbericht mit Stundennachweis (Alt-System-Analyse 13.07.2026, Backlog ①).
 export interface Besuchsbericht {
   id: string;
@@ -319,5 +332,6 @@ export interface DryTrackDB {
   raum_foto: RaumFoto[];
   besuchsbericht: Besuchsbericht[];
   stunden_eintrag: StundenEintrag[];
+  termin: Termin[];
   firmen_einstellung: FirmenEinstellung[];
 }

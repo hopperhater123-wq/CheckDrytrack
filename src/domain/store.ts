@@ -51,7 +51,7 @@ class Store {
       benutzer: [], geraetetyp: [], geraet: [], versicherung: [], projekt: [], raum: [],
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messung: [], grundriss: [], grundriss_markierung: [],
-      bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], firmen_einstellung: [],
+      bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], termin: [], firmen_einstellung: [],
     };
     const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
     return { ...base, ...parsed } as DryTrackDB;
@@ -321,6 +321,24 @@ class Store {
         `Besuchsbericht vom ${new Date(params.datum).toLocaleDateString("de-DE")} erstellt (${params.stunden.length} Stunden-Einträge).`));
     });
     return berichtId;
+  }
+
+  /** Termin anlegen (Wochenplanung, Backlog ③). */
+  addTermin(params: { projekt_id: string; datum: string; uhrzeit: string | null; mitarbeiter_id: string | null; beschreibung: string; erstellt_von: string }) {
+    this.commit((db) => {
+      db.termin.push({
+        id: uid("t"), projekt_id: params.projekt_id, datum: params.datum, uhrzeit: params.uhrzeit,
+        mitarbeiter_id: params.mitarbeiter_id, beschreibung: params.beschreibung,
+        erledigt: false, erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
+      });
+    });
+  }
+
+  setTerminErledigt(termin_id: string, erledigt: boolean) {
+    this.commit((db) => {
+      const t = db.termin.find((x) => x.id === termin_id);
+      if (t) t.erledigt = erledigt;
+    });
   }
 
   geraetById(inv: string): Geraet | undefined {

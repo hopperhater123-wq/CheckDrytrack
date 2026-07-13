@@ -114,6 +114,9 @@ export function Dashboard() {
           <button className="linkbtn" style={{ marginTop: 10 }} onClick={() => nav({ name: "geraete" })}>Zur Geräteübersicht →</button>
         </section>
 
+        {/* Termine heute/morgen */}
+        <TermineKachel />
+
         {/* Einsätze auf einen Blick (schematische Karte aus Geo-Koordinaten) */}
         <EinsatzKarte />
 
@@ -202,6 +205,36 @@ function EinsatzKarte() {
         ))}
       </svg>
       <p className="muted small" style={{ marginBottom: 0 }}>Zahl im Pin = laufende Geräte · Tippen öffnet das Projekt · relative Lage (Luftlinie)</p>
+    </section>
+  );
+}
+
+function TermineKachel() {
+  const db = useDB();
+  const nav = useNav();
+  const heute = new Date().toISOString().slice(0, 10);
+  const morgen = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+  const anstehend = db.termin
+    .filter((t) => !t.erledigt && (t.datum === heute || t.datum === morgen))
+    .sort((a, b) => (a.datum + (a.uhrzeit ?? "99")) < (b.datum + (b.uhrzeit ?? "99")) ? -1 : 1)
+    .slice(0, 3);
+  const projektNr = (pid: string) => db.projekt.find((p) => p.id === pid)?.projektnummer ?? "";
+
+  return (
+    <section className="tile col-2">
+      <div className="card-head"><h2>Termine</h2>
+        <button className="linkbtn" onClick={() => nav({ name: "termine" })}>Wochenansicht</button>
+      </div>
+      {anstehend.length === 0 && <p className="muted small">Heute und morgen keine offenen Termine.</p>}
+      {anstehend.map((t) => (
+        <button key={t.id} className="activity" onClick={() => nav({ name: "projekt", id: t.projekt_id })}>
+          <span className="iconbox"><Icon name="calendar" size={15} /></span>
+          <div style={{ minWidth: 0 }}>
+            <div className="activity-text">{t.beschreibung}</div>
+            <div className="muted small">{t.datum === heute ? "Heute" : "Morgen"}{t.uhrzeit ? `, ${t.uhrzeit}` : ""} · {projektNr(t.projekt_id)}</div>
+          </div>
+        </button>
+      ))}
     </section>
   );
 }
