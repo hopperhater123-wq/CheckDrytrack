@@ -471,3 +471,8 @@ input::placeholder { color: var(--muted); }
 .karte { width: 100%; height: auto; display: block; margin-bottom: 10px; }
 .karte .pin { cursor: pointer; }
 .karte .pin:hover circle:nth-child(2) { fill: var(--accent-hover); }
+
+/* Estrich-Details + Warn-Checkchips (Raum-Detail) */
+.estrich-detail { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 4px 0 2px 32px; }
+.estrich-detail select { width: auto; flex: 1; min-width: 180px; }
+.checkchip.on.danger { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }

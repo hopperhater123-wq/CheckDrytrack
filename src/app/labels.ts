@@ -1,6 +1,6 @@
 import type {
-  DokumentTyp, FeedKategorie, FeedUrsprung, GeraetStatus, KontaminationArt, Messanlass,
-  Messverfahren, ProjektStatus, SchichtTyp,
+  DokumentTyp, EstrichBauart, FeedKategorie, FeedUrsprung, GeraetStatus, KontaminationArt,
+  Messanlass, Messverfahren, ProjektStatus, SchichtTyp,
 } from "../domain/types";
 
 export const PROJEKT_STATUS_LABEL: Record<ProjektStatus, string> = {
@@ -40,7 +40,25 @@ export const FEED_URSPRUNG_LABEL: Record<FeedUrsprung, string> = {
 
 export const SCHICHT_TYP_LABEL: Record<SchichtTyp, string> = {
   oberbelag: "Oberbelag", estrich: "Estrich", daemmung: "Dämmstoff",
+  putz: "Putz", mauerwerk: "Mauerwerk", decke_massiv: "Decke massiv",
+  decke_abgehaengt: "Decke abgehängt", schuettung: "Schüttung", dielung: "Dielung",
 };
+
+// Weitere betroffene Bauteile (neben dem Bodenaufbau), Alt-System-Analyse 13.07.2026.
+export const WEITERE_BAUTEILE: SchichtTyp[] = [
+  "putz", "mauerwerk", "decke_massiv", "decke_abgehaengt", "schuettung", "dielung",
+];
+
+export const BAUART_LABEL: Record<EstrichBauart, string> = {
+  schwimmend: "Schwimmender Estrich", verbund: "Verbundestrich", trennlage: "Estrich auf Trennlage",
+};
+
+export const RAUMTYPEN = [
+  "Wohnzimmer", "Schlafzimmer", "Kinderzimmer", "Küche", "Bad", "WC", "Flur",
+  "Büro", "Keller", "Heizungskeller", "Treppenhaus", "Abstellraum", "Sonstiger Raum",
+];
+
+export const GESCHOSSE = ["Keller", "EG", "1. OG", "2. OG", "3. OG", "DG"];
 
 export const MESSVERFAHREN_LABEL: Record<Messverfahren, string> = {
   widerstand: "Widerstand (maßgeblich)", dielektrisch: "Dielektrisch (Schätzung)",

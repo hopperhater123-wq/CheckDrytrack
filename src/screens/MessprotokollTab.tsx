@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
-import { MESSANLASS_LABEL, MESSVERFAHREN_LABEL, SCHICHT_TYP_LABEL } from "../app/labels";
+import { BAUART_LABEL, MESSANLASS_LABEL, MESSVERFAHREN_LABEL, SCHICHT_TYP_LABEL, WEITERE_BAUTEILE } from "../app/labels";
 import { fmtDatum, fmtZahl } from "../app/format";
 import { BEWERTUNG_LABEL, GKG_RICHTWERT, absoluteFeuchteGKg, bewerteMessung, type Bewertung } from "../domain/mess";
 import { messprotokollHtml, printHtml } from "../domain/report";
 import { Icon } from "../ui/Icon";
 import type {
-  Materialdatenbank, Messanlass, MessStatusCheckliste, Messverfahren, Raum, SchichtTyp,
+  EstrichBauart, Materialdatenbank, Messanlass, MessStatusCheckliste, Messverfahren, Raum, SchichtTyp,
 } from "../domain/types";
 
 const SCHICHTEN: SchichtTyp[] = ["oberbelag", "estrich", "daemmung"];
@@ -86,18 +86,30 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
 
 // --- Bodenaufbau -----------------------------------------------------------
 
-function AufbauEditor({ raum }: { raum: Raum }) {
+export function AufbauEditor({ raum }: { raum: Raum }) {
   const db = useDB();
   const schichten = db.bodenaufbau_schicht.filter((s) => s.raum_id === raum.id);
-  const aktuelles = (typ: SchichtTyp) => schichten.find((s) => s.schicht_typ === typ)?.material_id ?? "";
+  const schichtVon = (typ: SchichtTyp) => schichten.find((s) => s.schicht_typ === typ);
+  const estrich = schichtVon("estrich");
 
-  const setSchicht = (typ: SchichtTyp, materialId: string) => {
-    const next = SCHICHTEN.map((t) => ({
-      schicht_typ: t,
-      material_id: t === typ ? (materialId || null) : (aktuelles(t) || null),
+  // Kompletten Stand (Boden + weitere Bauteile) mit einer Änderung neu schreiben.
+  const speichern = (aenderung: { typ: SchichtTyp; material_id?: string | null; fussbodenheizung?: boolean; bauart?: EstrichBauart | null }) => {
+    const alle: SchichtTyp[] = [...SCHICHTEN, ...WEITERE_BAUTEILE];
+    store.setBodenaufbau(raum.id, alle.map((t) => {
+      const s = schichtVon(t);
+      const istZiel = t === aenderung.typ;
+      return {
+        schicht_typ: t,
+        material_id: istZiel && aenderung.material_id !== undefined ? aenderung.material_id : (s?.material_id ?? null),
+        fussbodenheizung: istZiel && aenderung.fussbodenheizung !== undefined ? aenderung.fussbodenheizung : s?.fussbodenheizung,
+        bauart: istZiel && aenderung.bauart !== undefined ? aenderung.bauart : s?.bauart,
+      };
     }));
-    store.setBodenaufbau(raum.id, next);
   };
+
+  // Bauteile ohne eigenes Material in der Materialdatenbank bekommen einen Freitext-Platzhalter.
+  const bauteilMaterial = (typ: SchichtTyp) =>
+    db.materialdatenbank.find((m) => m.schicht_typ === typ)?.id ?? db.materialdatenbank.find((m) => m.kategorie === "Bauteil")?.id ?? db.materialdatenbank[0]?.id ?? null;
 
   return (
     <div className="aufbau">
@@ -108,15 +120,44 @@ function AufbauEditor({ raum }: { raum: Raum }) {
           <div key={typ} className="aufbau-row">
             <span className="aufbau-num">{i + 1}</span>
             <span className="aufbau-label">{SCHICHT_TYP_LABEL[typ]}</span>
-            <select value={aktuelles(typ)} onChange={(e) => setSchicht(typ, e.target.value)}>
+            <select value={schichtVon(typ)?.material_id ?? ""} onChange={(e) => speichern({ typ, material_id: e.target.value || null })}>
               <option value="">— wählen —</option>
               {optionen.map((m) => <option key={m.id} value={m.id}>{m.bezeichnung}</option>)}
             </select>
           </div>
         );
       })}
+
+      {estrich && (
+        <div className="estrich-detail">
+          <label className="toggle">
+            <input type="checkbox" checked={estrich.fussbodenheizung ?? false}
+              onChange={(e) => speichern({ typ: "estrich", fussbodenheizung: e.target.checked })} />
+            Fußbodenheizung
+          </label>
+          <select value={estrich.bauart ?? ""} onChange={(e) => speichern({ typ: "estrich", bauart: (e.target.value || null) as EstrichBauart | null })}>
+            <option value="">Bauart wählen…</option>
+            {(Object.keys(BAUART_LABEL) as EstrichBauart[]).map((b) => <option key={b} value={b}>{BAUART_LABEL[b]}</option>)}
+          </select>
+        </div>
+      )}
+
+      <div className="aufbau-title" style={{ marginTop: 12 }}>Weitere betroffene Bauteile</div>
+      <div className="checkgrid">
+        {WEITERE_BAUTEILE.map((typ) => {
+          const aktiv = !!schichtVon(typ);
+          return (
+            <label key={typ} className={`checkchip${aktiv ? " on" : ""}`}>
+              <input type="checkbox" checked={aktiv}
+                onChange={(e) => speichern({ typ, material_id: e.target.checked ? bauteilMaterial(typ) : null })} />
+              {SCHICHT_TYP_LABEL[typ]}
+            </label>
+          );
+        })}
+      </div>
+
       {raum.daemmstoff_status && (
-        <p className="muted small">Dämmstoff-Status: <strong>{raum.daemmstoff_status}</strong> (bestätigt sich erst nach Bohrloch).</p>
+        <p className="muted small" style={{ marginBottom: 0 }}>Dämmstoff-Status: <strong>{raum.daemmstoff_status}</strong> (bestätigt sich erst nach Bohrloch).</p>
       )}
     </div>
   );

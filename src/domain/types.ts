@@ -58,8 +58,14 @@ export type Bewertungsmodell = "digit_grenzwert" | "vergleichsmessung" | "status
 export type Messverfahren = "widerstand" | "dielektrisch";
 export type Messanlass = "eingangsmessung" | "freimessung";
 
-// Bodenaufbau-Schichten (Oberbelag › Estrich › Dämmstoff), FR-KI-001-Dämmstoff-Konzept (006 Datenbank).
-export type SchichtTyp = "oberbelag" | "estrich" | "daemmung";
+// Bauteil-/Bodenaufbau-Schichten. Boden: Oberbelag › Estrich › Dämmung (006 Datenbank);
+// weitere Bauteile aus der Alt-System-Analyse 13.07.2026 (Putz, Mauerwerk, Decke, Schüttung, Dielung).
+export type SchichtTyp =
+  | "oberbelag" | "estrich" | "daemmung"
+  | "putz" | "mauerwerk" | "decke_massiv" | "decke_abgehaengt" | "schuettung" | "dielung";
+
+// Estrich-Bauart (Alt-System: SE mit/ohne FBH, Verbundestrich, Estrich auf Trennlage).
+export type EstrichBauart = "schwimmend" | "verbund" | "trennlage";
 
 // Status-Checkliste für Dämmstoffe/KMF (FR-MESS-001).
 export interface MessStatusCheckliste {
@@ -125,6 +131,19 @@ export interface Raum {
   bezeichnung: string;
   daemmstoff_status: DaemmstoffStatus | null;
   daemmstoff_material_id: string | null;
+  // Raum-Stammdaten (Alt-System-Analyse 13.07.2026)
+  raumtyp: string | null;
+  geschoss: string | null; // z. B. "EG", "1. OG", "DG", "Keller"
+  wohneinheit: string | null;
+  // Trocknungsart
+  trocknung_konstruktion: boolean | null;
+  trocknung_raum: boolean | null;
+  trocknung_schacht: boolean | null; // Schacht- und Hohlraumtrocknung
+  // Zustand bei Trocknungsbeginn
+  faekalschaden: boolean | null;
+  freies_wasser: boolean | null;
+  sichtbarer_schimmel: boolean | null;
+  betroffene_flaeche_m2: number | null;
 }
 
 // Herzstück der Plattform (10 · Einsätze)
@@ -180,13 +199,15 @@ export interface Materialdatenbank {
   schicht_typ: SchichtTyp | null;
 }
 
-// Eine Schicht im Bodenaufbau eines Raums (Ergänzung — Dämmstoff-/Bauteil-Konzept aus 006 Datenbank).
+// Eine Schicht im Bauteilaufbau eines Raums (006 Datenbank + Alt-System-Analyse 13.07.2026).
 export interface BodenaufbauSchicht {
   id: string;
   raum_id: string;
-  reihenfolge: number; // 0 = oberste Schicht (Oberbelag)
+  reihenfolge: number; // 0 = oberste Schicht (Oberbelag); weitere Bauteile ab 10
   schicht_typ: SchichtTyp;
   material_id: string;
+  fussbodenheizung: boolean | null; // nur estrich relevant
+  bauart: EstrichBauart | null; // nur estrich relevant
 }
 
 export interface Messung {

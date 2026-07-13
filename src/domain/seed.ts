@@ -55,10 +55,10 @@ export function seedDB(): DryTrackDB {
       },
     ],
     raum: [
-      { id: "r-1", projekt_id: "p-1", bezeichnung: "Küche", daemmstoff_status: "verdacht", daemmstoff_material_id: "mat-kmf" },
-      { id: "r-2", projekt_id: "p-1", bezeichnung: "Flur EG", daemmstoff_status: "unbekannt", daemmstoff_material_id: null },
-      { id: "r-3", projekt_id: "p-2", bezeichnung: "Heizungskeller", daemmstoff_status: "unbekannt", daemmstoff_material_id: null },
-      { id: "r-4", projekt_id: "p-3", bezeichnung: "Badezimmer OG", daemmstoff_status: "bestaetigt", daemmstoff_material_id: "mat-eps" },
+      { id: "r-1", projekt_id: "p-1", bezeichnung: "Küche", daemmstoff_status: "verdacht", daemmstoff_material_id: "mat-kmf", raumtyp: "Küche", geschoss: "EG", wohneinheit: "EG", trocknung_konstruktion: true, trocknung_raum: true, trocknung_schacht: false, faekalschaden: false, freies_wasser: false, sichtbarer_schimmel: false, betroffene_flaeche_m2: 12 },
+      { id: "r-2", projekt_id: "p-1", bezeichnung: "Flur EG", daemmstoff_status: "unbekannt", daemmstoff_material_id: null, raumtyp: "Flur", geschoss: "EG", wohneinheit: "EG", trocknung_konstruktion: null, trocknung_raum: null, trocknung_schacht: null, faekalschaden: null, freies_wasser: null, sichtbarer_schimmel: null, betroffene_flaeche_m2: null },
+      { id: "r-3", projekt_id: "p-2", bezeichnung: "Heizungskeller", daemmstoff_status: "unbekannt", daemmstoff_material_id: null, raumtyp: "Heizungskeller", geschoss: "Keller", wohneinheit: null, trocknung_konstruktion: null, trocknung_raum: null, trocknung_schacht: null, faekalschaden: null, freies_wasser: null, sichtbarer_schimmel: null, betroffene_flaeche_m2: null },
+      { id: "r-4", projekt_id: "p-3", bezeichnung: "Badezimmer OG", daemmstoff_status: "bestaetigt", daemmstoff_material_id: "mat-eps", raumtyp: "Bad", geschoss: "DG", wohneinheit: "OG", trocknung_konstruktion: null, trocknung_raum: null, trocknung_schacht: null, faekalschaden: null, freies_wasser: null, sichtbarer_schimmel: null, betroffene_flaeche_m2: null },
     ],
     einsatz: [
       { id: "e-1", projekt_id: "p-1", geraet_inventarnummer: "KT-1001", raum_id: "r-1", aufbau_datum: tage(8), abbau_datum: null, zaehlerstand_start: 1240.5, zaehlerstand_ende: null, verbrauch_geschaetzt: false },
@@ -109,9 +109,9 @@ export function seedDB(): DryTrackDB {
     ],
     // Beispiel-Bodenaufbau für die Küche (r-1): Fliese › Schwimmender Estrich › KMF
     bodenaufbau_schicht: [
-      { id: "bs-1", raum_id: "r-1", reihenfolge: 0, schicht_typ: "oberbelag", material_id: "mat-fliese" },
-      { id: "bs-2", raum_id: "r-1", reihenfolge: 1, schicht_typ: "estrich", material_id: "mat-schwimm" },
-      { id: "bs-3", raum_id: "r-1", reihenfolge: 2, schicht_typ: "daemmung", material_id: "mat-kmf" },
+      { id: "bs-1", raum_id: "r-1", reihenfolge: 0, schicht_typ: "oberbelag", material_id: "mat-fliese", fussbodenheizung: null, bauart: null },
+      { id: "bs-2", raum_id: "r-1", reihenfolge: 1, schicht_typ: "estrich", material_id: "mat-schwimm", fussbodenheizung: false, bauart: "schwimmend" },
+      { id: "bs-3", raum_id: "r-1", reihenfolge: 2, schicht_typ: "daemmung", material_id: "mat-kmf", fussbodenheizung: null, bauart: null },
     ],
     messung: [
       { id: "me-1", raum_id: "r-1", material_id: "mat-schwimm", messverfahren: "widerstand", anzeige_digit: 78, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 11.9, temperatur_c: 21, rel_luftfeuchte_prozent: 62, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(8) },

@@ -3,8 +3,8 @@
 // Über das `storage`-Event synchronisieren offene Tabs live (Annäherung an FR-Realtime).
 
 import type {
-  DryTrackDB, Einsatz, FeedEintrag, FeedKategorie, Geraet, Messanlass, MessStatusCheckliste,
-  Messverfahren, Projekt, ProjektStatus, Raum, SchichtTyp,
+  DryTrackDB, Einsatz, EstrichBauart, FeedEintrag, FeedKategorie, Geraet, Messanlass,
+  MessStatusCheckliste, Messverfahren, Projekt, ProjektStatus, Raum, SchichtTyp,
 } from "./types";
 import { absoluteFeuchteGKg } from "./mess";
 import { seedDB } from "./seed";
@@ -231,18 +231,38 @@ class Store {
   }
 
   addRaum(projekt_id: string, bezeichnung: string): Raum {
-    const raum: Raum = { id: uid("r"), projekt_id, bezeichnung, daemmstoff_status: "unbekannt", daemmstoff_material_id: null };
+    const raum: Raum = {
+      id: uid("r"), projekt_id, bezeichnung, daemmstoff_status: "unbekannt", daemmstoff_material_id: null,
+      raumtyp: null, geschoss: null, wohneinheit: null,
+      trocknung_konstruktion: null, trocknung_raum: null, trocknung_schacht: null,
+      faekalschaden: null, freies_wasser: null, sichtbarer_schimmel: null, betroffene_flaeche_m2: null,
+    };
     this.commit((db) => { db.raum.push(raum); });
     return raum;
   }
 
-  /** Bodenaufbau eines Raums setzen (Oberbelag › Estrich › Dämmstoff). null = Schicht entfernen. */
-  setBodenaufbau(raum_id: string, schichten: { schicht_typ: SchichtTyp; material_id: string | null }[]) {
+  /** Raum-Stammdaten, Trocknungsart und Zustand bei Trocknungsbeginn (Alt-System-Analyse 13.07.2026). */
+  setRaumDetails(raum_id: string, details: Partial<Omit<Raum, "id" | "projekt_id">>) {
+    this.commit((db) => {
+      const raum = db.raum.find((r) => r.id === raum_id);
+      if (raum) Object.assign(raum, details);
+    });
+  }
+
+  /** Bauteilaufbau eines Raums setzen. Boden (Reihenfolge 0–2) + weitere Bauteile (ab 10). */
+  setBodenaufbau(
+    raum_id: string,
+    schichten: { schicht_typ: SchichtTyp; material_id: string | null; fussbodenheizung?: boolean | null; bauart?: EstrichBauart | null }[],
+  ) {
     this.commit((db) => {
       db.bodenaufbau_schicht = db.bodenaufbau_schicht.filter((s) => s.raum_id !== raum_id);
       schichten.forEach((s, i) => {
         if (!s.material_id) return;
-        db.bodenaufbau_schicht.push({ id: uid("bs"), raum_id, reihenfolge: i, schicht_typ: s.schicht_typ, material_id: s.material_id });
+        db.bodenaufbau_schicht.push({
+          id: uid("bs"), raum_id, reihenfolge: i, schicht_typ: s.schicht_typ, material_id: s.material_id,
+          fussbodenheizung: s.schicht_typ === "estrich" ? (s.fussbodenheizung ?? null) : null,
+          bauart: s.schicht_typ === "estrich" ? (s.bauart ?? null) : null,
+        });
       });
       // Dämmstoff-Status am Raum mitziehen (006 Datenbank): Dämmschicht bekannt → mind. "verdacht".
       const raum = db.raum.find((r) => r.id === raum_id);

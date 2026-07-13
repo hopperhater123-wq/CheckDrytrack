@@ -12,6 +12,7 @@ import { berechneVerbrauch, einsatzTage, istLaufend } from "../domain/einsatz";
 import type { Einsatz, FeedKategorie } from "../domain/types";
 import { AbbauModal } from "./AbbauModal";
 import { MessprotokollTab } from "./MessprotokollTab";
+import { RaumDetailModal } from "./RaumDetailModal";
 import { GrundrissTab } from "./GrundrissTab";
 import { Icon } from "../ui/Icon";
 
@@ -94,6 +95,7 @@ function UebersichtTab(props: {
   raeume: import("../domain/types").Raum[]; laufend: number; canEdit: boolean; userId: string;
 }) {
   const [neuerRaum, setNeuerRaum] = useState("");
+  const [raumDetail, setRaumDetail] = useState<string | null>(null);
   const naechste = PROJEKT_STATUS_REIHENFOLGE.filter((s) => s !== props.status);
 
   return (
@@ -125,19 +127,34 @@ function UebersichtTab(props: {
       <section className="card">
         <div className="card-head"><h2>Räume</h2></div>
         {props.raeume.length === 0 && <p className="muted">Noch keine Räume erfasst.</p>}
-        {props.raeume.map((r) => (
-          <div key={r.id} className="listrow static">
-            <div className="listrow-main">
-              <span className="listrow-title">{r.bezeichnung}</span>
-              {r.daemmstoff_status && <span className="listrow-sub">Dämmstoff: {r.daemmstoff_status}</span>}
-            </div>
-          </div>
-        ))}
+        {props.raeume.map((r) => {
+          const warnungen = [
+            r.faekalschaden && "Fäkalschaden",
+            r.freies_wasser && "freies Wasser",
+            r.sichtbarer_schimmel && "Schimmel",
+          ].filter(Boolean).join(" · ");
+          const sub = [r.geschoss, r.wohneinheit, r.daemmstoff_status ? `Dämmstoff: ${r.daemmstoff_status}` : null]
+            .filter(Boolean).join(" · ");
+          return (
+            <button key={r.id} className="listrow" onClick={() => setRaumDetail(r.id)}>
+              <div className="listrow-main">
+                <span className="listrow-title">{r.bezeichnung}</span>
+                {sub && <span className="listrow-sub">{sub}</span>}
+              </div>
+              <div className="listrow-side">
+                {warnungen && <span className="chip small chip-danger">{warnungen}</span>}
+                <span className="muted small">Details ›</span>
+              </div>
+            </button>
+          );
+        })}
         <div className="inline-add">
           <input placeholder="Neuer Raum (z. B. Kinderzimmer)" value={neuerRaum} onChange={(e) => setNeuerRaum(e.target.value)} />
           <button className="btn" disabled={!neuerRaum.trim()} onClick={() => { store.addRaum(props.projektId, neuerRaum.trim()); setNeuerRaum(""); }}>+ Raum</button>
         </div>
       </section>
+
+      {raumDetail && <RaumDetailModal raumId={raumDetail} onClose={() => setRaumDetail(null)} />}
     </>
   );
 }
