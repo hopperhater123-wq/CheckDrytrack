@@ -8,6 +8,7 @@ import type {
 } from "./types";
 import { absoluteFeuchteGKg } from "./mess";
 import { seedDB } from "./seed";
+import { diffAusStaenden, pkVon, pushDiff, starteSync, type TabelleName } from "./remote";
 
 const STORAGE_KEY = "drytrack.db.v2"; // v2: Bodenaufbau/Messung-Felder ergänzt (Migration)
 type Listener = () => void;
@@ -64,13 +65,47 @@ class Store {
     }
   }
 
-  private commit(mutate: (db: DryTrackDB) => void) {
+  private commit(mutate: (db: DryTrackDB) => void, stumm = false) {
     // Immutable Copy, damit React-Consumer sicher neu rendern.
-    const next: DryTrackDB = structuredClone(this.db);
+    const prev = this.db;
+    const next: DryTrackDB = structuredClone(prev);
     mutate(next);
     this.db = next;
     this.persist(next);
     this.emit();
+    // Sync (008 Backend): Diff je Tabelle an Supabase — außer die Änderung KAM von dort.
+    if (!stumm) pushDiff(diffAusStaenden(prev, next));
+  }
+
+  /** Kompletter Serverstand ersetzt den lokalen Cache (nach Pull). */
+  private ersetzeVomServer(db: DryTrackDB) {
+    this.db = this.normalize(db);
+    this.persist(this.db);
+    this.emit();
+  }
+
+  /** Einzelne Realtime-Änderung einspielen (kein Re-Push → stumm). */
+  private wendeRemoteAn(tabelle: TabelleName, event: "INSERT" | "UPDATE" | "DELETE", neu: Record<string, unknown> | null, alt: Record<string, unknown> | null) {
+    if (!(tabelle in this.db)) return; // Events fremder Tabellen (z. B. Alt-Schema) ignorieren
+    const pk = pkVon(tabelle);
+    this.commit((db) => {
+      const rows = db[tabelle] as unknown as Record<string, unknown>[];
+      if (event === "DELETE") {
+        const key = alt?.[pk];
+        db[tabelle] = rows.filter((r) => r[pk] !== key) as never;
+      } else if (neu) {
+        const i = rows.findIndex((r) => r[pk] === neu[pk]);
+        if (i >= 0) rows[i] = neu; else rows.push(neu);
+      }
+    }, true);
+  }
+
+  /** Vom App-Start aufgerufen; ohne Konfiguration/Netz bleibt alles lokal. */
+  starteRemoteSync() {
+    void starteSync({
+      ersetzen: (db) => this.ersetzeVomServer(db),
+      anwenden: (t, e, n, a) => this.wendeRemoteAn(t, e, n, a),
+    });
   }
 
   private emit() {
@@ -88,6 +123,8 @@ class Store {
     localStorage.removeItem(STORAGE_KEY);
     this.db = this.load();
     this.emit();
+    // Mit Backend: frischen Serverstand ziehen statt lokalem Seed zu vertrauen.
+    this.starteRemoteSync();
   }
 
   // ---------------------------------------------------------------------------

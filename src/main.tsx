@@ -1,7 +1,11 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { store } from "./domain/store";
 import "./styles.css";
+
+// Supabase-Sync starten (008 Backend): Pull → Realtime; ohne Netz/Konfig rein lokal.
+store.starteRemoteSync();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

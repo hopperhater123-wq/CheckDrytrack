@@ -55,10 +55,10 @@ export function seedDB(): DryTrackDB {
       },
     ],
     raum: [
-      { id: "r-1", projekt_id: "p-1", bezeichnung: "Küche", daemmstoff_status: "verdacht", daemmstoff_material_id: "m-perlite" },
+      { id: "r-1", projekt_id: "p-1", bezeichnung: "Küche", daemmstoff_status: "verdacht", daemmstoff_material_id: "mat-kmf" },
       { id: "r-2", projekt_id: "p-1", bezeichnung: "Flur EG", daemmstoff_status: "unbekannt", daemmstoff_material_id: null },
       { id: "r-3", projekt_id: "p-2", bezeichnung: "Heizungskeller", daemmstoff_status: "unbekannt", daemmstoff_material_id: null },
-      { id: "r-4", projekt_id: "p-3", bezeichnung: "Badezimmer OG", daemmstoff_status: "bestaetigt", daemmstoff_material_id: "m-styropor" },
+      { id: "r-4", projekt_id: "p-3", bezeichnung: "Badezimmer OG", daemmstoff_status: "bestaetigt", daemmstoff_material_id: "mat-eps" },
     ],
     einsatz: [
       { id: "e-1", projekt_id: "p-1", geraet_inventarnummer: "KT-1001", raum_id: "r-1", aufbau_datum: tage(8), abbau_datum: null, zaehlerstand_start: 1240.5, zaehlerstand_ende: null, verbrauch_geschaetzt: false },

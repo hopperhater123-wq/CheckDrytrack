@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 
 // DryTrack — Mobile First / Offline First (siehe 000 Vision).
 export default defineConfig({
+  base: "./", // relative Pfade → läuft auch aus Unterordnern (z. B. Storage-Hosting)
   plugins: [react()],
   server: { host: true, port: 5173 },
   build: {
