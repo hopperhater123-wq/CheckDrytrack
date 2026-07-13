@@ -37,7 +37,12 @@ export function ProjektDetail({ id }: { id: string }) {
       <div className="detail-head">
         <div>
           <h1>{p.bezeichnung}</h1>
-          <p className="muted">{p.projektnummer} · {p.adresse}</p>
+          <p className="muted" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {p.projektnummer} · {p.adresse}
+            <a className="chip small" href={`https://www.google.com/maps?q=${encodeURIComponent(p.adresse)}`} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+              <Icon name="map" size={12} /> Route
+            </a>
+          </p>
         </div>
         <span className={`chip status-${p.status}`}>{PROJEKT_STATUS_LABEL[p.status]}</span>
       </div>
