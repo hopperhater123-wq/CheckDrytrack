@@ -5,9 +5,46 @@ Umsetzung aus der Notion-Dokumentation **„DryTrack — Docs"** (000 Vision →
 
 > Arbeitstitel „DryTrack" (Namensfindung offen, siehe 000 Vision).
 
-Das Herzstück ist die **Einsatzverwaltung**: nicht Geräte stehen im Mittelpunkt,
-sondern deren tatsächliche Einsätze innerhalb eines Projekts. Ein Einsatz dokumentiert
-den Lebenszyklus eines Geräts (Aufbau → Abbau) und erzeugt automatisch eine Historie.
+## 🌐 Live
+
+**App (PWA, installierbar):** https://zkuawtrwtmxhayshuxzv.supabase.co/functions/v1/app/
+
+- **Handy:** Link öffnen → Android/Chrome: Menü ⋮ → „App installieren" · iPhone/Safari: Teilen → „Zum Home-Bildschirm"
+- **Desktop:** gleiche URL, ab 1024px Fensterbreite erscheint die Office-Ansicht mit Sidebar
+- Daten liegen in **Supabase Postgres** (Projekt `zkuawtrwtmxhayshuxzv`, eu-central-1) und synchronisieren
+  live zwischen allen Geräten (Realtime). Offline funktioniert die App weiter; Änderungen werden
+  bei Wiederverbindung nachsynchronisiert.
+
+## Architektur
+
+```
+Browser/PWA (React + TS)
+  ├─ src/domain/store.ts     lokaler Store (localStorage) — Offline-First
+  ├─ src/domain/remote.ts    Sync: Pull aller Tabellen → Realtime-Subscription;
+  │                          Mutations-Diffs als idempotente PK-Upserts, Offline-Queue
+  └─ src/config.ts           Supabase-URL + Publishable Key (Client-Key, RLS-geschützt)
+
+Supabase (008 Backend / ADR-1)
+  ├─ Postgres: 18 Tabellen, deutsch, 1:1 aus "006 · Datenbank" (Migrationen im Projekt)
+  ├─ Realtime: publication auf allen Tabellen
+  └─ Edge Function "app": statisches Hosting der PWA (holt Build aus hosting/ im Repo)
+```
+
+**Sicherheit (Demo-Phase):** RLS ist aktiv, aber mit offenen Demo-Policies (`demo_vollzugriff`),
+damit die App ohne Login nutzbar ist. Produktiv ersetzt der Microsoft-365-Login (FR-SEC-001)
+diese Policies durch rollenbasierte — das Rollenmodell (04) ist in der App bereits abgebildet.
+
+## Entwicklung
+
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # Typecheck + Produktions-Build nach dist/
+```
+
+**Neue Version veröffentlichen:** `npm run build && rm -rf hosting && cp -r dist hosting`,
+committen und pushen — die Edge Function liefert immer den Stand aus `hosting/` auf dem Branch
+`claude/drytrack-docs-program-g64405` aus (Cache: 1 h, index.html/sw.js: no-cache).
 
 ## Was diese App umsetzt
 
