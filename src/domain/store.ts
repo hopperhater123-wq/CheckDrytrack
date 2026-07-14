@@ -52,7 +52,7 @@ class Store {
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
-      ersatzfliesenbericht: [], termin: [], firmen_einstellung: [],
+      ersatzfliesenbericht: [], kundenzufriedenheit: [], termin: [], firmen_einstellung: [],
     };
     const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
     return { ...base, ...parsed } as DryTrackDB;
@@ -414,6 +414,29 @@ class Store {
       });
       db.feed_eintrag.push(autoFeed(params.projekt_id, null, "check_out", params.erstellt_von,
         `Ersatzfliesenbericht vom ${new Date(params.datum).toLocaleDateString("de-DE")} erstellt.`));
+    });
+    return id;
+  }
+
+  /** Kundenzufriedenheit erfassen (Bewertung 1–5 je Dimension + Weiterempfehlung + Unterschrift). */
+  addKundenzufriedenheit(params: {
+    projekt_id: string; datum: string;
+    bewertung_freundlichkeit: number; bewertung_sauberkeit: number; bewertung_termintreue: number; bewertung_qualitaet: number;
+    weiterempfehlung: boolean; kommentar: string | null;
+    unterschrift_kunde: string | null; unterschrift_kunde_name: string | null; erstellt_von: string;
+  }) {
+    const id = uid("kz");
+    this.commit((db) => {
+      db.kundenzufriedenheit.push({
+        id, projekt_id: params.projekt_id, datum: params.datum,
+        bewertung_freundlichkeit: params.bewertung_freundlichkeit, bewertung_sauberkeit: params.bewertung_sauberkeit,
+        bewertung_termintreue: params.bewertung_termintreue, bewertung_qualitaet: params.bewertung_qualitaet,
+        weiterempfehlung: params.weiterempfehlung, kommentar: params.kommentar,
+        unterschrift_kunde: params.unterschrift_kunde, unterschrift_kunde_name: params.unterschrift_kunde_name,
+        erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
+      });
+      const schnitt = ((params.bewertung_freundlichkeit + params.bewertung_sauberkeit + params.bewertung_termintreue + params.bewertung_qualitaet) / 4).toFixed(1);
+      db.feed_eintrag.push(autoFeed(params.projekt_id, null, "manuell", params.erstellt_von, `Kundenzufriedenheit erfasst (Ø ${schnitt}/5${params.weiterempfehlung ? ", weiterempfohlen" : ""}).`, "kunde"));
     });
     return id;
   }

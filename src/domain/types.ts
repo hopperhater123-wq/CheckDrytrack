@@ -55,6 +55,7 @@ export type DokumentTyp =
   | "auftrag_abtretung"
   | "vertretervollmacht"
   | "ersatzfliesenbericht"
+  | "kundenzufriedenheit"
   | "kva"
   | "strombrief";
 
@@ -338,6 +339,23 @@ export interface Abnahmeprotokoll {
   erstellt_am: string;
 }
 
+// Kundenzufriedenheit (Alt-System): Bewertung der Leistung durch den Kunden (1–5) + Unterschrift.
+export interface Kundenzufriedenheit {
+  id: string;
+  projekt_id: string;
+  datum: string; // ISO-Date
+  bewertung_freundlichkeit: number; // 1–5
+  bewertung_sauberkeit: number;
+  bewertung_termintreue: number;
+  bewertung_qualitaet: number;
+  weiterempfehlung: boolean;
+  kommentar: string | null;
+  unterschrift_kunde: string | null;
+  unterschrift_kunde_name: string | null;
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 // Ersatzfliesenbericht (Alt-System): entfernte Fliesen, bemusterter Ersatz, Kundenbestätigung.
 // Die bemusterten Materialien liegen in der Tabelle `bemusterung` (projektbezogen).
 export interface Ersatzfliesenbericht {
@@ -383,6 +401,7 @@ export interface DryTrackDB {
   stunden_eintrag: StundenEintrag[];
   abnahmeprotokoll: Abnahmeprotokoll[];
   ersatzfliesenbericht: Ersatzfliesenbericht[];
+  kundenzufriedenheit: Kundenzufriedenheit[];
   termin: Termin[];
   firmen_einstellung: FirmenEinstellung[];
 }

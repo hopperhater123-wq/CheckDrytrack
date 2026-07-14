@@ -1,6 +1,6 @@
 // PDF-Export via Druckdialog. Der Report wird in ein isoliertes iframe geschrieben
 // und dort gedruckt (sandbox-sicher) — der Browser bietet „Als PDF speichern" an.
-import type { Abnahmeprotokoll, Besuchsbericht, DryTrackDB, Ersatzfliesenbericht, Projekt } from "./types";
+import type { Abnahmeprotokoll, Besuchsbericht, DryTrackDB, Ersatzfliesenbericht, Kundenzufriedenheit, Projekt } from "./types";
 import { bewerteMessung, BEWERTUNG_LABEL } from "./mess";
 import { arbeitszeitMin, minutenZuText } from "./zeit";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "./einsatz";
@@ -161,6 +161,71 @@ export function besuchsberichtHtml(bericht: Besuchsbericht, projekt: Projekt, db
     </div>
 
     <footer>DryTrack · Besuchsbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
+  </body></html>`;
+}
+
+/** Kundenzufriedenheit (14 · Dokumente): Bewertung der Leistung durch den Kunden (1–5) mit Unterschrift. */
+export function kundenzufriedenheitHtml(bericht: Kundenzufriedenheit, projekt: Projekt, db: DryTrackDB): string {
+  const benutzer = (id: string) => db.benutzer.find((b) => b.id === id)?.name ?? "—";
+  const absatz = (t: string) => esc(t).replace(/\n/g, "<br>");
+  const sterne = (n: number) => `<span class="sterne"><span class="voll">${"★".repeat(n)}</span>${"★".repeat(5 - n)}</span> <span class="wert">${n}/5</span>`;
+  const schnitt = ((bericht.bewertung_freundlichkeit + bericht.bewertung_sauberkeit + bericht.bewertung_termintreue + bericht.bewertung_qualitaet) / 4);
+  const zeile = (label: string, n: number) => `<tr><td>${label}</td><td class="rate">${sterne(n)}</td></tr>`;
+
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Kundenzufriedenheit ${esc(projekt.projektnummer)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
+    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
+    .meta { color: #667085; font-size: 12px; text-align: right; }
+    table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    td { padding: 8px 8px; border-bottom: 1px solid #f0f1f4; }
+    td.rate { text-align: right; white-space: nowrap; }
+    .sterne { letter-spacing: 2px; color: #d7dae1; } .sterne .voll { color: #f5a623; }
+    .wert { color: #667085; font-size: 12px; }
+    .schnitt { display: inline-flex; align-items: baseline; gap: 8px; margin-top: 10px; }
+    .schnitt b { font-size: 24px; color: #4f46e5; }
+    .empf { display: inline-block; font-weight: 700; padding: 5px 12px; border-radius: 999px; margin-top: 10px; }
+    .empf.ja { background: #dcfce7; color: #059669; } .empf.nein { background: #fee2e2; color: #dc2626; }
+    .text { border: 1px solid #e7e9ee; border-radius: 8px; padding: 10px 12px; line-height: 1.5; }
+    .sig { margin-top: 18px; page-break-inside: avoid; max-width: 320px; }
+    .sig img { height: 64px; max-width: 100%; object-fit: contain; display: block; }
+    .sig-leer { height: 64px; }
+    .sig-linie { border-bottom: 1px solid #0b0d12; margin-top: 2px; }
+    .sig-label { font-size: 11px; color: #667085; margin-top: 4px; }
+    footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
+  </style></head><body>
+    <header>
+      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Kundenzufriedenheit</h1></div>
+      <div class="meta">
+        <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
+        <div>${esc(projekt.adresse)}</div>
+        <div>Datum ${new Date(bericht.datum).toLocaleDateString("de-DE")}</div>
+      </div>
+    </header>
+
+    <h3>Bewertung</h3>
+    <table>
+      ${zeile("Freundlichkeit / Beratung", bericht.bewertung_freundlichkeit)}
+      ${zeile("Sauberkeit / Ordnung", bericht.bewertung_sauberkeit)}
+      ${zeile("Termintreue", bericht.bewertung_termintreue)}
+      ${zeile("Arbeitsqualität", bericht.bewertung_qualitaet)}
+    </table>
+    <div class="schnitt">Gesamteindruck: <b>${schnitt.toFixed(1)}</b> <span class="wert">/ 5</span></div><br>
+    <span class="empf ${bericht.weiterempfehlung ? "ja" : "nein"}">${bericht.weiterempfehlung ? "Würde weiterempfehlen" : "Würde nicht weiterempfehlen"}</span>
+
+    ${bericht.kommentar ? `<h3>Kommentar</h3><div class="text">${absatz(bericht.kommentar)}</div>` : ""}
+
+    <h3>Unterschrift</h3>
+    <div class="sig">
+      ${bericht.unterschrift_kunde ? `<img src="${bericht.unterschrift_kunde}" alt="Unterschrift Kunde">` : `<div class="sig-leer"></div>`}
+      <div class="sig-linie"></div>
+      <div class="sig-label">Kunde / Auftraggeber${bericht.unterschrift_kunde_name ? ` · ${esc(bericht.unterschrift_kunde_name)}` : ""}</div>
+    </div>
+
+    <footer>DryTrack · Kundenzufriedenheit vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erfasst von ${esc(benutzer(bericht.erstellt_von))} am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
   </body></html>`;
 }
 

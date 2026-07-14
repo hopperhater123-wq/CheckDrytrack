@@ -72,7 +72,8 @@ export const DOKUMENT_TYP_LABEL: Record<DokumentTyp, string> = {
   messprotokoll: "Messprotokoll", schadensaufnahme_doku: "Schadensaufnahme-Doku", erstbericht: "Erstbericht",
   abschlussbericht: "Abschlussbericht", abnahmeprotokoll: "Abnahmeprotokoll",
   auftrag_abtretung: "Auftrag & Abtretung", vertretervollmacht: "Vertretervollmacht",
-  ersatzfliesenbericht: "Ersatzfliesenbericht", kva: "KVA", strombrief: "Strombrief",
+  ersatzfliesenbericht: "Ersatzfliesenbericht", kundenzufriedenheit: "Kundenzufriedenheit",
+  kva: "KVA", strombrief: "Strombrief",
 };
 
 export const ABNAHME_STATUS_LABEL: Record<import("../domain/types").AbnahmeStatus, string> = {

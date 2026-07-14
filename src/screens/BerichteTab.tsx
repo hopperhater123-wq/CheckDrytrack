@@ -4,7 +4,7 @@ import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
-import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, printHtml } from "../domain/report";
+import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, printHtml } from "../domain/report";
 import { ABNAHME_STATUS_LABEL } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
 import { Icon } from "../ui/Icon";
@@ -27,7 +27,13 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
   const efBerichte = db.ersatzfliesenbericht
     .filter((e) => e.projekt_id === projektId)
     .sort((a, b) => (a.datum < b.datum ? 1 : -1));
+  const [neuKz, setNeuKz] = useState(false);
+  const kzBerichte = db.kundenzufriedenheit
+    .filter((k) => k.projekt_id === projektId)
+    .sort((a, b) => (a.datum < b.datum ? 1 : -1));
   const benutzerName = (id: string) => db.benutzer.find((u) => u.id === id)?.name ?? "—";
+  const kzSchnitt = (k: import("../domain/types").Kundenzufriedenheit) =>
+    ((k.bewertung_freundlichkeit + k.bewertung_sauberkeit + k.bewertung_termintreue + k.bewertung_qualitaet) / 4).toFixed(1);
 
   const gesamt = (berichtId: string) => {
     const min = db.stunden_eintrag
@@ -109,10 +115,108 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
         </div>}
       </section>
 
+      <section className="card">
+        <div className="card-head"><h2>Kundenzufriedenheit <span className="count">{kzBerichte.length}</span></h2>
+          <button className="btn btn-sm btn-primary" onClick={() => setNeuKz(true)}>+ Zufriedenheit</button>
+        </div>
+        {kzBerichte.length === 0 && <p className="muted">Noch keine Rückmeldung. Zum Projektabschluss die Kundenzufriedenheit erfassen — Bewertung mit Unterschrift.</p>}
+        {kzBerichte.map((k) => (
+          <div key={k.id} className="listrow static">
+            <div className="listrow-main">
+              <span className="listrow-title">Bewertung {fmtDatum(k.datum)} · Ø {kzSchnitt(k)}/5</span>
+              <span className="listrow-sub">{benutzerName(k.erstellt_von)} · {k.weiterempfehlung ? "empfiehlt weiter" : "keine Empfehlung"}</span>
+            </div>
+            <div className="listrow-side">
+              {k.unterschrift_kunde && <span className="chip small chip-live"><Icon name="check" size={12} /> unterschrieben</span>}
+            </div>
+            <button className="btn btn-sm" onClick={() => projekt && printHtml(kundenzufriedenheitHtml(k, projekt, db))}>
+              <Icon name="fileText" size={14} /> PDF
+            </button>
+          </div>
+        ))}
+      </section>
+
       <AnimatePresence>{neu && <BerichtForm projektId={projektId} userId={userId} onClose={() => setNeu(false)} />}</AnimatePresence>
       <AnimatePresence>{neuAbnahme && <AbnahmeForm projektId={projektId} userId={userId} onClose={() => setNeuAbnahme(false)} />}</AnimatePresence>
       <AnimatePresence>{neuEf && <ErsatzfliesenForm projektId={projektId} userId={userId} onClose={() => setNeuEf(false)} />}</AnimatePresence>
+      <AnimatePresence>{neuKz && <KundenzufriedenheitForm projektId={projektId} userId={userId} onClose={() => setNeuKz(false)} />}</AnimatePresence>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+// Sterne-Auswahl 1–5 für eine Bewertungsdimension.
+function SterneWahl({ wert, onChange }: { wert: number; onChange: (n: number) => void }) {
+  return (
+    <div className="sterne-wahl" role="radiogroup">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button key={n} type="button" className={`stern${n <= wert ? " on" : ""}`} aria-label={`${n} von 5`} aria-checked={n === wert} role="radio" onClick={() => onChange(n)}>★</button>
+      ))}
+    </div>
+  );
+}
+
+function KundenzufriedenheitForm({ projektId, userId, onClose }: { projektId: string; userId: string; onClose: () => void }) {
+  const db = useDB();
+  const heute = new Date().toISOString().slice(0, 10);
+  const [datum, setDatum] = useState(heute);
+  const [freundlichkeit, setFreundlichkeit] = useState(5);
+  const [sauberkeit, setSauberkeit] = useState(5);
+  const [termintreue, setTermintreue] = useState(5);
+  const [qualitaet, setQualitaet] = useState(5);
+  const [weiterempfehlung, setWeiterempfehlung] = useState(true);
+  const [kommentar, setKommentar] = useState("");
+  const [sigKunde, setSigKunde] = useState<string | null>(null);
+  const [sigKundeName, setSigKundeName] = useState("");
+  void db;
+
+  const speichern = () => {
+    store.addKundenzufriedenheit({
+      projekt_id: projektId, datum,
+      bewertung_freundlichkeit: freundlichkeit, bewertung_sauberkeit: sauberkeit,
+      bewertung_termintreue: termintreue, bewertung_qualitaet: qualitaet,
+      weiterempfehlung, kommentar: kommentar.trim() || null,
+      unterschrift_kunde: sigKunde, unterschrift_kunde_name: sigKunde ? (sigKundeName.trim() || null) : null,
+      erstellt_von: userId,
+    });
+    onClose();
+  };
+
+  return (
+    <Modal onClose={onClose} dismissable={false}>
+        <h2>Kundenzufriedenheit</h2>
+        <p className="muted small">Rückmeldung des Kunden zum Projektabschluss. Bewertung 1–5 Sterne.</p>
+
+        <label className="field"><span>Datum</span>
+          <input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+        </label>
+
+        <div className="kz-row"><span>Freundlichkeit / Beratung</span><SterneWahl wert={freundlichkeit} onChange={setFreundlichkeit} /></div>
+        <div className="kz-row"><span>Sauberkeit / Ordnung</span><SterneWahl wert={sauberkeit} onChange={setSauberkeit} /></div>
+        <div className="kz-row"><span>Termintreue</span><SterneWahl wert={termintreue} onChange={setTermintreue} /></div>
+        <div className="kz-row"><span>Arbeitsqualität</span><SterneWahl wert={qualitaet} onChange={setQualitaet} /></div>
+
+        <label className="toggle" style={{ marginTop: 12 }}>
+          <input type="checkbox" checked={weiterempfehlung} onChange={(e) => setWeiterempfehlung(e.target.checked)} />
+          Würde DryTrack weiterempfehlen
+        </label>
+
+        <label className="field"><span>Kommentar</span>
+          <textarea rows={2} value={kommentar} onChange={(e) => setKommentar(e.target.value)} placeholder="optional" />
+        </label>
+
+        <h3>Unterschrift <span className="muted small">(optional)</span></h3>
+        <label className="field"><span>Kunde / Auftraggeber</span>
+          <input value={sigKundeName} onChange={(e) => setSigKundeName(e.target.value)} placeholder="Name des Unterzeichnenden" />
+        </label>
+        <SignaturPad value={sigKunde} onChange={setSigKunde} />
+
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose}>Abbrechen</button>
+          <button className="btn btn-primary" onClick={speichern} disabled={!datum}>Speichern</button>
+        </div>
+      </Modal>
   );
 }
 
