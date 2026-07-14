@@ -18,6 +18,8 @@ createRoot(document.getElementById("root")!).render(
 // in der Single-File-Demo (Artifact) gibt es kein sw.js — der catch schluckt das.
 if ("serviceWorker" in navigator && !import.meta.env.DEV) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {});
+    // Relativ registrieren: funktioniert an der Domain-Wurzel UND auf Subpfad-Hosting
+    // (Edge Function unter /functions/v1/app/) — BASE_URL wäre dort fälschlich "/".
+    navigator.serviceWorker.register("sw.js").catch(() => {});
   });
 }
