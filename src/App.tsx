@@ -21,8 +21,8 @@ export function App() {
     // Globale Motion-Defaults: konsistentes Timing/Easing, Reduced-Motion respektiert.
     <MotionConfig transition={{ duration: DUR, ease: EASE }} reducedMotion="user">
       <SessionProvider users={db.benutzer}>
-        {(login) => (db.benutzer.length && !localStorage.getItem("drytrack.session.userId")
-          ? <Login users={db.benutzer} onLogin={login} />
+        {(login, auth) => (db.benutzer.length && !localStorage.getItem("drytrack.session.userId")
+          ? <Login users={db.benutzer} onLogin={login} ms365Fehler={auth.ms365Fehler} />
           : <Shell />)}
       </SessionProvider>
     </MotionConfig>

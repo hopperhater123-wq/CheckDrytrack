@@ -41,10 +41,17 @@ function supabase(): SupabaseClient | null {
   if (!SUPABASE_URL || !SUPABASE_KEY) return null;
   if (!client) {
     client = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
+      // Auth-fähig, damit derselbe Client den Microsoft-365-Login (OAuth-Redirect) tragen
+      // kann. Ohne aktiven Login werden die Anfragen weiter mit dem anon-Key ausgeführt.
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
     });
   }
   return client;
+}
+
+/** Geteilter Supabase-Client (auch für den Auth-Layer, src/domain/auth.ts). */
+export function getSupabaseClient(): SupabaseClient | null {
+  return supabase();
 }
 
 export function istVerbunden(): boolean {

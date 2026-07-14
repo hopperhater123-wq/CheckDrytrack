@@ -1,9 +1,13 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Benutzer } from "../domain/types";
 import { faehigkeiten, type Faehigkeiten } from "../domain/roles";
+import {
+  aktuelleIdentitaet, aufAuthAenderung, findeBenutzerZuIdentitaet, ms365Abmelden, ms365Aktiv,
+  type AuthIdentitaet,
+} from "../domain/auth";
 
-// Login-Stub: In Produktion läuft der Login über Microsoft 365 (FR-SEC-001).
-// Hier wählt man zu Demozwecken einen Benutzer/eine Rolle.
+// Anmeldung: produktiv Single-Sign-On über Microsoft 365 (FR-SEC-001), sonst Demo-Login
+// (Rolle wählen). Beide Wege setzen denselben Benutzer als aktive Session.
 interface Session {
   user: Benutzer;
   can: Faehigkeiten;
@@ -13,17 +17,37 @@ interface Session {
 const SessionCtx = createContext<Session | null>(null);
 const KEY = "drytrack.session.userId";
 
-export function SessionProvider({ users, children }: { users: Benutzer[]; children: (login: (u: Benutzer) => void) => ReactNode }) {
+export interface AuthState { ms365Fehler: string | null }
+
+export function SessionProvider({ users, children }: { users: Benutzer[]; children: (login: (u: Benutzer) => void, auth: AuthState) => ReactNode }) {
   const [userId, setUserId] = useState<string | null>(() => localStorage.getItem(KEY));
+  const [ms365Fehler, setMs365Fehler] = useState<string | null>(null);
   const user = users.find((u) => u.id === userId) ?? null;
 
   const login = (u: Benutzer) => { localStorage.setItem(KEY, u.id); setUserId(u.id); };
-  const logout = () => { localStorage.removeItem(KEY); setUserId(null); };
+  const logout = () => {
+    localStorage.removeItem(KEY);
+    setUserId(null);
+    if (ms365Aktiv()) void ms365Abmelden();
+  };
 
-  if (!user) return <>{children(login)}</>;
+  // Microsoft 365: bestehende Session übernehmen und auf die Rückkehr vom OAuth-Redirect reagieren.
+  useEffect(() => {
+    if (!ms365Aktiv()) return;
+    const anwenden = (id: AuthIdentitaet | null) => {
+      if (!id) return; // Abmeldung läuft über logout()
+      const b = findeBenutzerZuIdentitaet(users, id);
+      if (b) { localStorage.setItem(KEY, b.id); setUserId(b.id); setMs365Fehler(null); }
+      else setMs365Fehler(`Kein DryTrack-Zugang für ${id.email ?? id.name ?? "dieses Microsoft-Konto"}. Bitte an die Disposition wenden.`);
+    };
+    void aktuelleIdentitaet().then(anwenden);
+    return aufAuthAenderung(anwenden);
+  }, [users]);
+
+  if (!user) return <>{children(login, { ms365Fehler })}</>;
 
   const value: Session = { user, can: faehigkeiten(user.rolle), logout };
-  return <SessionCtx.Provider value={value}>{children(login)}</SessionCtx.Provider>;
+  return <SessionCtx.Provider value={value}>{children(login, { ms365Fehler })}</SessionCtx.Provider>;
 }
 
 export function useSession(): Session {

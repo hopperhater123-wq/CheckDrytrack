@@ -397,6 +397,12 @@ input::placeholder { color: var(--muted); }
   transition: transform var(--dur) var(--ease), border-color var(--dur), box-shadow var(--dur); }
 .login-user:hover { transform: translateX(3px); border-color: var(--accent); box-shadow: var(--shadow-sm); }
 .login-user-name { font-weight: 600; }
+.ms365-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; margin-top: 18px; }
+.login-demo { margin-top: 16px; }
+.login-demo > summary { cursor: pointer; color: var(--muted); font-size: 0.82rem; list-style: none; text-align: center; padding: 6px; }
+.login-demo > summary::-webkit-details-marker { display: none; }
+.login-demo > summary:hover { color: var(--accent); }
+.login-demo .login-users { margin-top: 10px; }
 
 .footer-note { text-align: center; color: var(--muted); font-size: 0.76rem; margin-top: 10px; }
 
