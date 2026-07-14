@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Modal, AnimatePresence, motion, staggerContainer, fadeUpItem } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
@@ -33,24 +34,27 @@ export function ProjekteListe({ neuInitial = false }: { neuInitial?: boolean }) 
       <label className="toggle"><input type="checkbox" checked={zeigeArchiv} onChange={(e) => setZeigeArchiv(e.target.checked)} /> Abgeschlossene/stornierte anzeigen</label>
 
       {projekte.length === 0 && <p className="muted">Keine Projekte gefunden.</p>}
-      {projekte.map((p) => {
-        const geraete = db.einsatz.filter((e) => e.projekt_id === p.id && istLaufend(e)).length;
-        return (
-          <button key={p.id} className="listrow" onClick={() => nav({ name: "projekt", id: p.id })}>
-            <div className="listrow-main">
-              <span className="listrow-title">{p.projektnummer} · {p.bezeichnung}</span>
-              <span className="listrow-sub">{p.adresse}</span>
-            </div>
-            <div className="listrow-side">
-              <span className={`chip status-${p.status}`}>{PROJEKT_STATUS_LABEL[p.status]}</span>
-              {geraete > 0 && <span className="muted small">{geraete} Geräte laufen</span>}
-              {p.storniert && <span className="chip chip-danger">storniert</span>}
-            </div>
-          </button>
-        );
-      })}
+      <motion.div className="liste" variants={staggerContainer} initial="hidden" animate="show"
+        style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {projekte.map((p) => {
+          const geraete = db.einsatz.filter((e) => e.projekt_id === p.id && istLaufend(e)).length;
+          return (
+            <motion.button layout variants={fadeUpItem} key={p.id} className="listrow" onClick={() => nav({ name: "projekt", id: p.id })}>
+              <div className="listrow-main">
+                <span className="listrow-title">{p.projektnummer} · {p.bezeichnung}</span>
+                <span className="listrow-sub">{p.adresse}</span>
+              </div>
+              <div className="listrow-side">
+                <span className={`chip status-${p.status}`}>{PROJEKT_STATUS_LABEL[p.status]}</span>
+                {geraete > 0 && <span className="muted small">{geraete} Geräte laufen</span>}
+                {p.storniert && <span className="chip chip-danger">storniert</span>}
+              </div>
+            </motion.button>
+          );
+        })}
+      </motion.div>
 
-      {neu && <NeuesProjekt onClose={() => setNeu(false)} onCreated={(id) => { setNeu(false); nav({ name: "projekt", id }); }} userId={user.id} />}
+      <AnimatePresence>{neu && <NeuesProjekt onClose={() => setNeu(false)} onCreated={(id) => { setNeu(false); nav({ name: "projekt", id }); }} userId={user.id} />}</AnimatePresence>
     </div>
   );
 }
@@ -67,8 +71,7 @@ function NeuesProjekt({ onClose, onCreated, userId }: { onClose: () => void; onC
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <h2>Neues Projekt</h2>
         <p className="muted small">Projektnummer (JJJJ-NNNN) wird automatisch vergeben.</p>
         <label className="field"><span>Bezeichnung (Kunde / Schaden)</span>
@@ -82,7 +85,6 @@ function NeuesProjekt({ onClose, onCreated, userId }: { onClose: () => void; onC
           <button className="btn" onClick={onClose}>Abbrechen</button>
           <button className="btn btn-primary" onClick={submit} disabled={!bezeichnung.trim() || !adresse.trim()}>Anlegen</button>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 }

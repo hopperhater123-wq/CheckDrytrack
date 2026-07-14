@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Modal, AnimatePresence } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
 import { BAUART_LABEL, MESSANLASS_LABEL, MESSVERFAHREN_LABEL, SCHICHT_TYP_LABEL, WEITERE_BAUTEILE } from "../app/labels";
@@ -79,7 +80,7 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
         );
       })}
 
-      {neu && <MessungForm raum={raum} userId={userId} onClose={() => setNeu(false)} />}
+      <AnimatePresence>{neu && <MessungForm raum={raum} userId={userId} onClose={() => setNeu(false)} />}</AnimatePresence>
     </section>
   );
 }
@@ -206,8 +207,7 @@ function MessungForm({ raum, userId, onClose }: { raum: Raum; userId: string; on
   const toggle = (k: keyof MessStatusCheckliste) => setCheckliste((c) => ({ ...c, [k]: !c[k] }));
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <h2>Messung — {raum.bezeichnung}</h2>
 
         <label className="field"><span>Material / Bauteil</span>
@@ -280,7 +280,6 @@ function MessungForm({ raum, userId, onClose }: { raum: Raum; userId: string; on
           <button className="btn" onClick={onClose}>Abbrechen</button>
           <button className="btn btn-primary" onClick={speichern} disabled={!gueltig}>Speichern</button>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 }

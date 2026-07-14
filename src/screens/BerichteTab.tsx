@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Modal, AnimatePresence } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
@@ -53,7 +54,7 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
         })}
       </section>
 
-      {neu && <BerichtForm projektId={projektId} userId={userId} onClose={() => setNeu(false)} />}
+      <AnimatePresence>{neu && <BerichtForm projektId={projektId} userId={userId} onClose={() => setNeu(false)} />}</AnimatePresence>
     </>
   );
 }
@@ -106,8 +107,7 @@ function BerichtForm({ projektId, userId, onClose }: { projektId: string; userId
   return (
     // Bewusst KEIN Schließen per Backdrop-Klick: ein versehentlicher Tap daneben
     // würde sonst Stunden + Unterschriften verwerfen. Schließen nur über die Buttons.
-    <div className="modal-backdrop">
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} dismissable={false}>
         <h2>Besuchsbericht</h2>
 
         <div className="two-col">
@@ -169,7 +169,6 @@ function BerichtForm({ projektId, userId, onClose }: { projektId: string; userId
           <button className="btn" onClick={onClose}>Abbrechen</button>
           <button className="btn btn-primary" onClick={speichern} disabled={!gueltig}>Speichern</button>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 }

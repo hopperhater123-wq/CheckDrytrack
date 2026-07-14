@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AnimatePresence, motion, EASE } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
@@ -65,6 +66,7 @@ export function ProjektDetail({ id }: { id: string }) {
         <button className={tab === "dokumente" ? "tabh active" : "tabh"} onClick={() => setTab("dokumente")}>Dokumente</button>
       </div>
 
+      <motion.div key={tab} className="tab-content" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, ease: EASE }}>
       {tab === "uebersicht" && (
         <UebersichtTab
           projektId={id} status={p.status} kontamination={p.kontamination_art}
@@ -86,6 +88,7 @@ export function ProjektDetail({ id }: { id: string }) {
       {tab === "feed" && <FeedTab projektId={id} userId={user.id} />}
 
       {tab === "dokumente" && <DokumenteTab projektId={id} kostenSichtbar={can.kostenSichtbar} benutzerName={benutzerName} />}
+      </motion.div>
     </div>
   );
 }
@@ -158,7 +161,7 @@ function UebersichtTab(props: {
         </div>
       </section>
 
-      {raumDetail && <RaumDetailModal raumId={raumDetail} onClose={() => setRaumDetail(null)} />}
+      <AnimatePresence>{raumDetail && <RaumDetailModal raumId={raumDetail} onClose={() => setRaumDetail(null)} />}</AnimatePresence>
     </>
   );
 }
@@ -216,7 +219,7 @@ function EinsaetzeTab({ projektId, einsaetze }: { projektId: string; einsaetze: 
           {beendet.map(zeile)}
         </section>
       )}
-      {abbau && <AbbauModal einsatz={abbau} onClose={() => setAbbau(null)} />}
+      <AnimatePresence>{abbau && <AbbauModal einsatz={abbau} onClose={() => setAbbau(null)} />}</AnimatePresence>
     </>
   );
 }

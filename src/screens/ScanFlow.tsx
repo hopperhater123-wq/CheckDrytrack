@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AnimatePresence } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
@@ -97,7 +98,7 @@ export function ScanFlow() {
         </section>
       )}
 
-      {abbau && <AbbauModal einsatz={abbau} onClose={() => { setAbbau(null); reset(); }} />}
+      <AnimatePresence>{abbau && <AbbauModal einsatz={abbau} onClose={() => { setAbbau(null); reset(); }} />}</AnimatePresence>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Modal } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { store } from "../domain/store";
@@ -37,8 +38,7 @@ export function AbbauModal({ einsatz, onClose }: { einsatz: Einsatz; onClose: ()
   const gueltig = defekt || (Number.isFinite(endNum) && endNum >= einsatz.zaehlerstand_start);
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <h2>Gerät abbauen</h2>
         <p className="muted small">{einsatz.geraet_inventarnummer} · {typ?.bezeichnung} · {tage} Einsatztage</p>
 
@@ -65,7 +65,6 @@ export function AbbauModal({ einsatz, onClose }: { einsatz: Einsatz; onClose: ()
           <button className="btn" onClick={onClose}>Abbrechen</button>
           <button className="btn btn-primary" onClick={abbauen} disabled={!gueltig}>Abbau bestätigen</button>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Modal, AnimatePresence, motion, staggerContainer, fadeUpItem } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
@@ -61,23 +62,25 @@ export function TermineScreen() {
         <input type="checkbox" checked={nurMeine} onChange={(e) => setNurMeine(e.target.checked)} /> Nur meine Termine
       </label>
 
+      <motion.div className="tage" variants={staggerContainer} initial="hidden" animate="show" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {tage.map((tag) => {
         const tagIso = isoTag(tag);
         const termine = termineAm(tagIso);
         if (!termine.length && woche !== 0) return null; // leere Tage nur in der aktuellen Woche zeigen
         return (
-          <section key={tagIso} className={`card tag-card${tagIso === heuteIso ? " heute" : ""}`}>
+          <motion.section layout variants={fadeUpItem} key={tagIso} className={`card tag-card${tagIso === heuteIso ? " heute" : ""}`}>
             <div className="card-head">
               <h2>{tag.toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit" })}</h2>
               {tagIso === heuteIso && <span className="chip small">Heute</span>}
             </div>
             {termine.length === 0 && <p className="muted small" style={{ margin: 0 }}>Keine Termine.</p>}
             {termine.map((t) => <TerminZeile key={t.id} termin={t} projektNr={projekt(t.projekt_id)?.projektnummer} projektName={projekt(t.projekt_id)?.bezeichnung} mitarbeiter={mitarbeiter(t.mitarbeiter_id)} onOpen={() => nav({ name: "projekt", id: t.projekt_id })} />)}
-          </section>
+          </motion.section>
         );
       })}
+      </motion.div>
 
-      {neu && <TerminForm userId={user.id} onClose={() => setNeu(false)} />}
+      <AnimatePresence>{neu && <TerminForm userId={user.id} onClose={() => setNeu(false)} />}</AnimatePresence>
     </div>
   );
 }
@@ -86,7 +89,7 @@ function TerminZeile({ termin, projektNr, projektName, mitarbeiter, onOpen }: {
   termin: Termin; projektNr?: string; projektName?: string; mitarbeiter: string | null; onOpen: () => void;
 }) {
   return (
-    <div className={`termin${termin.erledigt ? " erledigt" : ""}`}>
+    <motion.div layout className={`termin${termin.erledigt ? " erledigt" : ""}`}>
       <button
         className={`termin-check${termin.erledigt ? " on" : ""}`}
         onClick={() => store.setTerminErledigt(termin.id, !termin.erledigt)}
@@ -102,7 +105,7 @@ function TerminZeile({ termin, projektNr, projektName, mitarbeiter, onOpen }: {
         </span>
         <Icon name="chevronRight" size={16} />
       </button>
-    </div>
+    </motion.div>
   );
 }
 
@@ -126,8 +129,7 @@ function TerminForm({ userId, onClose }: { userId: string; onClose: () => void }
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <h2>Neuer Termin</h2>
         <label className="field"><span>Projekt *</span>
           <select value={projektId} onChange={(e) => setProjektId(e.target.value)}>
@@ -155,7 +157,6 @@ function TerminForm({ userId, onClose }: { userId: string; onClose: () => void }
           <button className="btn" onClick={onClose}>Abbrechen</button>
           <button className="btn btn-primary" onClick={speichern} disabled={!gueltig}>Anlegen</button>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 }

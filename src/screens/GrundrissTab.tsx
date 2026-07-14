@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Modal, AnimatePresence } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
@@ -64,7 +65,7 @@ export function GrundrissTab({ projektId, userId }: { projektId: string; userId:
             </div>
           ))}
 
-          {neu && <MarkierungForm grundrissId={grundriss.id} raeume={raeume} userId={userId} onClose={() => setNeu(false)} />}
+          <AnimatePresence>{neu && <MarkierungForm grundrissId={grundriss.id} raeume={raeume} userId={userId} onClose={() => setNeu(false)} />}</AnimatePresence>
         </>
       )}
     </section>
@@ -85,8 +86,7 @@ function MarkierungForm({ grundrissId, raeume, userId, onClose }: {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <h2>Markierung hinzufügen</h2>
         <label className="field"><span>Für wen?</span>
           <div className="segmented" style={{ display: "flex" }}>
@@ -107,7 +107,6 @@ function MarkierungForm({ grundrissId, raeume, userId, onClose }: {
           <button className="btn" onClick={onClose}>Abbrechen</button>
           <button className="btn btn-primary" onClick={speichern} disabled={!text.trim()}>Speichern</button>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 }

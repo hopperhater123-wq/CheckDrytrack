@@ -5,6 +5,7 @@ import { FEED_KATEGORIE_LABEL, FEED_URSPRUNG_LABEL, PROJEKT_STATUS_LABEL, PROJEK
 import { relativZeit } from "../app/format";
 import { istLaufend } from "../domain/einsatz";
 import { Icon, type IconName } from "../ui/Icon";
+import { motion, staggerContainer, fadeUpItem } from "../ui/motion";
 import type { FeedUrsprung } from "../domain/types";
 
 // Farbrampe für den Geräteverteilungs-Donut (Akzent → Ausläufer).
@@ -54,9 +55,9 @@ export function Dashboard() {
 
   return (
     <div className="screen">
-      <div className="bento">
+      <motion.div className="bento" variants={staggerContainer} initial="hidden" animate="show">
         {/* Hero */}
-        <section className="tile accent col-all hero">
+        <motion.section variants={fadeUpItem} className="tile accent col-all hero">
           <div className="hero-row">
             <div>
               <span className="eyebrow">{new Date().toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long" })}</span>
@@ -67,7 +68,7 @@ export function Dashboard() {
               <Icon name="scan" size={18} /> Scannen
             </button>
           </div>
-        </section>
+        </motion.section>
 
         {/* KPIs */}
         <Kpi value={offene.length} label="Aktive Projekte" icon="folder" onClick={() => nav({ name: "projekte" })} />
@@ -76,7 +77,7 @@ export function Dashboard() {
         <Kpi value={laufende} label="Laufende Einsätze" icon="clock" />
 
         {/* Aktive Projekte mit Fortschritt */}
-        <section className="tile col-2">
+        <motion.section variants={fadeUpItem} className="tile col-2">
           <div className="card-head"><h2>Aktive Projekte</h2>
             <button className="linkbtn" onClick={() => nav({ name: "projekte" })}>Alle anzeigen</button>
           </div>
@@ -100,10 +101,10 @@ export function Dashboard() {
               </button>
             );
           })}
-        </section>
+        </motion.section>
 
         {/* E-Check Übersicht (Triage-Buckets) */}
-        <section className="tile col-2">
+        <motion.section variants={fadeUpItem} className="tile col-2">
           <div className="card-head"><h2>E-Check Übersicht</h2>
             {(ueberfaellig + in7) > 0 && <span className="chip chip-danger"><Icon name="alert" size={13} /> {ueberfaellig + in7}</span>}
           </div>
@@ -112,7 +113,7 @@ export function Dashboard() {
           <Bucket farbe="var(--warn)" label="Fällig in 30 Tagen" wert={geraeteText(in30)} tone={in30 ? "warn" : undefined} onClick={() => nav({ name: "geraete" })} />
           <Bucket farbe="var(--ok)" label="In Ordnung" wert={geraeteText(inOrdnung)} tone="ok" onClick={() => nav({ name: "geraete" })} />
           <button className="linkbtn" style={{ marginTop: 10 }} onClick={() => nav({ name: "geraete" })}>Zur Geräteübersicht →</button>
-        </section>
+        </motion.section>
 
         {/* Termine heute/morgen */}
         <TermineKachel />
@@ -121,7 +122,7 @@ export function Dashboard() {
         <EinsatzKarte />
 
         {/* Geräteverteilung */}
-        <section className="tile col-2">
+        <motion.section variants={fadeUpItem} className="tile col-2">
           <div className="card-head"><h2>Geräteverteilung</h2></div>
           <div className="donut-wrap">
             <Donut data={verteilung} total={db.geraet.length} />
@@ -135,10 +136,10 @@ export function Dashboard() {
             </div>
           </div>
           {inWerkstatt > 0 && <p className="muted small" style={{ marginBottom: 0 }}>{geraeteText(inWerkstatt)} aktuell in der Werkstatt.</p>}
-        </section>
+        </motion.section>
 
         {/* Letzte Aktivitäten */}
-        <section className="tile col-2">
+        <motion.section variants={fadeUpItem} className="tile col-2">
           <div className="card-head"><h2>Letzte Aktivitäten</h2></div>
           {aktivitaeten.length === 0 && <p className="muted small">Noch keine Aktivitäten.</p>}
           {aktivitaeten.map((f) => (
@@ -152,8 +153,8 @@ export function Dashboard() {
               </div>
             </button>
           ))}
-        </section>
-      </div>
+        </motion.section>
+      </motion.div>
     </div>
   );
 }
@@ -183,7 +184,7 @@ function EinsatzKarte() {
   const y = (lat: number) => H - PAD - ((lat - Math.min(...lats)) / spanLat) * (H - 2 * PAD);
 
   return (
-    <section className="tile col-2">
+    <motion.section variants={fadeUpItem} className="tile col-2">
       <div className="card-head"><h2>Einsätze auf einen Blick</h2>
         <span className="muted small">schematisch</span>
       </div>
@@ -205,7 +206,7 @@ function EinsatzKarte() {
         ))}
       </svg>
       <p className="muted small" style={{ marginBottom: 0 }}>Zahl im Pin = laufende Geräte · Tippen öffnet das Projekt · relative Lage (Luftlinie)</p>
-    </section>
+    </motion.section>
   );
 }
 
@@ -221,7 +222,7 @@ function TermineKachel() {
   const projektNr = (pid: string) => db.projekt.find((p) => p.id === pid)?.projektnummer ?? "";
 
   return (
-    <section className="tile col-2">
+    <motion.section variants={fadeUpItem} className="tile col-2">
       <div className="card-head"><h2>Termine</h2>
         <button className="linkbtn" onClick={() => nav({ name: "termine" })}>Wochenansicht</button>
       </div>
@@ -235,14 +236,14 @@ function TermineKachel() {
           </div>
         </button>
       ))}
-    </section>
+    </motion.section>
   );
 }
 
 function Kpi({ value, label, icon, onClick }: { value: number; label: string; icon: IconName; onClick?: () => void }) {
-  const Tag = onClick ? "button" : "div";
+  const Tag = onClick ? motion.button : motion.div;
   return (
-    <Tag className={`tile${onClick ? " click" : ""}`} onClick={onClick} style={{ textAlign: "left" }}>
+    <Tag className={`tile${onClick ? " click" : ""}`} variants={fadeUpItem} onClick={onClick} style={{ textAlign: "left" }}>
       <div className="kpi-head">
         <span className="iconbox"><Icon name={icon} size={16} /></span>
         <span className="kpi-label2">{label}</span>

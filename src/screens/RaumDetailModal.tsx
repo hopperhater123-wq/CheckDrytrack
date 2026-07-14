@@ -1,4 +1,5 @@
 import { useDB } from "../app/useStore";
+import { Modal } from "../ui/motion";
 import { store } from "../domain/store";
 import { GESCHOSSE, RAUMTYPEN } from "../app/labels";
 import { AufbauEditor } from "./MessprotokollTab";
@@ -15,8 +16,7 @@ export function RaumDetailModal({ raumId, onClose }: { raumId: string; onClose: 
   const zahl = (s: string) => { const n = parseFloat(s.replace(",", ".")); return Number.isFinite(n) ? n : null; };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose}>
         <h2>{raum.bezeichnung}</h2>
         <p className="muted small">Änderungen werden sofort gespeichert und synchronisiert.</p>
 
@@ -80,7 +80,6 @@ export function RaumDetailModal({ raumId, onClose }: { raumId: string; onClose: 
         <div className="modal-actions">
           <button className="btn btn-primary" onClick={onClose}>Fertig</button>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 }

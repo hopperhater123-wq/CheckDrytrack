@@ -13,15 +13,19 @@ import { Einstellungen } from "./screens/Einstellungen";
 import { TermineScreen } from "./screens/TermineScreen";
 import { ROLLEN_LABEL } from "./domain/roles";
 import { Icon, type IconName } from "./ui/Icon";
+import { MotionConfig, EASE, DUR } from "./ui/motion";
 
 export function App() {
   const db = useDB();
   return (
-    <SessionProvider users={db.benutzer}>
-      {(login) => (db.benutzer.length && !localStorage.getItem("drytrack.session.userId")
-        ? <Login users={db.benutzer} onLogin={login} />
-        : <Shell />)}
-    </SessionProvider>
+    // Globale Motion-Defaults: konsistentes Timing/Easing, Reduced-Motion respektiert.
+    <MotionConfig transition={{ duration: DUR, ease: EASE }} reducedMotion="user">
+      <SessionProvider users={db.benutzer}>
+        {(login) => (db.benutzer.length && !localStorage.getItem("drytrack.session.userId")
+          ? <Login users={db.benutzer} onLogin={login} />
+          : <Shell />)}
+      </SessionProvider>
+    </MotionConfig>
   );
 }
 
