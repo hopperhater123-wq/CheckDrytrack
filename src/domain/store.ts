@@ -52,7 +52,7 @@ class Store {
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
-      termin: [], firmen_einstellung: [],
+      ersatzfliesenbericht: [], termin: [], firmen_einstellung: [],
     };
     const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
     return { ...base, ...parsed } as DryTrackDB;
@@ -367,6 +367,40 @@ class Store {
         : params.abnahme_status === "mit_mangel" ? "mit Mängeln" : "verweigert";
       db.feed_eintrag.push(autoFeed(params.projekt_id, null, "check_out", params.erstellt_von,
         `Abnahmeprotokoll vom ${new Date(params.datum).toLocaleDateString("de-DE")} erstellt (Abnahme ${status}).`));
+    });
+    return id;
+  }
+
+  /** Bemusterung (Ersatzmaterial) zu einem Projekt erfassen — Beschreibung, Lieferant, Musterfoto. */
+  addBemusterung(params: { projekt_id: string; material_beschreibung: string; lieferant: string | null; musterfoto_referenz: string | null }) {
+    this.commit((db) => {
+      db.bemusterung.push({
+        id: uid("bm"), projekt_id: params.projekt_id, material_beschreibung: params.material_beschreibung,
+        musterfoto_referenz: params.musterfoto_referenz, lieferant: params.lieferant,
+      });
+    });
+  }
+
+  removeBemusterung(id: string) {
+    this.commit((db) => { db.bemusterung = db.bemusterung.filter((b) => b.id !== id); });
+  }
+
+  /** Ersatzfliesenbericht anlegen (Kundenbestätigung des bemusterten Ersatzes, mit Unterschriften). */
+  addErsatzfliesenbericht(params: {
+    projekt_id: string; datum: string; bemerkungen: string | null;
+    unterschrift_kunde: string | null; unterschrift_kunde_name: string | null; unterschrift_mitarbeiter: string | null;
+    erstellt_von: string;
+  }) {
+    const id = uid("ef");
+    this.commit((db) => {
+      db.ersatzfliesenbericht.push({
+        id, projekt_id: params.projekt_id, datum: params.datum, bemerkungen: params.bemerkungen,
+        unterschrift_kunde: params.unterschrift_kunde, unterschrift_kunde_name: params.unterschrift_kunde_name,
+        unterschrift_mitarbeiter: params.unterschrift_mitarbeiter,
+        erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
+      });
+      db.feed_eintrag.push(autoFeed(params.projekt_id, null, "check_out", params.erstellt_von,
+        `Ersatzfliesenbericht vom ${new Date(params.datum).toLocaleDateString("de-DE")} erstellt.`));
     });
     return id;
   }

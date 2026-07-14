@@ -53,6 +53,7 @@ export type DokumentTyp =
   | "abschlussbericht"
   | "abnahmeprotokoll"
   | "auftrag_abtretung"
+  | "ersatzfliesenbericht"
   | "kva"
   | "strombrief";
 
@@ -332,6 +333,20 @@ export interface Abnahmeprotokoll {
   erstellt_am: string;
 }
 
+// Ersatzfliesenbericht (Alt-System): entfernte Fliesen, bemusterter Ersatz, Kundenbestätigung.
+// Die bemusterten Materialien liegen in der Tabelle `bemusterung` (projektbezogen).
+export interface Ersatzfliesenbericht {
+  id: string;
+  projekt_id: string;
+  datum: string; // ISO-Date
+  bemerkungen: string | null;
+  unterschrift_kunde: string | null;
+  unterschrift_kunde_name: string | null;
+  unterschrift_mitarbeiter: string | null;
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 export interface FirmenEinstellung {
   schluessel: string; // z.B. freigabegrenze_eur
   wert: string;
@@ -362,6 +377,7 @@ export interface DryTrackDB {
   besuchsbericht: Besuchsbericht[];
   stunden_eintrag: StundenEintrag[];
   abnahmeprotokoll: Abnahmeprotokoll[];
+  ersatzfliesenbericht: Ersatzfliesenbericht[];
   termin: Termin[];
   firmen_einstellung: FirmenEinstellung[];
 }

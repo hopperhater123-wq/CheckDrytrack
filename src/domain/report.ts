@@ -1,6 +1,6 @@
 // PDF-Export via Druckdialog. Der Report wird in ein isoliertes iframe geschrieben
 // und dort gedruckt (sandbox-sicher) — der Browser bietet „Als PDF speichern" an.
-import type { Abnahmeprotokoll, Besuchsbericht, DryTrackDB, Projekt } from "./types";
+import type { Abnahmeprotokoll, Besuchsbericht, DryTrackDB, Ersatzfliesenbericht, Projekt } from "./types";
 import { bewerteMessung, BEWERTUNG_LABEL } from "./mess";
 import { arbeitszeitMin, minutenZuText } from "./zeit";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "./einsatz";
@@ -161,6 +161,81 @@ export function besuchsberichtHtml(bericht: Besuchsbericht, projekt: Projekt, db
     </div>
 
     <footer>DryTrack · Besuchsbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
+  </body></html>`;
+}
+
+/**
+ * Ersatzfliesenbericht (14 · Dokumente): Für die Trocknung entfernte Fliesen und den mit dem
+ * Kunden bemusterten Ersatz (aus Tabelle `bemusterung`), inkl. Musterfotos und Unterschriften.
+ */
+export function ersatzfliesenberichtHtml(bericht: Ersatzfliesenbericht, projekt: Projekt, db: DryTrackDB): string {
+  const benutzer = (id: string) => db.benutzer.find((b) => b.id === id)?.name ?? "—";
+  const absatz = (t: string) => esc(t).replace(/\n/g, "<br>");
+  const muster = db.bemusterung.filter((m) => m.projekt_id === projekt.id);
+
+  const karten = muster.map((m) => `<div class="muster">
+      ${m.musterfoto_referenz ? `<img src="${m.musterfoto_referenz}" alt="Musterfoto">` : `<div class="muster-leer">kein Foto</div>`}
+      <div class="muster-info">
+        <div class="muster-mat">${esc(m.material_beschreibung)}</div>
+        ${m.lieferant ? `<div class="muster-lief">Lieferant: ${esc(m.lieferant)}</div>` : ""}
+      </div>
+    </div>`).join("");
+
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Ersatzfliesenbericht ${esc(projekt.projektnummer)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
+    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
+    .meta { color: #667085; font-size: 12px; text-align: right; }
+    .satz { line-height: 1.6; margin: 12px 0; }
+    .muster-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .muster { border: 1px solid #e7e9ee; border-radius: 10px; overflow: hidden; page-break-inside: avoid; }
+    .muster img { width: 100%; height: 150px; object-fit: cover; display: block; }
+    .muster-leer { height: 150px; display: flex; align-items: center; justify-content: center; color: #98a1b0; background: #f6f7f9; font-size: 12px; }
+    .muster-info { padding: 8px 10px; } .muster-mat { font-weight: 600; } .muster-lief { color: #667085; font-size: 12px; margin-top: 2px; }
+    .text { border: 1px solid #e7e9ee; border-radius: 8px; padding: 10px 12px; line-height: 1.5; }
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 14px; page-break-inside: avoid; }
+    .sig img { height: 64px; max-width: 100%; object-fit: contain; display: block; }
+    .sig-leer { height: 64px; }
+    .sig-linie { border-bottom: 1px solid #0b0d12; margin-top: 2px; }
+    .sig-label { font-size: 11px; color: #667085; margin-top: 4px; }
+    footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
+  </style></head><body>
+    <header>
+      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Ersatzfliesenbericht</h1></div>
+      <div class="meta">
+        <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
+        <div>${esc(projekt.adresse)}</div>
+        <div>Abnahmedatum ${new Date(bericht.datum).toLocaleDateString("de-DE")} · ${esc(benutzer(bericht.erstellt_von))}</div>
+      </div>
+    </header>
+
+    <p class="satz">Für die Durchführung der Trocknung mussten Fliesen entfernt werden, die nicht in
+    identischer Ausführung wiederbeschafft werden können. Der nachfolgend bemusterte Ersatz wurde mit dem
+    Auftraggeber abgestimmt und von diesem bestätigt.</p>
+
+    <h3>Bemusterter Ersatz</h3>
+    ${karten ? `<div class="muster-grid">${karten}</div>` : "<p style='color:#98a1b0'>Keine Bemusterung erfasst.</p>"}
+
+    ${bericht.bemerkungen ? `<h3>Bemerkungen</h3><div class="text">${absatz(bericht.bemerkungen)}</div>` : ""}
+
+    <h3>Unterschriften</h3>
+    <div class="sig-grid">
+      <div class="sig">
+        ${bericht.unterschrift_kunde ? `<img src="${bericht.unterschrift_kunde}" alt="Unterschrift Kunde">` : `<div class="sig-leer"></div>`}
+        <div class="sig-linie"></div>
+        <div class="sig-label">Kunde / Auftraggeber${bericht.unterschrift_kunde_name ? ` · ${esc(bericht.unterschrift_kunde_name)}` : ""}</div>
+      </div>
+      <div class="sig">
+        ${bericht.unterschrift_mitarbeiter ? `<img src="${bericht.unterschrift_mitarbeiter}" alt="Unterschrift Mitarbeiter">` : `<div class="sig-leer"></div>`}
+        <div class="sig-linie"></div>
+        <div class="sig-label">Mitarbeiter · ${esc(benutzer(bericht.erstellt_von))}</div>
+      </div>
+    </div>
+
+    <footer>DryTrack · Ersatzfliesenbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
   </body></html>`;
 }
 

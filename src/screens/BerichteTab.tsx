@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal, AnimatePresence } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
-import { besuchsberichtHtml, abnahmeprotokollHtml, printHtml } from "../domain/report";
+import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, printHtml } from "../domain/report";
 import { ABNAHME_STATUS_LABEL } from "../app/labels";
+import { komprimiereBild } from "../ui/foto";
 import { Icon } from "../ui/Icon";
 import { SignaturPad } from "../ui/SignaturPad";
 import type { AbnahmeStatus } from "../domain/types";
@@ -21,6 +22,10 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
     .sort((a, b) => (a.datum < b.datum ? 1 : -1));
   const abnahmen = db.abnahmeprotokoll
     .filter((a) => a.projekt_id === projektId)
+    .sort((a, b) => (a.datum < b.datum ? 1 : -1));
+  const [neuEf, setNeuEf] = useState(false);
+  const efBerichte = db.ersatzfliesenbericht
+    .filter((e) => e.projekt_id === projektId)
     .sort((a, b) => (a.datum < b.datum ? 1 : -1));
   const benutzerName = (id: string) => db.benutzer.find((u) => u.id === id)?.name ?? "—";
 
@@ -81,9 +86,139 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
         ))}
       </section>
 
+      <section className="card">
+        <div className="card-head"><h2>Ersatzfliesen · Bemusterung</h2>
+          <button className="btn btn-sm btn-primary" onClick={() => setNeuEf(true)}>+ Ersatzfliesenbericht</button>
+        </div>
+        <BemusterungListe projektId={projektId} />
+        {efBerichte.length > 0 && <div className="ef-berichte">
+          {efBerichte.map((e) => (
+            <div key={e.id} className="listrow static">
+              <div className="listrow-main">
+                <span className="listrow-title">Ersatzfliesenbericht {fmtDatum(e.datum)}</span>
+                <span className="listrow-sub">{benutzerName(e.erstellt_von)}</span>
+              </div>
+              <div className="listrow-side">
+                {e.unterschrift_kunde && <span className="chip small chip-live"><Icon name="check" size={12} /> unterschrieben</span>}
+              </div>
+              <button className="btn btn-sm" onClick={() => projekt && printHtml(ersatzfliesenberichtHtml(e, projekt, db))}>
+                <Icon name="fileText" size={14} /> PDF
+              </button>
+            </div>
+          ))}
+        </div>}
+      </section>
+
       <AnimatePresence>{neu && <BerichtForm projektId={projektId} userId={userId} onClose={() => setNeu(false)} />}</AnimatePresence>
       <AnimatePresence>{neuAbnahme && <AbnahmeForm projektId={projektId} userId={userId} onClose={() => setNeuAbnahme(false)} />}</AnimatePresence>
+      <AnimatePresence>{neuEf && <ErsatzfliesenForm projektId={projektId} userId={userId} onClose={() => setNeuEf(false)} />}</AnimatePresence>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+// Bemusterung: Ersatzmaterial mit Musterfoto erfassen (nutzt Tabelle bemusterung).
+function BemusterungListe({ projektId }: { projektId: string }) {
+  const db = useDB();
+  const muster = db.bemusterung.filter((m) => m.projekt_id === projektId);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [beschreibung, setBeschreibung] = useState("");
+  const [lieferant, setLieferant] = useState("");
+  const [foto, setFoto] = useState<string | null>(null);
+  const [laedt, setLaedt] = useState(false);
+
+  const fotoWaehlen = async (liste: FileList | null) => {
+    if (!liste?.length) return;
+    setLaedt(true);
+    try { setFoto(await komprimiereBild(liste[0])); } catch { /* ignorieren */ }
+    finally { setLaedt(false); if (inputRef.current) inputRef.current.value = ""; }
+  };
+
+  const hinzufuegen = () => {
+    if (!beschreibung.trim()) return;
+    store.addBemusterung({ projekt_id: projektId, material_beschreibung: beschreibung.trim(), lieferant: lieferant.trim() || null, musterfoto_referenz: foto });
+    setBeschreibung(""); setLieferant(""); setFoto(null);
+  };
+
+  return (
+    <div className="bemusterung">
+      {muster.length === 0
+        ? <p className="muted small">Noch keine Bemusterung. Ersatzmaterial mit Musterfoto und Lieferant erfassen.</p>
+        : <div className="foto-grid">
+            {muster.map((m) => (
+              <div key={m.id} className="foto-item">
+                <div className="foto-thumb" style={{ cursor: "default" }}>
+                  {m.musterfoto_referenz ? <img src={m.musterfoto_referenz} alt={m.material_beschreibung} loading="lazy" /> : <div className="muster-noimg">kein Foto</div>}
+                  <span className="foto-tag">{m.material_beschreibung}{m.lieferant ? ` · ${m.lieferant}` : ""}</span>
+                </div>
+                <button className="foto-del" onClick={() => store.removeBemusterung(m.id)} aria-label="Bemusterung löschen"><Icon name="trash" size={14} /></button>
+              </div>
+            ))}
+          </div>}
+
+      <div className="bemusterung-add">
+        <input placeholder="Material (z. B. Feinsteinzeug 60×60, anthrazit)" value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} />
+        <input placeholder="Lieferant (optional)" value={lieferant} onChange={(e) => setLieferant(e.target.value)} />
+        <input ref={inputRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => void fotoWaehlen(e.target.files)} />
+        <div className="btn-row">
+          <button className="btn btn-sm" disabled={laedt} onClick={() => inputRef.current?.click()}>
+            <Icon name="camera" size={15} /> {foto ? "Foto ✓" : laedt ? "…" : "Musterfoto"}
+          </button>
+          <button className="btn btn-sm btn-primary" disabled={!beschreibung.trim()} onClick={hinzufuegen}><Icon name="plus" size={14} /> Bemusterung</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+function ErsatzfliesenForm({ projektId, userId, onClose }: { projektId: string; userId: string; onClose: () => void }) {
+  const db = useDB();
+  const ich = db.benutzer.find((u) => u.id === userId);
+  const muster = db.bemusterung.filter((m) => m.projekt_id === projektId);
+  const heute = new Date().toISOString().slice(0, 10);
+  const [datum, setDatum] = useState(heute);
+  const [bemerkungen, setBemerkungen] = useState("");
+  const [sigKunde, setSigKunde] = useState<string | null>(null);
+  const [sigKundeName, setSigKundeName] = useState("");
+  const [sigMitarbeiter, setSigMitarbeiter] = useState<string | null>(null);
+
+  const speichern = () => {
+    store.addErsatzfliesenbericht({
+      projekt_id: projektId, datum, bemerkungen: bemerkungen.trim() || null,
+      unterschrift_kunde: sigKunde, unterschrift_kunde_name: sigKunde ? (sigKundeName.trim() || null) : null,
+      unterschrift_mitarbeiter: sigMitarbeiter, erstellt_von: userId,
+    });
+    onClose();
+  };
+
+  return (
+    <Modal onClose={onClose} dismissable={false}>
+        <h2>Ersatzfliesenbericht</h2>
+        <p className="muted small">Bestätigt den mit dem Kunden bemusterten Fliesenersatz. Die Bemusterung ({muster.length} Muster) wird aus dem Projekt übernommen.</p>
+
+        <label className="field"><span>Abnahmedatum *</span>
+          <input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+        </label>
+        <label className="field"><span>Bemerkungen</span>
+          <textarea rows={2} value={bemerkungen} onChange={(e) => setBemerkungen(e.target.value)} placeholder="z. B. Verlegerichtung, Sockelhöhe…" />
+        </label>
+
+        <h3>Unterschriften <span className="muted small">(optional — direkt auf dem Gerät)</span></h3>
+        <label className="field"><span>Kunde / Auftraggeber</span>
+          <input value={sigKundeName} onChange={(e) => setSigKundeName(e.target.value)} placeholder="Name des Unterzeichnenden" />
+        </label>
+        <SignaturPad value={sigKunde} onChange={setSigKunde} />
+        <label className="field" style={{ marginTop: 14 }}><span>Mitarbeiter ({ich?.name ?? ""})</span></label>
+        <SignaturPad value={sigMitarbeiter} onChange={setSigMitarbeiter} />
+
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose}>Abbrechen</button>
+          <button className="btn btn-primary" onClick={speichern} disabled={!datum}>Speichern</button>
+        </div>
+      </Modal>
   );
 }
 
