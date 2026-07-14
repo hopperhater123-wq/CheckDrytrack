@@ -6,10 +6,11 @@ import { relativZeit } from "../app/format";
 import { istLaufend } from "../domain/einsatz";
 import { Icon, type IconName } from "../ui/Icon";
 import { motion, staggerContainer, fadeUpItem } from "../ui/motion";
+import { DryingLine } from "../ui/DryingLine";
 import type { FeedUrsprung } from "../domain/types";
 
-// Farbrampe für den Geräteverteilungs-Donut (Akzent → Ausläufer).
-const DONUT_FARBEN = ["#4f46e5", "#8b5cf6", "#a78bfa", "#c4b5fd", "#818cf8", "#94a3b8"];
+// Farbrampe für den Geräteverteilungs-Donut: Feuchte-Skala nass (Teal) → trocken (Amber).
+const DONUT_FARBEN = ["#0E7C86", "#3F9AA0", "#6FB3A6", "#C6892A", "#E0A43B", "#8CA0A0"];
 
 const geraeteText = (n: number) => `${n} ${n === 1 ? "Gerät" : "Geräte"}`;
 
@@ -53,6 +54,13 @@ export function Dashboard() {
   const stunde = new Date().getHours();
   const gruss = stunde < 11 ? "Guten Morgen" : stunde < 18 ? "Guten Tag" : "Guten Abend";
 
+  // Portfolio-Trocknungsgrad: mittlerer Lebenszyklus-Fortschritt über alle aktiven Objekte
+  // (angelegt = nass … abgeschlossen = trocken). Die Signatur-Skala im Hero.
+  const maxStufe = PROJEKT_STATUS_REIHENFOLGE.length - 1;
+  const trockenAvg = offene.length
+    ? offene.reduce((s, p) => s + Math.max(0, PROJEKT_STATUS_REIHENFOLGE.indexOf(p.status)) / maxStufe, 0) / offene.length
+    : 1;
+
   return (
     <div className="screen">
       <motion.div className="bento" variants={staggerContainer} initial="hidden" animate="show">
@@ -62,12 +70,13 @@ export function Dashboard() {
             <div>
               <span className="eyebrow">{new Date().toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long" })}</span>
               <h1>{gruss}, {user.name.split(" ")[0]}.</h1>
-              <p className="muted" style={{ margin: 0 }}>Alles im Blick. Alles im Griff.</p>
+              <p className="muted" style={{ margin: 0 }}>{offene.length ? `${offene.length} Objekte trocknen gerade.` : "Alles trocken. Keine offenen Objekte."}</p>
             </div>
-            <button className="btn" style={{ background: "rgba(255,255,255,.16)", color: "#fff", borderColor: "transparent" }} onClick={() => nav({ name: "scan" })}>
+            <button className="btn" style={{ background: "rgba(255,255,255,.16)", color: "#F4FBFA", borderColor: "transparent" }} onClick={() => nav({ name: "scan" })}>
               <Icon name="scan" size={18} /> Scannen
             </button>
           </div>
+          <DryingLine value={trockenAvg} label="Trocknungsfortschritt Portfolio" sub={`${laufende} Geräte aktiv`} />
         </motion.section>
 
         {/* KPIs */}
