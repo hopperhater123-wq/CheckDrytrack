@@ -39,8 +39,23 @@ const NAV_ITEMS: { icon: IconName; label: string; ziel: Route; match: Route["nam
   { icon: "menu", label: "Einstellungen", ziel: { name: "einstellungen" }, match: ["einstellungen"] },
 ];
 
+// Deep-Link vom Projekt-QR: ?p=<projektId> öffnet direkt das Projekt (Backlog ④).
+function startRoute(): Route {
+  try {
+    const pid = new URLSearchParams(window.location.search).get("p");
+    if (pid) {
+      // Param aus der URL entfernen, damit ein Reload wieder aufs Dashboard führt.
+      const url = new URL(window.location.href);
+      url.searchParams.delete("p");
+      window.history.replaceState(null, "", url.toString());
+      return { name: "projekt", id: pid };
+    }
+  } catch { /* ignorieren */ }
+  return { name: "dashboard" };
+}
+
 function Shell() {
-  const [route, setRoute] = useState<Route>({ name: "dashboard" });
+  const [route, setRoute] = useState<Route>(startRoute);
   const { user, logout } = useSession();
   const initialen = user.name.split(" ").map((t) => t[0]).slice(0, 2).join("");
 

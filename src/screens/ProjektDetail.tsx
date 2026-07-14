@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { AnimatePresence, motion, EASE } from "../ui/motion";
+import { AnimatePresence, motion, EASE, Modal } from "../ui/motion";
+import { QrCode } from "../ui/QrCode";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
@@ -95,6 +96,67 @@ export function ProjektDetail({ id }: { id: string }) {
 
 // ---------------------------------------------------------------------------
 
+// Objektdaten + scannbarer Projekt-QR (Alt-System-Analyse 13.07.2026, Backlog ④).
+function ObjektdatenCard({ projektId, canEdit }: { projektId: string; canEdit: boolean }) {
+  const db = useDB();
+  const [qrOffen, setQrOffen] = useState(false);
+  const p = db.projekt.find((x) => x.id === projektId);
+  if (!p) return null;
+
+  const deepLink = `${window.location.origin}${window.location.pathname}?p=${p.id}`;
+  const num = (s: string) => { const n = parseInt(s, 10); return Number.isFinite(n) ? n : null; };
+
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Objekt</h2>
+        <button className="btn btn-sm" onClick={() => setQrOffen(true)}><Icon name="qr" size={15} /> QR-Code</button>
+      </div>
+
+      {canEdit ? (
+        <div className="objekt-grid">
+          <label className="field"><span>Baujahr</span>
+            <input inputMode="numeric" defaultValue={p.baujahr ?? ""} placeholder="z. B. 1998"
+              onBlur={(e) => store.setObjektdaten(p.id, { baujahr: num(e.target.value) })} />
+          </label>
+          <label className="field"><span>Geschosse</span>
+            <input inputMode="numeric" defaultValue={p.geschosse ?? ""} placeholder="z. B. 2"
+              onBlur={(e) => store.setObjektdaten(p.id, { geschosse: num(e.target.value) })} />
+          </label>
+          <label className="field"><span>Bauweise</span>
+            <input defaultValue={p.bauweise ?? ""} placeholder="Massiv, Holzständer …"
+              onBlur={(e) => store.setObjektdaten(p.id, { bauweise: e.target.value.trim() || null })} />
+          </label>
+          <label className="toggle" style={{ alignSelf: "end", paddingBottom: 10 }}>
+            <input type="checkbox" checked={p.aundv_unterschrieben} onChange={(e) => store.setObjektdaten(p.id, { aundv_unterschrieben: e.target.checked })} />
+            A&amp;A unterschrieben
+          </label>
+        </div>
+      ) : (
+        <dl className="facts">
+          <div><dt>Baujahr</dt><dd>{p.baujahr ?? "—"}</dd></div>
+          <div><dt>Geschosse</dt><dd>{p.geschosse ?? "—"}</dd></div>
+          <div><dt>Bauweise</dt><dd>{p.bauweise ?? "—"}</dd></div>
+          <div><dt>A&amp;A</dt><dd>{p.aundv_unterschrieben ? "✓ unterschrieben" : "offen"}</dd></div>
+        </dl>
+      )}
+
+      <AnimatePresence>
+        {qrOffen && (
+          <Modal onClose={() => setQrOffen(false)}>
+            <h2>Projekt {p.projektnummer}</h2>
+            <p className="muted small">Scannen öffnet dieses Projekt direkt in DryTrack — z. B. am Objekt oder für Kollegen.</p>
+            <div className="qr-box"><QrCode value={deepLink} size={220} /></div>
+            <p className="muted small" style={{ wordBreak: "break-all", textAlign: "center" }}>{deepLink}</p>
+            <div className="modal-actions">
+              <button className="btn btn-primary" onClick={() => setQrOffen(false)}>Schließen</button>
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
+
 function UebersichtTab(props: {
   projektId: string; status: import("../domain/types").ProjektStatus;
   kontamination: import("../domain/types").KontaminationArt | null; gefahr: boolean; erst: boolean;
@@ -130,6 +192,8 @@ function UebersichtTab(props: {
           <div><dt>Angelegt</dt><dd>{props.angelegt}</dd></div>
         </dl>
       </section>
+
+      <ObjektdatenCard projektId={props.projektId} canEdit={props.canEdit} />
 
       <section className="card">
         <div className="card-head"><h2>Räume</h2></div>

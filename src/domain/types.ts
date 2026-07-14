@@ -121,6 +121,11 @@ export interface Projekt {
   kontamination_art: KontaminationArt | null;
   gefaehrdungsbeurteilung_abgeschlossen: boolean;
   versicherung_id: string | null;
+  // Objektdaten (Alt-System-Analyse 13.07.2026, Backlog ④)
+  baujahr: number | null;
+  geschosse: number | null;
+  bauweise: string | null; // z. B. "Massiv", "Holzständer", "Fertighaus"
+  aundv_unterschrieben: boolean; // Auftrag & Abtretungserklärung unterschrieben
   angelegt_von: string; // FK benutzer
   angelegt_am: string;
 }

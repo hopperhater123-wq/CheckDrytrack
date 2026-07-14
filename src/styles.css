@@ -518,3 +518,9 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
 }
+
+/* Objektdaten + QR */
+.objekt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.qr-box { display: flex; justify-content: center; padding: 14px; background: #fff; border-radius: var(--radius-sm);
+  margin: 10px 0; border: 1px solid var(--border); }
+.qr-box svg { display: block; border-radius: 4px; }
