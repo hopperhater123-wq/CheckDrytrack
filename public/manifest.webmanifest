@@ -1,6 +1,6 @@
 {
-  "name": "DryTrack",
-  "short_name": "DryTrack",
+  "name": "Torrek",
+  "short_name": "Torrek",
   "description": "Digitale Arbeitsplattform für Gebäudetrocknung — Geräte, Einsätze, Messprotokolle.",
   "id": "./",
   "start_url": "./index.html",

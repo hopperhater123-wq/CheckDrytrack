@@ -425,7 +425,7 @@ function KundenzufriedenheitForm({ projektId, userId, onClose }: { projektId: st
 
         <label className="toggle" style={{ marginTop: 12 }}>
           <input type="checkbox" checked={weiterempfehlung} onChange={(e) => setWeiterempfehlung(e.target.checked)} />
-          Würde DryTrack weiterempfehlen
+          Würde Torrek weiterempfehlen
         </label>
 
         <label className="field"><span>Kommentar</span>

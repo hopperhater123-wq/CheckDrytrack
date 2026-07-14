@@ -38,7 +38,7 @@ export function SessionProvider({ users, children }: { users: Benutzer[]; childr
       if (!id) return; // Abmeldung läuft über logout()
       const b = findeBenutzerZuIdentitaet(users, id);
       if (b) { localStorage.setItem(KEY, b.id); setUserId(b.id); setMs365Fehler(null); }
-      else setMs365Fehler(`Kein DryTrack-Zugang für ${id.email ?? id.name ?? "dieses Microsoft-Konto"}. Bitte an die Disposition wenden.`);
+      else setMs365Fehler(`Kein Torrek-Zugang für ${id.email ?? id.name ?? "dieses Microsoft-Konto"}. Bitte an die Disposition wenden.`);
     };
     void aktuelleIdentitaet().then(anwenden);
     return aufAuthAenderung(anwenden);

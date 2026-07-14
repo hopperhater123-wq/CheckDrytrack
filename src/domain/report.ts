@@ -65,7 +65,7 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
     footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
-      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Messprotokoll</h1></div>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1 style="margin-top:8px">Messprotokoll</h1></div>
       <div class="meta">
         <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
         <div>${esc(projekt.adresse)}</div>
@@ -122,7 +122,7 @@ export function besuchsberichtHtml(bericht: Besuchsbericht, projekt: Projekt, db
     footer { margin-top: 28px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
-      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Besuchsbericht · Stundennachweis</h1></div>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1 style="margin-top:8px">Besuchsbericht · Stundennachweis</h1></div>
       <div class="meta">
         <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
         <div>${esc(projekt.adresse)}</div>
@@ -160,7 +160,7 @@ export function besuchsberichtHtml(bericht: Besuchsbericht, projekt: Projekt, db
       </div>
     </div>
 
-    <footer>DryTrack · Besuchsbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
+    <footer>Torrek · Besuchsbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
   </body></html>`;
 }
 
@@ -200,7 +200,7 @@ export function stundenlohnberichtHtml(bericht: Stundenlohnbericht, projekt: Pro
     footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
-      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Stundenlohnbericht</h1></div>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1 style="margin-top:8px">Stundenlohnbericht</h1></div>
       <div class="meta">
         <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
         <div>${esc(projekt.adresse)}</div>
@@ -237,7 +237,7 @@ export function stundenlohnberichtHtml(bericht: Stundenlohnbericht, projekt: Pro
       </div>
     </div>
 
-    <footer>DryTrack · Stundenlohnbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
+    <footer>Torrek · Stundenlohnbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
   </body></html>`;
 }
 
@@ -266,7 +266,7 @@ export function notdiensteinsatzberichtHtml(bericht: Notdiensteinsatzbericht, pr
     footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
-      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Notdienst-Einsatzbericht</h1></div>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1 style="margin-top:8px">Notdienst-Einsatzbericht</h1></div>
       <div class="meta">
         <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
         <div>${esc(projekt.adresse)}</div>
@@ -298,7 +298,7 @@ export function notdiensteinsatzberichtHtml(bericht: Notdiensteinsatzbericht, pr
       </div>
     </div>
 
-    <footer>DryTrack · Notdienst-Einsatzbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
+    <footer>Torrek · Notdienst-Einsatzbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
   </body></html>`;
 }
 
@@ -336,7 +336,7 @@ export function kundenzufriedenheitHtml(bericht: Kundenzufriedenheit, projekt: P
     footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
-      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Kundenzufriedenheit</h1></div>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1 style="margin-top:8px">Kundenzufriedenheit</h1></div>
       <div class="meta">
         <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
         <div>${esc(projekt.adresse)}</div>
@@ -363,7 +363,7 @@ export function kundenzufriedenheitHtml(bericht: Kundenzufriedenheit, projekt: P
       <div class="sig-label">Kunde / Auftraggeber${bericht.unterschrift_kunde_name ? ` · ${esc(bericht.unterschrift_kunde_name)}` : ""}</div>
     </div>
 
-    <footer>DryTrack · Kundenzufriedenheit vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erfasst von ${esc(benutzer(bericht.erstellt_von))} am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
+    <footer>Torrek · Kundenzufriedenheit vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erfasst von ${esc(benutzer(bericht.erstellt_von))} am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
   </body></html>`;
 }
 
@@ -407,7 +407,7 @@ export function ersatzfliesenberichtHtml(bericht: Ersatzfliesenbericht, projekt:
     footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
-      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Ersatzfliesenbericht</h1></div>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1 style="margin-top:8px">Ersatzfliesenbericht</h1></div>
       <div class="meta">
         <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
         <div>${esc(projekt.adresse)}</div>
@@ -438,7 +438,7 @@ export function ersatzfliesenberichtHtml(bericht: Ersatzfliesenbericht, projekt:
       </div>
     </div>
 
-    <footer>DryTrack · Ersatzfliesenbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
+    <footer>Torrek · Ersatzfliesenbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
   </body></html>`;
 }
 
@@ -470,7 +470,7 @@ export function aundvHtml(projekt: Projekt, db: DryTrackDB): string {
     footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
-      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Auftrag &amp; Abtretungserklärung</h1></div>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1 style="margin-top:8px">Auftrag &amp; Abtretungserklärung</h1></div>
       <div class="meta">
         <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
         <div>${esc(projekt.adresse)}</div>
@@ -509,7 +509,7 @@ export function aundvHtml(projekt: Projekt, db: DryTrackDB): string {
       </div>
     </div>
 
-    <footer>DryTrack · Auftrag &amp; Abtretungserklärung${projekt.aundv_unterschrieben ? " · unterschrieben" : " · Entwurf, noch nicht unterschrieben"}.</footer>
+    <footer>Torrek · Auftrag &amp; Abtretungserklärung${projekt.aundv_unterschrieben ? " · unterschrieben" : " · Entwurf, noch nicht unterschrieben"}.</footer>
   </body></html>`;
 }
 
@@ -542,7 +542,7 @@ export function vollmachtHtml(projekt: Projekt, db: DryTrackDB): string {
     footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
-      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Vertretervollmacht</h1></div>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1 style="margin-top:8px">Vertretervollmacht</h1></div>
       <div class="meta">
         <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
         <div>${esc(projekt.adresse)}</div>
@@ -577,7 +577,7 @@ export function vollmachtHtml(projekt: Projekt, db: DryTrackDB): string {
       </div>
     </div>
 
-    <footer>DryTrack · Vertretervollmacht${unterschrieben ? " · unterschrieben" : " · Entwurf, noch nicht unterschrieben"}.</footer>
+    <footer>Torrek · Vertretervollmacht${unterschrieben ? " · unterschrieben" : " · Entwurf, noch nicht unterschrieben"}.</footer>
   </body></html>`;
 }
 
@@ -612,7 +612,7 @@ export function abnahmeprotokollHtml(protokoll: Abnahmeprotokoll, projekt: Proje
     footer { margin-top: 28px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
-      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Abnahmeprotokoll</h1></div>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1 style="margin-top:8px">Abnahmeprotokoll</h1></div>
       <div class="meta">
         <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
         <div>${esc(projekt.adresse)}</div>
@@ -645,7 +645,7 @@ export function abnahmeprotokollHtml(protokoll: Abnahmeprotokoll, projekt: Proje
       </div>
     </div>
 
-    <footer>DryTrack · Abnahmeprotokoll vom ${new Date(protokoll.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(protokoll.erstellt_am).toLocaleString("de-DE")}</footer>
+    <footer>Torrek · Abnahmeprotokoll vom ${new Date(protokoll.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(protokoll.erstellt_am).toLocaleString("de-DE")}</footer>
   </body></html>`;
 }
 
@@ -695,7 +695,7 @@ export function strombriefHtml(projekt: Projekt, db: DryTrackDB): string {
     footer { margin-top: 22px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
-      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Strombrief</h1></div>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1 style="margin-top:8px">Strombrief</h1></div>
       <div class="meta">
         <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
         <div>${esc(projekt.adresse)}</div>
@@ -707,7 +707,7 @@ export function strombriefHtml(projekt: Projekt, db: DryTrackDB): string {
       <tbody>${zeilen || "<tr><td colspan='7' class='sub'>Keine Einsätze erfasst.</td></tr>"}</tbody>
       <tfoot><tr><td colspan="6">Gesamtverbrauch (abgeschlossene Einsätze)</td><td class="num">${summe.toLocaleString("de-DE", { maximumFractionDigits: 1 })} kWh</td></tr></tfoot>
     </table>
-    <footer>${gabSchaetzung ? "¹ Näherungswert (Tage × Geräteleistung), Zähler defekt/unlesbar — ohne Gewähr (FR-EINSATZ-003). " : ""}Laufende Einsätze sind noch nicht abgerechnet. DryTrack · Strombrief zum ${new Date().toLocaleDateString("de-DE")}.</footer>
+    <footer>${gabSchaetzung ? "¹ Näherungswert (Tage × Geräteleistung), Zähler defekt/unlesbar — ohne Gewähr (FR-EINSATZ-003). " : ""}Laufende Einsätze sind noch nicht abgerechnet. Torrek · Strombrief zum ${new Date().toLocaleDateString("de-DE")}.</footer>
   </body></html>`;
 }
 
@@ -821,7 +821,7 @@ export function abschlussberichtHtml(projekt: Projekt, db: DryTrackDB): string {
     footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
   </style></head><body>
     <header>
-      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Abschlussbericht</h1></div>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1 style="margin-top:8px">Abschlussbericht</h1></div>
       <div class="meta">
         <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
         <div>${esc(projekt.adresse)}</div>
@@ -854,10 +854,10 @@ export function abschlussberichtHtml(projekt: Projekt, db: DryTrackDB): string {
 
     <div class="sig-grid">
       <div><div class="sig-linie"></div><div class="sig-label">Kunde / Auftraggeber</div></div>
-      <div><div class="sig-linie"></div><div class="sig-label">${esc(benutzer(projekt.angelegt_von))} · DryTrack</div></div>
+      <div><div class="sig-linie"></div><div class="sig-label">${esc(benutzer(projekt.angelegt_von))} · Torrek</div></div>
     </div>
 
-    <footer>${gabSchaetzung ? "Stromverbrauch teilweise als Näherung (Tage × Geräteleistung) berechnet — ohne Gewähr (FR-EINSATZ-003). " : ""}DryTrack · Abschlussbericht zum ${new Date().toLocaleDateString("de-DE")}. Feuchtebewertungen sind Praxisrichtwerte (FR-MESS-002).</footer>
+    <footer>${gabSchaetzung ? "Stromverbrauch teilweise als Näherung (Tage × Geräteleistung) berechnet — ohne Gewähr (FR-EINSATZ-003). " : ""}Torrek · Abschlussbericht zum ${new Date().toLocaleDateString("de-DE")}. Feuchtebewertungen sind Praxisrichtwerte (FR-MESS-002).</footer>
   </body></html>`;
 }
 

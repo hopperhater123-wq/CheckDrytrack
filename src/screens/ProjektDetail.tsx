@@ -178,7 +178,7 @@ function ObjektdatenCard({ projektId, canEdit, userId }: { projektId: string; ca
         {qrOffen && (
           <Modal onClose={() => setQrOffen(false)}>
             <h2>Projekt {p.projektnummer}</h2>
-            <p className="muted small">Scannen öffnet dieses Projekt direkt in DryTrack — z. B. am Objekt oder für Kollegen.</p>
+            <p className="muted small">Scannen öffnet dieses Projekt direkt in Torrek — z. B. am Objekt oder für Kollegen.</p>
             <div className="qr-box"><QrCode value={deepLink} size={220} /></div>
             <p className="muted small" style={{ wordBreak: "break-all", textAlign: "center" }}>{deepLink}</p>
             <div className="modal-actions">

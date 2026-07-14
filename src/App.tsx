@@ -65,7 +65,7 @@ function Shell() {
         {/* Sidebar — nur Desktop (Office) */}
         <aside className="sidebar">
           <div className="brand" onClick={() => setRoute({ name: "dashboard" })}>
-            <span className="logo"><Icon name="droplet" size={16} strokeWidth={2} /></span> DryTrack
+            <span className="logo"><Icon name="droplet" size={16} strokeWidth={2} /></span> Torrek
           </div>
           <button className="btn btn-primary sidebar-cta" onClick={() => setRoute({ name: "projekte", neu: true })}>
             <Icon name="plus" size={16} /> Neues Projekt
@@ -95,7 +95,7 @@ function Shell() {
           {/* Topbar — nur mobil */}
           <header className="topbar">
             <div className="brand" onClick={() => setRoute({ name: "dashboard" })}>
-              <span className="logo"><Icon name="droplet" size={16} strokeWidth={2} /></span> DryTrack
+              <span className="logo"><Icon name="droplet" size={16} strokeWidth={2} /></span> Torrek
             </div>
             <div className="whoami">
               <span className="whoami-name">{user.name}</span>

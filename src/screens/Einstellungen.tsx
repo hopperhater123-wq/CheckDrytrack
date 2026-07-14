@@ -33,10 +33,10 @@ function InstallCard() {
         {installiert && <span className="chip chip-live">installiert</span>}
       </div>
       {installiert ? (
-        <p className="muted small">DryTrack läuft als installierte App — Startbildschirm-Icon, Vollbild, offline.</p>
+        <p className="muted small">Torrek läuft als installierte App — Startbildschirm-Icon, Vollbild, offline.</p>
       ) : evt ? (
         <>
-          <p className="muted small">DryTrack aufs Handy oder den Desktop holen: eigenes Icon, Vollbild ohne Browser-Leiste, funktioniert offline.</p>
+          <p className="muted small">Torrek aufs Handy oder den Desktop holen: eigenes Icon, Vollbild ohne Browser-Leiste, funktioniert offline.</p>
           <button className="btn btn-primary" onClick={() => evt.prompt()}>
             <Icon name="droplet" size={16} /> Jetzt installieren
           </button>
@@ -111,7 +111,7 @@ export function Einstellungen() {
         <button className="btn" onClick={() => { if (confirm("Demo-Daten zurücksetzen? Lokale Änderungen gehen verloren.")) store.reset(); }}>Demo-Daten zurücksetzen</button>
       </section>
 
-      <p className="footer-note">DryTrack · Umsetzung aus den Notion-Docs (000 Vision → 017 Deployment). Arbeitstitel.</p>
+      <p className="footer-note">Torrek · Umsetzung aus den Notion-Docs (000 Vision → 017 Deployment).</p>
     </div>
   );
 }

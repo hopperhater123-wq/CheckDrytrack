@@ -1,4 +1,4 @@
-/* DryTrack Service Worker — Offline-First (000 Vision).
+/* Torrek Service Worker — Offline-First (000 Vision).
    Strategie: Cache-first mit Hintergrund-Aktualisierung (stale-while-revalidate).
    Die App-Daten selbst liegen in localStorage; hier geht es um die App-Shell. */
 const CACHE = "drytrack-v1";

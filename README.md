@@ -1,9 +1,9 @@
-# DryTrack
+# Torrek
 
 Digitale Arbeitsplattform für Sanierungs- und Gebäudetrocknungsunternehmen.
-Umsetzung aus der Notion-Dokumentation **„DryTrack — Docs"** (000 Vision → 017 Deployment).
+Umsetzung aus der Notion-Dokumentation **„Torrek — Docs"** (000 Vision → 017 Deployment).
 
-> Arbeitstitel „DryTrack" (Namensfindung offen, siehe 000 Vision).
+> Name: **Torrek** (entschieden 14.07.2026, vormals Arbeitstitel „DryTrack"). Formale Markenprüfung (DPMA/EUIPO) vor Launch ausstehend.
 
 ## 🌐 Live
 

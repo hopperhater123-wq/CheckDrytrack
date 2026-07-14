@@ -21,7 +21,7 @@ export function Login({ users, onLogin, ms365Fehler }: { users: Benutzer[]; onLo
   return (
     <div className="login">
       <div className="login-card">
-        <div className="login-brand"><span className="logo"><Icon name="droplet" size={20} strokeWidth={2} /></span> DryTrack</div>
+        <div className="login-brand"><span className="logo"><Icon name="droplet" size={20} strokeWidth={2} /></span> Torrek</div>
         <p className="login-sub">Digitale Arbeitsplattform für Gebäudetrocknung</p>
 
         {mit365 ? (
