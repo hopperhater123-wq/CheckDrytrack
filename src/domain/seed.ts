@@ -119,7 +119,10 @@ export function seedDB(): DryTrackDB {
       { id: "me-3", raum_id: "r-1", material_id: "mat-kmf", messverfahren: "widerstand", anzeige_digit: null, referenz_digit: null, status_checkliste: { trocken: false, feucht: true, kontaminiert: false, austausch_erforderlich: true }, absolute_feuchte_g_kg: null, temperatur_c: null, rel_luftfeuchte_prozent: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(5) },
       { id: "me-4", raum_id: "r-4", material_id: "mat-zement", messverfahren: "widerstand", anzeige_digit: 44, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 7.1, temperatur_c: 23, rel_luftfeuchte_prozent: 45, anlass: "freimessung", gemessen_von: "u-monteur", gemessen_am: tage(24) },
     ],
-    grundriss: [],
+    grundriss: [
+      { id: "gr-1", projekt_id: "p-1", geschoss: "EG", raumhoehe_m: 2.5, quelle: "magicplan", datei_referenz: "magicplan://p-1/eg.pdf", erstellt_am: tage(8) },
+      { id: "gr-2", projekt_id: "p-1", geschoss: "1. OG", raumhoehe_m: 2.432, quelle: "skizze_foto", datei_referenz: "storage://p-1/1og-skizze.jpg", erstellt_am: tage(7) },
+    ],
     grundriss_markierung: [],
     bemusterung: [],
     raum_foto: [],

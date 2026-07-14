@@ -236,6 +236,8 @@ export interface Messung {
 export interface Grundriss {
   id: string;
   projekt_id: string;
+  geschoss: string | null; // NEU (Backlog ⑤): eine Skizze je Geschoss (Keller/EG/1. OG/…)
+  raumhoehe_m: number | null; // NEU: RHM aus der Skizze
   quelle: "magicplan" | "skizze_foto";
   datei_referenz: string;
   erstellt_am: string;

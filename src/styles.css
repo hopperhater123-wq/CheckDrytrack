@@ -524,3 +524,9 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
 .qr-box { display: flex; justify-content: center; padding: 14px; background: #fff; border-radius: var(--radius-sm);
   margin: 10px 0; border: 1px solid var(--border); }
 .qr-box svg { display: block; border-radius: 4px; }
+
+/* Grundriss je Geschoss */
+.geschoss-block { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px; }
+.geschoss-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.geschoss-name { font-weight: 700; font-size: 1rem; }
+.rhm-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; }

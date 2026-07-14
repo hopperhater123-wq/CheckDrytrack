@@ -354,11 +354,19 @@ class Store {
     return this.db.geraet.find((g) => g.inventarnummer === inv);
   }
 
-  /** Grundriss anlegen/ersetzen (FR-KI-004 MagicPlan bevorzugt, FR-KI-005 Skizze/Foto Fallback). */
-  setGrundriss(projekt_id: string, quelle: "magicplan" | "skizze_foto", datei_referenz: string) {
+  /** Grundriss je Geschoss anlegen/ersetzen (Backlog ⑤; FR-KI-004 MagicPlan, FR-KI-005 Skizze/Foto). */
+  setGrundriss(projekt_id: string, geschoss: string | null, quelle: "magicplan" | "skizze_foto", datei_referenz: string) {
     this.commit((db) => {
-      db.grundriss = db.grundriss.filter((g) => g.projekt_id !== projekt_id);
-      db.grundriss.push({ id: uid("gr"), projekt_id, quelle, datei_referenz, erstellt_am: new Date().toISOString() });
+      db.grundriss = db.grundriss.filter((g) => !(g.projekt_id === projekt_id && g.geschoss === geschoss));
+      db.grundriss.push({ id: uid("gr"), projekt_id, geschoss, raumhoehe_m: null, quelle, datei_referenz, erstellt_am: new Date().toISOString() });
+    });
+  }
+
+  /** Raumhöhe (RHM) einer Skizze setzen. */
+  setGrundrissRaumhoehe(grundriss_id: string, raumhoehe_m: number | null) {
+    this.commit((db) => {
+      const g = db.grundriss.find((x) => x.id === grundriss_id);
+      if (g) g.raumhoehe_m = raumhoehe_m;
     });
   }
 
