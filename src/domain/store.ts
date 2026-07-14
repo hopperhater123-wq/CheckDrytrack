@@ -226,10 +226,24 @@ class Store {
       adresse: params.adresse, geo_lat: null, geo_lng: null, kontamination_art: null,
       gefaehrdungsbeurteilung_abgeschlossen: false, versicherung_id: null,
       baujahr: null, geschosse: null, bauweise: null, aundv_unterschrieben: false,
+      aundv_unterschrift: null, aundv_unterschrift_name: null, aundv_datum: null,
       angelegt_von: params.angelegt_von, angelegt_am: new Date().toISOString(),
     };
     this.commit((db) => { db.projekt.push(projekt); });
     return projekt;
+  }
+
+  /** Auftrag & Abtretungserklärung (A&A) unterschreiben — setzt Unterschrift + Datum am Projekt. */
+  setAundV(params: { projekt_id: string; unterschrift: string | null; name: string | null; datum: string; autor_id: string }) {
+    this.commit((db) => {
+      const p = db.projekt.find((x) => x.id === params.projekt_id);
+      if (!p) return;
+      p.aundv_unterschrift = params.unterschrift;
+      p.aundv_unterschrift_name = params.name;
+      p.aundv_datum = params.datum;
+      p.aundv_unterschrieben = true;
+      db.feed_eintrag.push(autoFeed(params.projekt_id, null, "manuell", params.autor_id, "Auftrag & Abtretungserklärung (A&A) unterschrieben.", "kunde"));
+    });
   }
 
   /** Objektdaten pflegen (Baujahr/Geschosse/Bauweise/A&A), Backlog ④. */

@@ -52,6 +52,7 @@ export type DokumentTyp =
   | "erstbericht"
   | "abschlussbericht"
   | "abnahmeprotokoll"
+  | "auftrag_abtretung"
   | "kva"
   | "strombrief";
 
@@ -127,6 +128,9 @@ export interface Projekt {
   geschosse: number | null;
   bauweise: string | null; // z. B. "Massiv", "Holzständer", "Fertighaus"
   aundv_unterschrieben: boolean; // Auftrag & Abtretungserklärung unterschrieben
+  aundv_unterschrift: string | null; // PNG-Data-URL der Kundenunterschrift
+  aundv_unterschrift_name: string | null; // Name des Unterzeichnenden
+  aundv_datum: string | null; // ISO-Date der Unterzeichnung
   angelegt_von: string; // FK benutzer
   angelegt_am: string;
 }

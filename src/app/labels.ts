@@ -70,7 +70,8 @@ export const MESSANLASS_LABEL: Record<Messanlass, string> = {
 
 export const DOKUMENT_TYP_LABEL: Record<DokumentTyp, string> = {
   messprotokoll: "Messprotokoll", schadensaufnahme_doku: "Schadensaufnahme-Doku", erstbericht: "Erstbericht",
-  abschlussbericht: "Abschlussbericht", abnahmeprotokoll: "Abnahmeprotokoll", kva: "KVA", strombrief: "Strombrief",
+  abschlussbericht: "Abschlussbericht", abnahmeprotokoll: "Abnahmeprotokoll",
+  auftrag_abtretung: "Auftrag & Abtretung", kva: "KVA", strombrief: "Strombrief",
 };
 
 export const ABNAHME_STATUS_LABEL: Record<import("../domain/types").AbnahmeStatus, string> = {

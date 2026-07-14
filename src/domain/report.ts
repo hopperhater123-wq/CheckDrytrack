@@ -164,6 +164,77 @@ export function besuchsberichtHtml(bericht: Besuchsbericht, projekt: Projekt, db
   </body></html>`;
 }
 
+/**
+ * Auftrag & Abtretungserklärung (A&A, 14 · Dokumente): Auftragserteilung des Kunden plus
+ * Abtretung des Versicherungsanspruchs an das Sanierungsunternehmen — mit Unterschrift.
+ */
+export function aundvHtml(projekt: Projekt, db: DryTrackDB): string {
+  const versicherung = projekt.versicherung_id ? db.versicherung.find((v) => v.id === projekt.versicherung_id)?.name ?? "—" : "—";
+  const datum = projekt.aundv_datum ? new Date(projekt.aundv_datum).toLocaleDateString("de-DE") : "__________";
+
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Auftrag & Abtretung ${esc(projekt.projektnummer)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; line-height: 1.5; }
+    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
+    .meta { color: #667085; font-size: 12px; text-align: right; }
+    dl.facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 24px; margin: 0 0 8px; }
+    dl.facts > div { display: flex; justify-content: space-between; border-bottom: 1px solid #f0f1f4; padding: 5px 0; }
+    dl.facts dt { color: #667085; } dl.facts dd { margin: 0; font-weight: 600; }
+    .klausel { border: 1px solid #e7e9ee; border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 18px; page-break-inside: avoid; }
+    .sig img { height: 64px; max-width: 100%; object-fit: contain; display: block; }
+    .sig-leer { height: 64px; }
+    .sig-linie { border-bottom: 1px solid #0b0d12; margin-top: 2px; }
+    .sig-label { font-size: 11px; color: #667085; margin-top: 4px; }
+    footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
+  </style></head><body>
+    <header>
+      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Auftrag &amp; Abtretungserklärung</h1></div>
+      <div class="meta">
+        <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
+        <div>${esc(projekt.adresse)}</div>
+      </div>
+    </header>
+
+    <h3>Objekt &amp; Auftraggeber</h3>
+    <dl class="facts">
+      <div><dt>Projekt</dt><dd>${esc(projekt.projektnummer)}</dd></div>
+      <div><dt>Objektadresse</dt><dd>${esc(projekt.adresse)}</dd></div>
+      <div><dt>Versicherung</dt><dd>${esc(versicherung)}</dd></div>
+      <div><dt>Datum</dt><dd>${datum}</dd></div>
+    </dl>
+
+    <h3>Auftragserteilung</h3>
+    <div class="klausel">Der Auftraggeber beauftragt das ausführende Unternehmen mit der Durchführung der
+    technischen Bautrocknung und der damit verbundenen Maßnahmen am oben genannten Objekt. Umfang und
+    Ausführung richten sich nach der Schadenaufnahme und den anerkannten Regeln der Technik.</div>
+
+    <h3>Abtretungserklärung</h3>
+    <div class="klausel">Der Auftraggeber tritt hiermit seinen Anspruch auf Erstattung der Kosten für die
+    beauftragten Leistungen gegenüber der eintrittspflichtigen Versicherung in Höhe der Auftragssumme an das
+    ausführende Unternehmen ab. Das Unternehmen nimmt die Abtretung an. Die Versicherung wird angewiesen,
+    die Zahlung mit befreiender Wirkung unmittelbar an das ausführende Unternehmen zu leisten.</div>
+
+    <div class="sig-grid">
+      <div class="sig">
+        ${projekt.aundv_unterschrift ? `<img src="${projekt.aundv_unterschrift}" alt="Unterschrift Auftraggeber">` : `<div class="sig-leer"></div>`}
+        <div class="sig-linie"></div>
+        <div class="sig-label">Auftraggeber${projekt.aundv_unterschrift_name ? ` · ${esc(projekt.aundv_unterschrift_name)}` : ""}${projekt.aundv_datum ? ` · ${datum}` : ""}</div>
+      </div>
+      <div class="sig">
+        <div class="sig-leer"></div>
+        <div class="sig-linie"></div>
+        <div class="sig-label">Ausführendes Unternehmen</div>
+      </div>
+    </div>
+
+    <footer>DryTrack · Auftrag &amp; Abtretungserklärung${projekt.aundv_unterschrieben ? " · unterschrieben" : " · Entwurf, noch nicht unterschrieben"}.</footer>
+  </body></html>`;
+}
+
 /** Abnahmeprotokoll (14 · Dokumente): Kunden-Abnahme der Trocknungsleistung mit Unterschriften. */
 export function abnahmeprotokollHtml(protokoll: Abnahmeprotokoll, projekt: Projekt, db: DryTrackDB): string {
   const benutzer = (id: string) => db.benutzer.find((b) => b.id === id)?.name ?? "—";

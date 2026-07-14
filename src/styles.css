@@ -129,6 +129,9 @@ button { font-family: inherit; }
   padding: 18px; box-shadow: var(--shadow-sm); }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.aundv-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.aundv-title { font-weight: 600; }
 .card.warn { border-color: color-mix(in srgb, var(--warn) 40%, var(--border)); }
 
 /* Bento grid (Dashboard) */

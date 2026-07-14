@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { AnimatePresence, motion, EASE, Modal } from "../ui/motion";
 import { QrCode } from "../ui/QrCode";
-import { strombriefHtml, abschlussberichtHtml, printHtml } from "../domain/report";
+import { strombriefHtml, abschlussberichtHtml, aundvHtml, printHtml } from "../domain/report";
+import { SignaturPad } from "../ui/SignaturPad";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
@@ -98,9 +99,10 @@ export function ProjektDetail({ id }: { id: string }) {
 // ---------------------------------------------------------------------------
 
 // Objektdaten + scannbarer Projekt-QR (Alt-System-Analyse 13.07.2026, Backlog ④).
-function ObjektdatenCard({ projektId, canEdit }: { projektId: string; canEdit: boolean }) {
+function ObjektdatenCard({ projektId, canEdit, userId }: { projektId: string; canEdit: boolean; userId: string }) {
   const db = useDB();
   const [qrOffen, setQrOffen] = useState(false);
+  const [aundvOffen, setAundvOffen] = useState(false);
   const p = db.projekt.find((x) => x.id === projektId);
   if (!p) return null;
 
@@ -127,19 +129,32 @@ function ObjektdatenCard({ projektId, canEdit }: { projektId: string; canEdit: b
             <input defaultValue={p.bauweise ?? ""} placeholder="Massiv, Holzständer …"
               onBlur={(e) => store.setObjektdaten(p.id, { bauweise: e.target.value.trim() || null })} />
           </label>
-          <label className="toggle" style={{ alignSelf: "end", paddingBottom: 10 }}>
-            <input type="checkbox" checked={p.aundv_unterschrieben} onChange={(e) => store.setObjektdaten(p.id, { aundv_unterschrieben: e.target.checked })} />
-            A&amp;A unterschrieben
-          </label>
         </div>
       ) : (
         <dl className="facts">
           <div><dt>Baujahr</dt><dd>{p.baujahr ?? "—"}</dd></div>
           <div><dt>Geschosse</dt><dd>{p.geschosse ?? "—"}</dd></div>
           <div><dt>Bauweise</dt><dd>{p.bauweise ?? "—"}</dd></div>
-          <div><dt>A&amp;A</dt><dd>{p.aundv_unterschrieben ? "✓ unterschrieben" : "offen"}</dd></div>
         </dl>
       )}
+
+      {/* Auftrag & Abtretungserklärung (A&A) — Unterschrift direkt am Projekt. */}
+      <div className="aundv-row">
+        <div>
+          <div className="aundv-title">Auftrag &amp; Abtretung (A&amp;A)</div>
+          <div className="muted small">
+            {p.aundv_unterschrieben
+              ? `✓ unterschrieben${p.aundv_unterschrift_name ? ` · ${p.aundv_unterschrift_name}` : ""}${p.aundv_datum ? ` · ${fmtDatum(p.aundv_datum)}` : ""}`
+              : "Noch nicht unterschrieben"}
+          </div>
+        </div>
+        <div className="btn-row">
+          {canEdit && <button className="btn btn-sm" onClick={() => setAundvOffen(true)}>{p.aundv_unterschrieben ? "Neu erfassen" : "Unterschreiben"}</button>}
+          <button className="btn btn-sm" onClick={() => printHtml(aundvHtml(p, db))}><Icon name="fileText" size={14} /> PDF</button>
+        </div>
+      </div>
+
+      <AnimatePresence>{aundvOffen && <AundVModal projektId={p.id} userId={userId} onClose={() => setAundvOffen(false)} />}</AnimatePresence>
 
       <AnimatePresence>
         {qrOffen && (
@@ -155,6 +170,42 @@ function ObjektdatenCard({ projektId, canEdit }: { projektId: string; canEdit: b
         )}
       </AnimatePresence>
     </section>
+  );
+}
+
+// Auftrag & Abtretungserklärung unterschreiben (SignaturPad + Name + Datum).
+function AundVModal({ projektId, userId, onClose }: { projektId: string; userId: string; onClose: () => void }) {
+  const db = useDB();
+  const p = db.projekt.find((x) => x.id === projektId);
+  const heute = new Date().toISOString().slice(0, 10);
+  const [name, setName] = useState(p?.aundv_unterschrift_name ?? "");
+  const [datum, setDatum] = useState(p?.aundv_datum?.slice(0, 10) ?? heute);
+  const [sig, setSig] = useState<string | null>(p?.aundv_unterschrift ?? null);
+
+  const speichern = () => {
+    store.setAundV({ projekt_id: projektId, unterschrift: sig, name: name.trim() || null, datum, autor_id: userId });
+    onClose();
+  };
+
+  return (
+    <Modal onClose={onClose} dismissable={false}>
+      <h2>Auftrag &amp; Abtretungserklärung</h2>
+      <p className="muted small">Der Auftraggeber beauftragt die Trocknung und tritt den Erstattungsanspruch gegenüber der Versicherung ab. Unterschrift direkt auf dem Gerät.</p>
+      <div className="two-col">
+        <label className="field"><span>Datum</span>
+          <input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+        </label>
+        <label className="field"><span>Name des Auftraggebers</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Vor- und Nachname" />
+        </label>
+      </div>
+      <label className="field"><span>Unterschrift Auftraggeber</span></label>
+      <SignaturPad value={sig} onChange={setSig} />
+      <div className="modal-actions">
+        <button className="btn" onClick={onClose}>Abbrechen</button>
+        <button className="btn btn-primary" onClick={speichern} disabled={!sig}>Unterschrift speichern</button>
+      </div>
+    </Modal>
   );
 }
 
@@ -194,7 +245,7 @@ function UebersichtTab(props: {
         </dl>
       </section>
 
-      <ObjektdatenCard projektId={props.projektId} canEdit={props.canEdit} />
+      <ObjektdatenCard projektId={props.projektId} canEdit={props.canEdit} userId={props.userId} />
 
       <section className="card">
         <div className="card-head"><h2>Räume</h2></div>
