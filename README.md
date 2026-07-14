@@ -7,7 +7,10 @@ Umsetzung aus der Notion-Dokumentation **„Torrek — Docs"** (000 Vision → 0
 
 ## 🌐 Live
 
-**App (PWA, installierbar):** https://zkuawtrwtmxhayshuxzv.supabase.co/functions/v1/app/
+**App (PWA, installierbar):** https://hopperhater123-wq.github.io/CheckDrytrack/
+
+> Die alte Supabase-URL (…/functions/v1/app/) leitet hierher weiter. Hintergrund: Supabase
+> blockt renderbares HTML aus Edge Functions auf der Standard-Domain (Anti-Phishing).
 
 - **Handy:** Link öffnen → Android/Chrome: Menü ⋮ → „App installieren" · iPhone/Safari: Teilen → „Zum Home-Bildschirm"
 - **Desktop:** gleiche URL, ab 1024px Fensterbreite erscheint die Office-Ansicht mit Sidebar
