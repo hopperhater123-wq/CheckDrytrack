@@ -7,9 +7,13 @@ import { fmtDatum, fmtZahl } from "../app/format";
 import { BEWERTUNG_LABEL, GKG_RICHTWERT, absoluteFeuchteGKg, bewerteMessung, type Bewertung } from "../domain/mess";
 import { messprotokollHtml, printHtml } from "../domain/report";
 import { Icon } from "../ui/Icon";
+import { TrockenMoment } from "../ui/TrockenMoment";
 import type {
-  EstrichBauart, Materialdatenbank, Messanlass, MessStatusCheckliste, Messverfahren, Raum, SchichtTyp,
+  EstrichBauart, Materialdatenbank, Messanlass, MessStatusCheckliste, Messung, Messverfahren, Raum, SchichtTyp,
 } from "../domain/types";
+
+// Feier-Inhalt des „Objekt trocken"-Moments (Freimessung → trocken).
+interface Feier { titel: string; sub?: string }
 
 const SCHICHTEN: SchichtTyp[] = ["oberbelag", "estrich", "daemmung"];
 
@@ -43,6 +47,7 @@ export function MessprotokollTab({ projektId, userId }: { projektId: string; use
 function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
   const db = useDB();
   const [neu, setNeu] = useState(false);
+  const [feier, setFeier] = useState<Feier | null>(null);
   const materialById = (id: string) => db.materialdatenbank.find((m) => m.id === id);
   const messungen = db.messung
     .filter((m) => m.raum_id === raum.id)
@@ -80,7 +85,8 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
         );
       })}
 
-      <AnimatePresence>{neu && <MessungForm raum={raum} userId={userId} onClose={() => setNeu(false)} />}</AnimatePresence>
+      <AnimatePresence>{neu && <MessungForm raum={raum} userId={userId} onClose={() => setNeu(false)} onTrocken={setFeier} />}</AnimatePresence>
+      <AnimatePresence>{feier && <TrockenMoment titel={feier.titel} sub={feier.sub} onDone={() => setFeier(null)} />}</AnimatePresence>
     </section>
   );
 }
@@ -168,7 +174,7 @@ export function AufbauEditor({ raum }: { raum: Raum }) {
 
 const LEERE_CHECKLISTE: MessStatusCheckliste = { trocken: false, feucht: false, kontaminiert: false, austausch_erforderlich: false };
 
-function MessungForm({ raum, userId, onClose }: { raum: Raum; userId: string; onClose: () => void }) {
+function MessungForm({ raum, userId, onClose, onTrocken }: { raum: Raum; userId: string; onClose: () => void; onTrocken: (f: Feier) => void }) {
   const db = useDB();
   const [materialId, setMaterialId] = useState(db.materialdatenbank[0]?.id ?? "");
   const [verfahren, setVerfahren] = useState<Messverfahren>("widerstand");
@@ -201,6 +207,30 @@ function MessungForm({ raum, userId, onClose }: { raum: Raum; userId: string; on
       status_checkliste: modell === "status_checkliste" ? checkliste : null,
       temperatur_c: tempN, rel_luftfeuchte_prozent: rhN, gemessen_von: userId,
     });
+
+    // „Objekt trocken"-Moment: Freimessung mit Bewertung „trocken" feiern —
+    // eskaliert, wenn damit der ganze Raum (letzte Messung je Material) trocken ist.
+    const neue: Messung = {
+      id: "neu", raum_id: raum.id, material_id: materialId, messverfahren: verfahren,
+      anzeige_digit: modell === "status_checkliste" ? null : num(digit),
+      referenz_digit: modell === "vergleichsmessung" ? num(referenz) : null,
+      status_checkliste: modell === "status_checkliste" ? checkliste : null,
+      absolute_feuchte_g_kg: absVorschau, temperatur_c: tempN, rel_luftfeuchte_prozent: rhN,
+      anlass: anlass as Messanlass, gemessen_von: userId, gemessen_am: new Date().toISOString(),
+    };
+    const b = bewerteMessung(neue, material);
+    if (neue.anlass === "freimessung" && b.bewertung === "trocken") {
+      const alle = [...db.messung.filter((m) => m.raum_id === raum.id), neue]
+        .sort((a, x) => (a.gemessen_am < x.gemessen_am ? -1 : 1));
+      const letzte = new Map<string, Messung>();
+      for (const m of alle) letzte.set(m.material_id, m);
+      const ganz = [...letzte.values()].every(
+        (m) => bewerteMessung(m, db.materialdatenbank.find((x) => x.id === m.material_id)).bewertung === "trocken",
+      );
+      onTrocken(ganz
+        ? { titel: `${raum.bezeichnung} ist trocken`, sub: "Alle Materialien freigemessen" }
+        : { titel: `${material?.bezeichnung ?? "Material"}: trocken`, sub: `Freimessung · ${raum.bezeichnung}` });
+    }
     onClose();
   };
 
