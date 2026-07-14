@@ -1,6 +1,6 @@
 // PDF-Export via Druckdialog. Der Report wird in ein isoliertes iframe geschrieben
 // und dort gedruckt (sandbox-sicher) — der Browser bietet „Als PDF speichern" an.
-import type { Abnahmeprotokoll, Besuchsbericht, DryTrackDB, Ersatzfliesenbericht, Kundenzufriedenheit, Notdiensteinsatzbericht, Projekt } from "./types";
+import type { Abnahmeprotokoll, Besuchsbericht, DryTrackDB, Ersatzfliesenbericht, Kundenzufriedenheit, Notdiensteinsatzbericht, Projekt, Stundenlohnbericht } from "./types";
 import { bewerteMessung, BEWERTUNG_LABEL } from "./mess";
 import { arbeitszeitMin, minutenZuText } from "./zeit";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "./einsatz";
@@ -161,6 +161,83 @@ export function besuchsberichtHtml(bericht: Besuchsbericht, projekt: Projekt, db
     </div>
 
     <footer>DryTrack · Besuchsbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
+  </body></html>`;
+}
+
+/** Stundenlohnbericht (14 · Dokumente): Regie-/Stundenlohnarbeiten — Stundennachweis + Materialliste. */
+export function stundenlohnberichtHtml(bericht: Stundenlohnbericht, projekt: Projekt, db: DryTrackDB): string {
+  const benutzer = (id: string) => db.benutzer.find((b) => b.id === id)?.name ?? "—";
+  const absatz = (t: string) => esc(t).replace(/\n/g, "<br>");
+  const num = (n: number) => (Number.isFinite(n) ? n : 0).toLocaleString("de-DE", { maximumFractionDigits: 2 });
+  const stundenSumme = bericht.stunden.reduce((s, z) => s + (Number.isFinite(z.stunden) ? z.stunden : 0), 0);
+
+  const stundenZeilen = bericht.stunden.map((z) => `<tr>
+      <td>${esc(z.mitarbeiter_name)}</td><td>${esc(z.taetigkeit)}</td><td class="num">${num(z.stunden)}</td>
+    </tr>`).join("");
+  const materialZeilen = bericht.material.map((m) => `<tr>
+      <td>${esc(m.bezeichnung)}</td><td class="num">${num(m.menge)}</td><td>${esc(m.einheit)}</td>
+    </tr>`).join("");
+
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Stundenlohnbericht ${esc(projekt.projektnummer)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
+    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
+    .meta { color: #667085; font-size: 12px; text-align: right; }
+    table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #667085; border-bottom: 1px solid #e7e9ee; padding: 6px 8px; }
+    td { padding: 7px 8px; border-bottom: 1px solid #f0f1f4; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tfoot td { border-top: 2px solid #e7e9ee; border-bottom: none; font-weight: 700; }
+    .text { border: 1px solid #e7e9ee; border-radius: 8px; padding: 10px 12px; line-height: 1.5; }
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 14px; page-break-inside: avoid; }
+    .sig img { height: 64px; max-width: 100%; object-fit: contain; display: block; }
+    .sig-leer { height: 64px; }
+    .sig-linie { border-bottom: 1px solid #0b0d12; margin-top: 2px; }
+    .sig-label { font-size: 11px; color: #667085; margin-top: 4px; }
+    footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
+  </style></head><body>
+    <header>
+      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Stundenlohnbericht</h1></div>
+      <div class="meta">
+        <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
+        <div>${esc(projekt.adresse)}</div>
+        <div>Datum ${new Date(bericht.datum).toLocaleDateString("de-DE")} · ${esc(benutzer(bericht.erstellt_von))}</div>
+      </div>
+    </header>
+
+    <h3>Stundennachweis (Regie)</h3>
+    <table>
+      <thead><tr><th>Mitarbeiter</th><th>Tätigkeit</th><th class="num">Stunden</th></tr></thead>
+      <tbody>${stundenZeilen || "<tr><td colspan='3' style='color:#98a1b0'>Keine Stunden erfasst</td></tr>"}</tbody>
+      <tfoot><tr><td colspan="2">Summe</td><td class="num">${num(stundenSumme)} h</td></tr></tfoot>
+    </table>
+
+    <h3>Materialliste</h3>
+    <table>
+      <thead><tr><th>Material</th><th class="num">Menge</th><th>Einheit</th></tr></thead>
+      <tbody>${materialZeilen || "<tr><td colspan='3' style='color:#98a1b0'>Kein Material erfasst</td></tr>"}</tbody>
+    </table>
+
+    ${bericht.bemerkungen ? `<h3>Bemerkungen</h3><div class="text">${absatz(bericht.bemerkungen)}</div>` : ""}
+
+    <h3>Unterschriften</h3>
+    <div class="sig-grid">
+      <div class="sig">
+        ${bericht.unterschrift_kunde ? `<img src="${bericht.unterschrift_kunde}" alt="Unterschrift Kunde">` : `<div class="sig-leer"></div>`}
+        <div class="sig-linie"></div>
+        <div class="sig-label">Kunde / Auftraggeber${bericht.unterschrift_kunde_name ? ` · ${esc(bericht.unterschrift_kunde_name)}` : ""}</div>
+      </div>
+      <div class="sig">
+        ${bericht.unterschrift_mitarbeiter ? `<img src="${bericht.unterschrift_mitarbeiter}" alt="Unterschrift Mitarbeiter">` : `<div class="sig-leer"></div>`}
+        <div class="sig-linie"></div>
+        <div class="sig-label">Mitarbeiter · ${esc(benutzer(bericht.erstellt_von))}</div>
+      </div>
+    </div>
+
+    <footer>DryTrack · Stundenlohnbericht vom ${new Date(bericht.datum).toLocaleDateString("de-DE")} · erstellt am ${new Date(bericht.erstellt_am).toLocaleString("de-DE")}</footer>
   </body></html>`;
 }
 

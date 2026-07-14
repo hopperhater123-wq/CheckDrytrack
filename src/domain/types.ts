@@ -57,6 +57,7 @@ export type DokumentTyp =
   | "ersatzfliesenbericht"
   | "kundenzufriedenheit"
   | "notdienst_einsatzbericht"
+  | "stundenlohnbericht"
   | "kva"
   | "strombrief";
 
@@ -340,6 +341,24 @@ export interface Abnahmeprotokoll {
   erstellt_am: string;
 }
 
+// Stundenlohnbericht (Alt-System): Regie-/Stundenlohnarbeiten mit Stundennachweis + Materialliste.
+export interface StundenlohnStunde { mitarbeiter_name: string; taetigkeit: string; stunden: number }
+export interface StundenlohnMaterial { bezeichnung: string; menge: number; einheit: string }
+
+export interface Stundenlohnbericht {
+  id: string;
+  projekt_id: string;
+  datum: string; // ISO-Date
+  stunden: StundenlohnStunde[];
+  material: StundenlohnMaterial[];
+  bemerkungen: string | null;
+  unterschrift_kunde: string | null;
+  unterschrift_kunde_name: string | null;
+  unterschrift_mitarbeiter: string | null;
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 // Notdienst-Einsatzbericht (Alt-System): Erstmaßnahme/Notdienst mit Sofortmaßnahmen + Unterschrift.
 export interface Notdiensteinsatzbericht {
   id: string;
@@ -421,6 +440,7 @@ export interface DryTrackDB {
   ersatzfliesenbericht: Ersatzfliesenbericht[];
   kundenzufriedenheit: Kundenzufriedenheit[];
   notdiensteinsatzbericht: Notdiensteinsatzbericht[];
+  stundenlohnbericht: Stundenlohnbericht[];
   termin: Termin[];
   firmen_einstellung: FirmenEinstellung[];
 }

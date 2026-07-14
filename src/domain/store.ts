@@ -52,7 +52,7 @@ class Store {
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
-      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [],
+      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [],
       termin: [], firmen_einstellung: [],
     };
     const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
@@ -460,6 +460,30 @@ class Store {
       });
       db.feed_eintrag.push(autoFeed(params.projekt_id, null, "check_in", params.erstellt_von,
         `Notdienst-Einsatzbericht vom ${new Date(params.datum).toLocaleDateString("de-DE")} erstellt.`));
+    });
+    return id;
+  }
+
+  /** Stundenlohnbericht anlegen (Regie-/Stundenlohnarbeiten: Stunden + Material + Unterschriften). */
+  addStundenlohnbericht(params: {
+    projekt_id: string; datum: string;
+    stunden: import("./types").StundenlohnStunde[]; material: import("./types").StundenlohnMaterial[];
+    bemerkungen: string | null;
+    unterschrift_kunde: string | null; unterschrift_kunde_name: string | null; unterschrift_mitarbeiter: string | null;
+    erstellt_von: string;
+  }) {
+    const id = uid("sl");
+    this.commit((db) => {
+      db.stundenlohnbericht.push({
+        id, projekt_id: params.projekt_id, datum: params.datum,
+        stunden: params.stunden, material: params.material, bemerkungen: params.bemerkungen,
+        unterschrift_kunde: params.unterschrift_kunde, unterschrift_kunde_name: params.unterschrift_kunde_name,
+        unterschrift_mitarbeiter: params.unterschrift_mitarbeiter,
+        erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
+      });
+      const summe = params.stunden.reduce((s, z) => s + (Number.isFinite(z.stunden) ? z.stunden : 0), 0);
+      db.feed_eintrag.push(autoFeed(params.projekt_id, null, "check_out", params.erstellt_von,
+        `Stundenlohnbericht vom ${new Date(params.datum).toLocaleDateString("de-DE")} erstellt (${summe.toLocaleString("de-DE")} h, ${params.material.length} Materialposten).`));
     });
     return id;
   }

@@ -141,6 +141,7 @@ export function seedDB(): DryTrackDB {
     ersatzfliesenbericht: [],
     kundenzufriedenheit: [],
     notdiensteinsatzbericht: [],
+    stundenlohnbericht: [],
     termin: [
       { id: "t-1", projekt_id: "p-1", datum: datum(0), uhrzeit: "08:30", mitarbeiter_id: "u-monteur", beschreibung: "TRO Abbau / Strömungskontrolle / WH aufnehmen", erledigt: false, erstellt_von: "u-dispo", erstellt_am: tage(2) },
       { id: "t-2", projekt_id: "p-2", datum: datum(1), uhrzeit: "07:00", mitarbeiter_id: "u-monteur", beschreibung: "Messwerte nachtragen 4.OT", erledigt: false, erstellt_von: "u-dispo", erstellt_am: tage(2) },

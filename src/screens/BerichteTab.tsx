@@ -4,7 +4,7 @@ import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
-import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, printHtml } from "../domain/report";
+import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, printHtml } from "../domain/report";
 import { ABNAHME_STATUS_LABEL } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
 import { Icon } from "../ui/Icon";
@@ -34,6 +34,10 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
   const [neuNd, setNeuNd] = useState(false);
   const ndBerichte = db.notdiensteinsatzbericht
     .filter((n) => n.projekt_id === projektId)
+    .sort((a, b) => (a.datum < b.datum ? 1 : -1));
+  const [neuSl, setNeuSl] = useState(false);
+  const slBerichte = db.stundenlohnbericht
+    .filter((s) => s.projekt_id === projektId)
     .sort((a, b) => (a.datum < b.datum ? 1 : -1));
   const benutzerName = (id: string) => db.benutzer.find((u) => u.id === id)?.name ?? "—";
   const kzSchnitt = (k: import("../domain/types").Kundenzufriedenheit) =>
@@ -161,12 +165,136 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
         ))}
       </section>
 
+      <section className="card">
+        <div className="card-head"><h2>Stundenlohnberichte <span className="count">{slBerichte.length}</span></h2>
+          <button className="btn btn-sm btn-primary" onClick={() => setNeuSl(true)}>+ Stundenlohn</button>
+        </div>
+        {slBerichte.length === 0 && <p className="muted">Noch kein Stundenlohnbericht. Regie-/Stundenlohnarbeiten mit Stunden und Material dokumentieren.</p>}
+        {slBerichte.map((s) => {
+          const summe = s.stunden.reduce((sum, z) => sum + (Number.isFinite(z.stunden) ? z.stunden : 0), 0);
+          return (
+            <div key={s.id} className="listrow static">
+              <div className="listrow-main">
+                <span className="listrow-title">Stundenlohn {fmtDatum(s.datum)} · {summe.toLocaleString("de-DE")} h</span>
+                <span className="listrow-sub">{benutzerName(s.erstellt_von)} · {s.material.length} Materialposten</span>
+              </div>
+              <div className="listrow-side">
+                {s.unterschrift_kunde && <span className="chip small chip-live"><Icon name="check" size={12} /> unterschrieben</span>}
+              </div>
+              <button className="btn btn-sm" onClick={() => projekt && printHtml(stundenlohnberichtHtml(s, projekt, db))}>
+                <Icon name="fileText" size={14} /> PDF
+              </button>
+            </div>
+          );
+        })}
+      </section>
+
       <AnimatePresence>{neu && <BerichtForm projektId={projektId} userId={userId} onClose={() => setNeu(false)} />}</AnimatePresence>
       <AnimatePresence>{neuAbnahme && <AbnahmeForm projektId={projektId} userId={userId} onClose={() => setNeuAbnahme(false)} />}</AnimatePresence>
       <AnimatePresence>{neuEf && <ErsatzfliesenForm projektId={projektId} userId={userId} onClose={() => setNeuEf(false)} />}</AnimatePresence>
       <AnimatePresence>{neuKz && <KundenzufriedenheitForm projektId={projektId} userId={userId} onClose={() => setNeuKz(false)} />}</AnimatePresence>
       <AnimatePresence>{neuNd && <NotdienstForm projektId={projektId} userId={userId} onClose={() => setNeuNd(false)} />}</AnimatePresence>
+      <AnimatePresence>{neuSl && <StundenlohnForm projektId={projektId} userId={userId} onClose={() => setNeuSl(false)} />}</AnimatePresence>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+interface SlStundeZeile { mitarbeiter_name: string; taetigkeit: string; stunden: string }
+interface SlMaterialZeile { bezeichnung: string; menge: string; einheit: string }
+
+function StundenlohnForm({ projektId, userId, onClose }: { projektId: string; userId: string; onClose: () => void }) {
+  const db = useDB();
+  const ich = db.benutzer.find((u) => u.id === userId);
+  const heute = new Date().toISOString().slice(0, 10);
+  const [datum, setDatum] = useState(heute);
+  const [stunden, setStunden] = useState<SlStundeZeile[]>([{ mitarbeiter_name: ich?.name ?? "", taetigkeit: "Regiearbeit", stunden: "1" }]);
+  const [material, setMaterial] = useState<SlMaterialZeile[]>([]);
+  const [bemerkungen, setBemerkungen] = useState("");
+  const [sigKunde, setSigKunde] = useState<string | null>(null);
+  const [sigKundeName, setSigKundeName] = useState("");
+  const [sigMitarbeiter, setSigMitarbeiter] = useState<string | null>(null);
+
+  const zahl = (s: string) => { const n = parseFloat(s.replace(",", ".")); return Number.isFinite(n) ? n : 0; };
+  const setStd = (i: number, patch: Partial<SlStundeZeile>) => setStunden((z) => z.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const setMat = (i: number, patch: Partial<SlMaterialZeile>) => setMaterial((z) => z.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const summe = stunden.reduce((s, z) => s + zahl(z.stunden), 0);
+
+  const gueltigeStunden = stunden.filter((z) => z.mitarbeiter_name.trim() && zahl(z.stunden) > 0);
+  const gueltig = !!datum && gueltigeStunden.length > 0;
+
+  const speichern = () => {
+    if (!gueltig) return;
+    store.addStundenlohnbericht({
+      projekt_id: projektId, datum,
+      stunden: gueltigeStunden.map((z) => ({ mitarbeiter_name: z.mitarbeiter_name.trim(), taetigkeit: z.taetigkeit.trim() || "Regiearbeit", stunden: zahl(z.stunden) })),
+      material: material.filter((m) => m.bezeichnung.trim()).map((m) => ({ bezeichnung: m.bezeichnung.trim(), menge: zahl(m.menge), einheit: m.einheit.trim() || "Stk" })),
+      bemerkungen: bemerkungen.trim() || null,
+      unterschrift_kunde: sigKunde, unterschrift_kunde_name: sigKunde ? (sigKundeName.trim() || null) : null,
+      unterschrift_mitarbeiter: sigMitarbeiter, erstellt_von: userId,
+    });
+    onClose();
+  };
+
+  return (
+    <Modal onClose={onClose} dismissable={false}>
+        <h2>Stundenlohnbericht</h2>
+        <p className="muted small">Regie-/Stundenlohnarbeiten mit Stundennachweis und Material.</p>
+
+        <label className="field"><span>Datum *</span>
+          <input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+        </label>
+
+        <h3>Stundennachweis</h3>
+        {stunden.map((z, i) => (
+          <div key={i} className="stunden-zeile">
+            <div className="two-col">
+              <input placeholder="Mitarbeiter *" value={z.mitarbeiter_name} onChange={(e) => setStd(i, { mitarbeiter_name: e.target.value })} />
+              <input placeholder="Tätigkeit" value={z.taetigkeit} onChange={(e) => setStd(i, { taetigkeit: e.target.value })} />
+            </div>
+            <div className="zeiten-row">
+              <input className="pause" inputMode="decimal" value={z.stunden} onChange={(e) => setStd(i, { stunden: e.target.value })} placeholder="Std" title="Stunden" />
+              <span className="muted small">Stunden</span>
+              {stunden.length > 1 && (
+                <button className="iconbtn" onClick={() => setStunden((rows) => rows.filter((_, idx) => idx !== i))} aria-label="Zeile entfernen"><Icon name="x" size={15} /></button>
+              )}
+            </div>
+          </div>
+        ))}
+        <button className="btn btn-sm" onClick={() => setStunden((r) => [...r, { mitarbeiter_name: "", taetigkeit: "Regiearbeit", stunden: "1" }])}><Icon name="plus" size={14} /> Mitarbeiter</button>
+        <div className="readout accent" style={{ marginTop: 10 }}>Summe: <strong>{summe.toLocaleString("de-DE")} h</strong></div>
+
+        <h3>Material</h3>
+        {material.map((m, i) => (
+          <div key={i} className="stunden-zeile">
+            <div className="zeiten-row">
+              <input style={{ flex: 2 }} placeholder="Material" value={m.bezeichnung} onChange={(e) => setMat(i, { bezeichnung: e.target.value })} />
+              <input className="pause" inputMode="decimal" placeholder="Menge" value={m.menge} onChange={(e) => setMat(i, { menge: e.target.value })} />
+              <input className="pause" placeholder="Einheit" value={m.einheit} onChange={(e) => setMat(i, { einheit: e.target.value })} />
+              <button className="iconbtn" onClick={() => setMaterial((rows) => rows.filter((_, idx) => idx !== i))} aria-label="Zeile entfernen"><Icon name="x" size={15} /></button>
+            </div>
+          </div>
+        ))}
+        <button className="btn btn-sm" onClick={() => setMaterial((r) => [...r, { bezeichnung: "", menge: "1", einheit: "Stk" }])}><Icon name="plus" size={14} /> Material</button>
+
+        <label className="field" style={{ marginTop: 12 }}><span>Bemerkungen</span>
+          <textarea rows={2} value={bemerkungen} onChange={(e) => setBemerkungen(e.target.value)} placeholder="optional" />
+        </label>
+
+        <h3>Unterschriften <span className="muted small">(optional)</span></h3>
+        <label className="field"><span>Kunde / Auftraggeber</span>
+          <input value={sigKundeName} onChange={(e) => setSigKundeName(e.target.value)} placeholder="Name des Unterzeichnenden" />
+        </label>
+        <SignaturPad value={sigKunde} onChange={setSigKunde} />
+        <label className="field" style={{ marginTop: 14 }}><span>Mitarbeiter ({ich?.name ?? ""})</span></label>
+        <SignaturPad value={sigMitarbeiter} onChange={setSigMitarbeiter} />
+
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose}>Abbrechen</button>
+          <button className="btn btn-primary" onClick={speichern} disabled={!gueltig}>Speichern</button>
+        </div>
+      </Modal>
   );
 }
 
