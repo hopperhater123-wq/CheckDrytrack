@@ -227,6 +227,7 @@ class Store {
       gefaehrdungsbeurteilung_abgeschlossen: false, versicherung_id: null,
       baujahr: null, geschosse: null, bauweise: null, aundv_unterschrieben: false,
       aundv_unterschrift: null, aundv_unterschrift_name: null, aundv_datum: null,
+      vollmacht_unterschrift: null, vollmacht_unterschrift_name: null, vollmacht_datum: null,
       angelegt_von: params.angelegt_von, angelegt_am: new Date().toISOString(),
     };
     this.commit((db) => { db.projekt.push(projekt); });
@@ -243,6 +244,18 @@ class Store {
       p.aundv_datum = params.datum;
       p.aundv_unterschrieben = true;
       db.feed_eintrag.push(autoFeed(params.projekt_id, null, "manuell", params.autor_id, "Auftrag & Abtretungserklärung (A&A) unterschrieben.", "kunde"));
+    });
+  }
+
+  /** Vertretervollmacht unterschreiben — setzt Unterschrift + Datum am Projekt. */
+  setVollmacht(params: { projekt_id: string; unterschrift: string | null; name: string | null; datum: string; autor_id: string }) {
+    this.commit((db) => {
+      const p = db.projekt.find((x) => x.id === params.projekt_id);
+      if (!p) return;
+      p.vollmacht_unterschrift = params.unterschrift;
+      p.vollmacht_unterschrift_name = params.name;
+      p.vollmacht_datum = params.datum;
+      db.feed_eintrag.push(autoFeed(params.projekt_id, null, "manuell", params.autor_id, "Vertretervollmacht unterschrieben.", "kunde"));
     });
   }
 

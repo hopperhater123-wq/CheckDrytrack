@@ -53,6 +53,7 @@ export type DokumentTyp =
   | "abschlussbericht"
   | "abnahmeprotokoll"
   | "auftrag_abtretung"
+  | "vertretervollmacht"
   | "ersatzfliesenbericht"
   | "kva"
   | "strombrief";
@@ -132,6 +133,10 @@ export interface Projekt {
   aundv_unterschrift: string | null; // PNG-Data-URL der Kundenunterschrift
   aundv_unterschrift_name: string | null; // Name des Unterzeichnenden
   aundv_datum: string | null; // ISO-Date der Unterzeichnung
+  // Vertretervollmacht (Alt-System): Kunde bevollmächtigt das Unternehmen ggü. der Versicherung.
+  vollmacht_unterschrift: string | null;
+  vollmacht_unterschrift_name: string | null;
+  vollmacht_datum: string | null;
   angelegt_von: string; // FK benutzer
   angelegt_am: string;
 }
