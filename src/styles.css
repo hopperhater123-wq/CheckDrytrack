@@ -251,6 +251,22 @@ input::placeholder { color: var(--muted); }
 .inline-add { display: flex; gap: 8px; margin-top: 12px; }
 .inline-add input { flex: 1; }
 
+/* Raum-Fotos (FlashApp-Ersatz) */
+.segmented.small { display: flex; width: 100%; margin-bottom: 10px; }
+.segmented.small .seg { flex: 1; justify-content: center; padding: 6px 10px; }
+.fotos { margin-top: 4px; }
+.foto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; margin-top: 12px; }
+.foto-item { position: relative; }
+.foto-thumb { display: block; width: 100%; aspect-ratio: 1; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden; cursor: pointer; background: var(--surface-2); position: relative; }
+.foto-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.foto-tag { position: absolute; left: 6px; bottom: 6px; font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent) 88%, black 12%); color: #fff; letter-spacing: .02em; }
+.foto-tag.danger { background: var(--danger, #dc2626); }
+.foto-del { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; cursor: pointer; transition: background var(--dur) var(--ease); }
+.foto-del:hover { background: var(--danger, #dc2626); }
+
 /* ---- Detail ---- */
 .back { background: none; border: none; color: var(--muted); cursor: pointer; padding: 6px 0; font-size: 0.86rem; font-weight: 600;
   align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; transition: color var(--dur); }

@@ -382,6 +382,22 @@ class Store {
     });
   }
 
+  /** Raum-Foto anlegen (14 · Dokumente / FlashApp-Ersatz). Bild als komprimierte Data-URL. */
+  addRaumFoto(params: { raum_id: string; kategorie: "uebersicht" | "schadenstelle"; datei_referenz: string; aufgenommen_von: string }) {
+    this.commit((db) => {
+      db.raum_foto.push({
+        id: uid("rf"), raum_id: params.raum_id, kategorie: params.kategorie,
+        datei_referenz: params.datei_referenz, aufgenommen_von: params.aufgenommen_von,
+        aufgenommen_am: new Date().toISOString(),
+      });
+    });
+  }
+
+  /** Raum-Foto entfernen. */
+  removeRaumFoto(foto_id: string) {
+    this.commit((db) => { db.raum_foto = db.raum_foto.filter((f) => f.id !== foto_id); });
+  }
+
   /** Markierung auf dem Grundriss (FR-PROJ-025): Hinweis für Sanierer oder Trocknungsmonteur. */
   addMarkierung(params: { grundriss_id: string; raum_id: string | null; zielgruppe: "sanierer" | "trocknungsmonteur"; text: string; erstellt_von: string }) {
     this.commit((db) => {

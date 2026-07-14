@@ -2,7 +2,7 @@
 type IconName =
   | "dashboard" | "folder" | "scan" | "wind" | "menu" | "plus" | "chevronRight" | "chevronLeft"
   | "alert" | "droplet" | "fileText" | "map" | "search" | "check" | "x" | "gauge" | "clock"
-  | "layers" | "logout" | "qr" | "barcode" | "spark" | "calendar";
+  | "layers" | "logout" | "qr" | "barcode" | "spark" | "calendar" | "camera" | "trash";
 
 const PATHS: Record<IconName, JSX.Element> = {
   dashboard: <><rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" /></>,
@@ -28,6 +28,8 @@ const PATHS: Record<IconName, JSX.Element> = {
   barcode: <><path d="M4 6v12" /><path d="M8 6v12" /><path d="M12 6v12" /><path d="M16 6v12" /><path d="M20 6v12" /></>,
   spark: <path d="M12 3v4m0 10v4m9-9h-4M7 12H3m13.5-6.5-2.8 2.8m-5.4 5.4-2.8 2.8m11 0-2.8-2.8m-5.4-5.4L5.5 5.5" />,
   calendar: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M8 2v4" /><path d="M16 2v4" /><path d="M3 9h18" /></>,
+  camera: <><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" /><circle cx="12" cy="13" r="3.5" /></>,
+  trash: <><path d="M3 6h18" /><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" /><path d="M6 6v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6" /><path d="M10 11v6" /><path d="M14 11v6" /></>,
 };
 
 export function Icon({ name, size = 22, className, strokeWidth = 1.75 }: { name: IconName; size?: number; className?: string; strokeWidth?: number }) {
