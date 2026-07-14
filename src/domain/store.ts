@@ -370,6 +370,18 @@ class Store {
     });
   }
 
+  /** Dokument protokollieren (z. B. erzeugter Strombrief, 14 · Dokumente). */
+  addDokument(params: { projekt_id: string; typ: import("./types").DokumentTyp; speicher_referenz: string; erstellt_von: string }) {
+    this.commit((db) => {
+      db.dokument.push({
+        id: uid("d"), projekt_id: params.projekt_id, typ: params.typ,
+        speicher_referenz: params.speicher_referenz, erstellt_von: params.erstellt_von,
+        erstellt_am: new Date().toISOString(),
+      });
+      db.feed_eintrag.push(autoFeed(params.projekt_id, null, "manuell", params.erstellt_von, `Dokument erstellt: ${params.typ}.`, "dispo"));
+    });
+  }
+
   /** Markierung auf dem Grundriss (FR-PROJ-025): Hinweis für Sanierer oder Trocknungsmonteur. */
   addMarkierung(params: { grundriss_id: string; raum_id: string | null; zielgruppe: "sanierer" | "trocknungsmonteur"; text: string; erstellt_von: string }) {
     this.commit((db) => {

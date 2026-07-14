@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion, EASE, Modal } from "../ui/motion";
 import { QrCode } from "../ui/QrCode";
+import { strombriefHtml, printHtml } from "../domain/report";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
@@ -88,7 +89,7 @@ export function ProjektDetail({ id }: { id: string }) {
 
       {tab === "feed" && <FeedTab projektId={id} userId={user.id} />}
 
-      {tab === "dokumente" && <DokumenteTab projektId={id} kostenSichtbar={can.kostenSichtbar} benutzerName={benutzerName} />}
+      {tab === "dokumente" && <DokumenteTab projektId={id} kostenSichtbar={can.kostenSichtbar} benutzerName={benutzerName} userId={user.id} />}
       </motion.div>
     </div>
   );
@@ -347,26 +348,36 @@ function FeedTab({ projektId, userId }: { projektId: string; userId: string }) {
 
 // ---------------------------------------------------------------------------
 
-function DokumenteTab({ projektId, kostenSichtbar, benutzerName }: { projektId: string; kostenSichtbar: boolean; benutzerName: (u: string) => string }) {
+function DokumenteTab({ projektId, kostenSichtbar, benutzerName, userId }: { projektId: string; kostenSichtbar: boolean; benutzerName: (u: string) => string; userId: string }) {
   const db = useDB();
+  const projekt = db.projekt.find((p) => p.id === projektId)!;
   // KVA-Sichtbarkeit (04 Rollenmodell): Monteur sieht keine Kosten-/KVA-Dokumente.
   const dokumente = db.dokument
     .filter((d) => d.projekt_id === projektId)
     .filter((d) => kostenSichtbar || d.typ !== "kva");
   const kvaVersteckt = !kostenSichtbar && db.dokument.some((d) => d.projekt_id === projektId && d.typ === "kva");
 
+  const strombrief = () => {
+    printHtml(strombriefHtml(projekt, db));
+    store.addDokument({ projekt_id: projektId, typ: "strombrief", speicher_referenz: `strombrief://${projektId}/${Date.now()}.pdf`, erstellt_von: userId });
+  };
+  // Doc-Zeile erneut als PDF öffnen (aktuell für Strombrief; andere Typen sind Platzhalter).
+  const oeffnen = (typ: string) => { if (typ === "strombrief") printHtml(strombriefHtml(projekt, db)); };
+
   return (
     <section className="card">
-      <div className="card-head"><h2>Dokumente</h2></div>
-      {dokumente.length === 0 && <p className="muted">Keine Dokumente.</p>}
+      <div className="card-head"><h2>Dokumente</h2>
+        <button className="btn btn-sm btn-primary" onClick={strombrief}><Icon name="fileText" size={14} /> Strombrief</button>
+      </div>
+      {dokumente.length === 0 && <p className="muted">Noch keine Dokumente. Strombrief oben erzeugen — er fasst Einsatzdauer und Stromverbrauch je Gerät zusammen.</p>}
       {dokumente.map((d) => (
-        <div key={d.id} className="listrow static">
+        <button key={d.id} className="listrow" onClick={() => oeffnen(d.typ)}>
           <div className="listrow-main">
             <span className="listrow-title">{DOKUMENT_TYP_LABEL[d.typ]}</span>
             <span className="listrow-sub">{benutzerName(d.erstellt_von)} · {fmtDatum(d.erstellt_am)}</span>
           </div>
-          <span className="muted small">PDF ↓</span>
-        </div>
+          <span className="muted small"><Icon name="fileText" size={13} /> PDF</span>
+        </button>
       ))}
       {kvaVersteckt && <p className="muted small">🔒 KVA/Kostendokumente sind für Ihre Rolle ausgeblendet (04 Rollenmodell).</p>}
     </section>
