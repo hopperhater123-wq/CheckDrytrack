@@ -128,6 +128,7 @@ button { font-family: inherit; }
 .card, .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 18px; box-shadow: var(--shadow-sm); }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .card.warn { border-color: color-mix(in srgb, var(--warn) 40%, var(--border)); }
 
 /* Bento grid (Dashboard) */

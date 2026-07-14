@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion, EASE, Modal } from "../ui/motion";
 import { QrCode } from "../ui/QrCode";
-import { strombriefHtml, printHtml } from "../domain/report";
+import { strombriefHtml, abschlussberichtHtml, printHtml } from "../domain/report";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
@@ -361,15 +361,25 @@ function DokumenteTab({ projektId, kostenSichtbar, benutzerName, userId }: { pro
     printHtml(strombriefHtml(projekt, db));
     store.addDokument({ projekt_id: projektId, typ: "strombrief", speicher_referenz: `strombrief://${projektId}/${Date.now()}.pdf`, erstellt_von: userId });
   };
-  // Doc-Zeile erneut als PDF öffnen (aktuell für Strombrief; andere Typen sind Platzhalter).
-  const oeffnen = (typ: string) => { if (typ === "strombrief") printHtml(strombriefHtml(projekt, db)); };
+  const abschlussbericht = () => {
+    printHtml(abschlussberichtHtml(projekt, db));
+    store.addDokument({ projekt_id: projektId, typ: "abschlussbericht", speicher_referenz: `abschlussbericht://${projektId}/${Date.now()}.pdf`, erstellt_von: userId });
+  };
+  // Doc-Zeile erneut als PDF öffnen (für generierte Dokumente; andere Typen sind Platzhalter).
+  const oeffnen = (typ: string) => {
+    if (typ === "strombrief") printHtml(strombriefHtml(projekt, db));
+    else if (typ === "abschlussbericht") printHtml(abschlussberichtHtml(projekt, db));
+  };
 
   return (
     <section className="card">
       <div className="card-head"><h2>Dokumente</h2>
-        <button className="btn btn-sm btn-primary" onClick={strombrief}><Icon name="fileText" size={14} /> Strombrief</button>
+        <div className="btn-row">
+          <button className="btn btn-sm" onClick={strombrief}><Icon name="fileText" size={14} /> Strombrief</button>
+          <button className="btn btn-sm btn-primary" onClick={abschlussbericht}><Icon name="fileText" size={14} /> Abschlussbericht</button>
+        </div>
       </div>
-      {dokumente.length === 0 && <p className="muted">Noch keine Dokumente. Strombrief oben erzeugen — er fasst Einsatzdauer und Stromverbrauch je Gerät zusammen.</p>}
+      {dokumente.length === 0 && <p className="muted">Noch keine Dokumente. Abschlussbericht fasst Trocknungsergebnis, Geräteeinsätze und Verbrauch zusammen; der Strombrief listet Einsatzdauer und Stromverbrauch je Gerät.</p>}
       {dokumente.map((d) => (
         <button key={d.id} className="listrow" onClick={() => oeffnen(d.typ)}>
           <div className="listrow-main">

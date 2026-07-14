@@ -226,6 +226,156 @@ export function strombriefHtml(projekt: Projekt, db: DryTrackDB): string {
   </body></html>`;
 }
 
+/**
+ * Abschlussbericht (14 · Dokumente, DokumentTyp "abschlussbericht"): Projekt-Zusammenfassung
+ * zum Abschluss der Trocknung. Fasst Objektdaten, das Trocknungsergebnis je Raum (letzte
+ * Messung je Material), die Geräteeinsätze inkl. Gesamtverbrauch und ein Fazit zusammen.
+ * Rein aus vorhandenen Daten abgeleitet — analog zum Strombrief, aber auf Projektebene.
+ */
+export function abschlussberichtHtml(projekt: Projekt, db: DryTrackDB): string {
+  const benutzer = (id: string) => db.benutzer.find((b) => b.id === id)?.name ?? "—";
+  const mat = (id: string) => db.materialdatenbank.find((m) => m.id === id);
+  const versicherung = projekt.versicherung_id ? db.versicherung.find((v) => v.id === projekt.versicherung_id)?.name ?? "—" : "—";
+  const raeume = db.raum.filter((r) => r.projekt_id === projekt.id);
+  const einsaetze = db.einsatz.filter((e) => e.projekt_id === projekt.id);
+
+  // Projektzeitraum: erster Aufbau → letzter Abbau (bzw. heute, wenn noch etwas läuft).
+  const aufbauten = einsaetze.map((e) => new Date(e.aufbau_datum).getTime());
+  const start = aufbauten.length ? Math.min(...aufbauten) : new Date(projekt.angelegt_am).getTime();
+  const nochLaufend = einsaetze.some(istLaufend);
+  const abbauten = einsaetze.filter((e) => e.abbau_datum).map((e) => new Date(e.abbau_datum!).getTime());
+  const ende = nochLaufend || !abbauten.length ? Date.now() : Math.max(...abbauten);
+  const dauerTage = Math.max(1, Math.ceil((ende - start) / (1000 * 60 * 60 * 24)));
+
+  // Trocknungsergebnis je Raum: je Material die letzte Messung, deren Bewertung zählt.
+  const raumBlocks = raeume.map((r) => {
+    const messungen = db.messung.filter((m) => m.raum_id === r.id);
+    const letztePerMaterial = new Map<string, typeof messungen[number]>();
+    for (const m of messungen.sort((a, b) => (a.gemessen_am < b.gemessen_am ? -1 : 1))) letztePerMaterial.set(m.material_id, m);
+    const bewertungen = [...letztePerMaterial.values()].map((m) => bewerteMessung(m, mat(m.material_id)));
+
+    let ergebnis: "getrocknet" | "in_arbeit" | "kritisch" | "offen";
+    if (bewertungen.length === 0) ergebnis = "offen";
+    else if (bewertungen.some((b) => b.bewertung === "kontaminiert" || b.bewertung === "austausch")) ergebnis = "kritisch";
+    else if (bewertungen.every((b) => b.bewertung === "trocken")) ergebnis = "getrocknet";
+    else ergebnis = "in_arbeit";
+
+    const ergLabel: Record<typeof ergebnis, string> = {
+      getrocknet: "Trocken — abgeschlossen", in_arbeit: "Trocknung läuft", kritisch: "Austausch/Kontamination", offen: "Keine Messung",
+    };
+    const zeilen = [...letztePerMaterial.values()].map((m) => {
+      const b = bewerteMessung(m, mat(m.material_id));
+      return `<tr><td>${esc(mat(m.material_id)?.bezeichnung ?? "—")}</td><td class="b-${b.bewertung}">${BEWERTUNG_LABEL[b.bewertung]}</td><td>${new Date(m.gemessen_am).toLocaleDateString("de-DE")}</td></tr>`;
+    }).join("");
+    const zusatz = [
+      r.geschoss, r.betroffene_flaeche_m2 != null ? `${r.betroffene_flaeche_m2} m²` : null,
+      r.faekalschaden ? "Fäkalschaden" : null, r.sichtbarer_schimmel ? "Schimmel" : null,
+    ].filter(Boolean).join(" · ");
+
+    return `<section class="raum">
+      <div class="raum-head"><h3>${esc(r.bezeichnung)}</h3><span class="erg erg-${ergebnis}">${ergLabel[ergebnis]}</span></div>
+      ${zusatz ? `<p class="sub">${esc(zusatz)}</p>` : ""}
+      ${zeilen ? `<table><thead><tr><th>Material</th><th>Ergebnis</th><th>Letzte Messung</th></tr></thead><tbody>${zeilen}</tbody></table>` : "<p class='sub'>Keine Messungen erfasst.</p>"}
+    </section>`;
+  }).join("");
+
+  // Geräte-/Verbrauchssumme (wie Strombrief, aber verdichtet).
+  let summe = 0, gesamtTage = 0, gabSchaetzung = false;
+  for (const e of einsaetze) {
+    if (istLaufend(e)) continue;
+    const g = db.geraet.find((x) => x.inventarnummer === e.geraet_inventarnummer);
+    const typ = db.geraetetyp.find((t) => t.id === g?.geraetetyp_id);
+    const v = g ? berechneVerbrauch(e, g, typ) : null;
+    if (v) { summe += v.verbrauch; gesamtTage += einsatzTage(e); if (v.geschaetzt) gabSchaetzung = true; }
+  }
+  const beendet = einsaetze.filter((e) => !istLaufend(e)).length;
+
+  const alleTrocken = raeume.length > 0 && raeume.every((r) => {
+    const ms = db.messung.filter((m) => m.raum_id === r.id);
+    if (ms.length === 0) return false;
+    const perMat = new Map<string, typeof ms[number]>();
+    for (const m of ms.sort((a, b) => (a.gemessen_am < b.gemessen_am ? -1 : 1))) perMat.set(m.material_id, m);
+    return [...perMat.values()].every((m) => bewerteMessung(m, mat(m.material_id)).bewertung === "trocken");
+  });
+  const fazit = alleTrocken
+    ? "Alle erfassten Räume sind laut Freimessung trocken. Die Trocknungsmaßnahme kann als abgeschlossen gelten."
+    : nochLaufend
+      ? "Es sind noch Geräte im Einsatz bzw. Räume nicht freigemessen — die Trocknung ist noch nicht vollständig abgeschlossen."
+      : "Nicht alle Räume sind freigemessen. Eine abschließende Kontrollmessung wird empfohlen.";
+
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Abschlussbericht ${esc(projekt.projektnummer)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
+    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    h1 { font-size: 16px; margin: 0 0 2px; } h2 { font-size: 12px; margin: 22px 0 8px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
+    h3 { font-size: 14px; margin: 0; color: #0b0d12; }
+    .meta { color: #667085; font-size: 12px; text-align: right; }
+    .kennz { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .kennz div { border: 1px solid #e7e9ee; border-radius: 10px; padding: 10px 12px; }
+    .kennz .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #667085; display: block; }
+    .kennz b { font-size: 16px; }
+    dl.facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 24px; margin: 0; }
+    dl.facts > div { display: flex; justify-content: space-between; border-bottom: 1px solid #f0f1f4; padding: 5px 0; }
+    dl.facts dt { color: #667085; } dl.facts dd { margin: 0; font-weight: 600; }
+    .raum { border: 1px solid #e7e9ee; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; page-break-inside: avoid; }
+    .raum-head { display: flex; justify-content: space-between; align-items: center; }
+    .sub { color: #98a1b0; font-size: 11px; margin: 4px 0 0; }
+    .erg { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+    .erg-getrocknet { background: #dcfce7; color: #059669; } .erg-in_arbeit { background: #fef3c7; color: #b45309; }
+    .erg-kritisch { background: #fee2e2; color: #dc2626; } .erg-offen { background: #eef0f4; color: #667085; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #667085; border-bottom: 1px solid #e7e9ee; padding: 5px 8px; }
+    td { padding: 6px 8px; border-bottom: 1px solid #f0f1f4; }
+    .b-trocken { color: #059669; font-weight: 600; } .b-feucht, .b-kontaminiert, .b-austausch { color: #dc2626; font-weight: 600; } .b-grenzwertig { color: #d97706; font-weight: 600; }
+    .fazit { border: 1px solid #e7e9ee; border-left: 3px solid #4f46e5; border-radius: 8px; padding: 12px 14px; line-height: 1.5; }
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 14px; page-break-inside: avoid; }
+    .sig-linie { border-bottom: 1px solid #0b0d12; margin-top: 34px; }
+    .sig-label { font-size: 11px; color: #667085; margin-top: 4px; }
+    footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
+  </style></head><body>
+    <header>
+      <div><div class="brand">◐ Dry<span>Track</span></div><h1 style="margin-top:8px">Abschlussbericht</h1></div>
+      <div class="meta">
+        <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
+        <div>${esc(projekt.adresse)}</div>
+        <div>Erstellt am ${new Date().toLocaleDateString("de-DE")} · ${esc(benutzer(projekt.angelegt_von))}</div>
+      </div>
+    </header>
+
+    <div class="kennz">
+      <div><span class="lbl">Trocknungsdauer</span><b>${dauerTage} Tage</b></div>
+      <div><span class="lbl">Geräteeinsätze</span><b>${beendet}${nochLaufend ? " (+laufend)" : ""}</b></div>
+      <div><span class="lbl">Gerätetage</span><b>${gesamtTage}</b></div>
+      <div><span class="lbl">Stromverbrauch</span><b>${summe.toLocaleString("de-DE", { maximumFractionDigits: 0 })} kWh</b></div>
+    </div>
+
+    <h2>Objekt &amp; Auftrag</h2>
+    <dl class="facts">
+      <div><dt>Baujahr</dt><dd>${projekt.baujahr ?? "—"}</dd></div>
+      <div><dt>Geschosse</dt><dd>${projekt.geschosse ?? "—"}</dd></div>
+      <div><dt>Bauweise</dt><dd>${esc(projekt.bauweise ?? "—")}</dd></div>
+      <div><dt>Versicherung</dt><dd>${esc(versicherung)}</dd></div>
+      <div><dt>Kontamination</dt><dd>${projekt.kontamination_art ?? "—"}</dd></div>
+      <div><dt>A&amp;A unterschrieben</dt><dd>${projekt.aundv_unterschrieben ? "ja" : "offen"}</dd></div>
+    </dl>
+
+    <h2>Trocknungsergebnis je Raum</h2>
+    ${raumBlocks || "<p class='sub'>Keine Räume erfasst.</p>"}
+
+    <h2>Fazit</h2>
+    <div class="fazit">${esc(fazit)}</div>
+
+    <div class="sig-grid">
+      <div><div class="sig-linie"></div><div class="sig-label">Kunde / Auftraggeber</div></div>
+      <div><div class="sig-linie"></div><div class="sig-label">${esc(benutzer(projekt.angelegt_von))} · DryTrack</div></div>
+    </div>
+
+    <footer>${gabSchaetzung ? "Stromverbrauch teilweise als Näherung (Tage × Geräteleistung) berechnet — ohne Gewähr (FR-EINSATZ-003). " : ""}DryTrack · Abschlussbericht zum ${new Date().toLocaleDateString("de-DE")}. Feuchtebewertungen sind Praxisrichtwerte (FR-MESS-002).</footer>
+  </body></html>`;
+}
+
 /** Öffnet den Druckdialog für den übergebenen HTML-Report in einem isolierten iframe. */
 export function printHtml(html: string) {
   const iframe = document.createElement("iframe");
