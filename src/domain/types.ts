@@ -56,6 +56,7 @@ export type DokumentTyp =
   | "vertretervollmacht"
   | "ersatzfliesenbericht"
   | "kundenzufriedenheit"
+  | "notdienst_einsatzbericht"
   | "kva"
   | "strombrief";
 
@@ -339,6 +340,23 @@ export interface Abnahmeprotokoll {
   erstellt_am: string;
 }
 
+// Notdienst-Einsatzbericht (Alt-System): Erstmaßnahme/Notdienst mit Sofortmaßnahmen + Unterschrift.
+export interface Notdiensteinsatzbericht {
+  id: string;
+  projekt_id: string;
+  datum: string; // ISO-Date
+  alarmierung: string | null; // Uhrzeit "HH:MM"
+  ankunft: string | null; // Uhrzeit "HH:MM"
+  schadenursache: string | null;
+  sofortmassnahmen: string; // durchgeführte Sofortmaßnahmen
+  bemerkungen: string | null;
+  unterschrift_kunde: string | null;
+  unterschrift_kunde_name: string | null;
+  unterschrift_mitarbeiter: string | null;
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 // Kundenzufriedenheit (Alt-System): Bewertung der Leistung durch den Kunden (1–5) + Unterschrift.
 export interface Kundenzufriedenheit {
   id: string;
@@ -402,6 +420,7 @@ export interface DryTrackDB {
   abnahmeprotokoll: Abnahmeprotokoll[];
   ersatzfliesenbericht: Ersatzfliesenbericht[];
   kundenzufriedenheit: Kundenzufriedenheit[];
+  notdiensteinsatzbericht: Notdiensteinsatzbericht[];
   termin: Termin[];
   firmen_einstellung: FirmenEinstellung[];
 }

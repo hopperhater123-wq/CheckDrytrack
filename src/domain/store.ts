@@ -52,7 +52,8 @@ class Store {
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
-      ersatzfliesenbericht: [], kundenzufriedenheit: [], termin: [], firmen_einstellung: [],
+      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [],
+      termin: [], firmen_einstellung: [],
     };
     const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
     return { ...base, ...parsed } as DryTrackDB;
@@ -437,6 +438,28 @@ class Store {
       });
       const schnitt = ((params.bewertung_freundlichkeit + params.bewertung_sauberkeit + params.bewertung_termintreue + params.bewertung_qualitaet) / 4).toFixed(1);
       db.feed_eintrag.push(autoFeed(params.projekt_id, null, "manuell", params.erstellt_von, `Kundenzufriedenheit erfasst (Ø ${schnitt}/5${params.weiterempfehlung ? ", weiterempfohlen" : ""}).`, "kunde"));
+    });
+    return id;
+  }
+
+  /** Notdienst-Einsatzbericht anlegen (Erstmaßnahme mit Sofortmaßnahmen + Unterschriften). */
+  addNotdiensteinsatzbericht(params: {
+    projekt_id: string; datum: string; alarmierung: string | null; ankunft: string | null;
+    schadenursache: string | null; sofortmassnahmen: string; bemerkungen: string | null;
+    unterschrift_kunde: string | null; unterschrift_kunde_name: string | null; unterschrift_mitarbeiter: string | null;
+    erstellt_von: string;
+  }) {
+    const id = uid("nd");
+    this.commit((db) => {
+      db.notdiensteinsatzbericht.push({
+        id, projekt_id: params.projekt_id, datum: params.datum, alarmierung: params.alarmierung, ankunft: params.ankunft,
+        schadenursache: params.schadenursache, sofortmassnahmen: params.sofortmassnahmen, bemerkungen: params.bemerkungen,
+        unterschrift_kunde: params.unterschrift_kunde, unterschrift_kunde_name: params.unterschrift_kunde_name,
+        unterschrift_mitarbeiter: params.unterschrift_mitarbeiter,
+        erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
+      });
+      db.feed_eintrag.push(autoFeed(params.projekt_id, null, "check_in", params.erstellt_von,
+        `Notdienst-Einsatzbericht vom ${new Date(params.datum).toLocaleDateString("de-DE")} erstellt.`));
     });
     return id;
   }

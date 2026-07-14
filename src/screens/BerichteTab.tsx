@@ -4,7 +4,7 @@ import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
-import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, printHtml } from "../domain/report";
+import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, printHtml } from "../domain/report";
 import { ABNAHME_STATUS_LABEL } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
 import { Icon } from "../ui/Icon";
@@ -30,6 +30,10 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
   const [neuKz, setNeuKz] = useState(false);
   const kzBerichte = db.kundenzufriedenheit
     .filter((k) => k.projekt_id === projektId)
+    .sort((a, b) => (a.datum < b.datum ? 1 : -1));
+  const [neuNd, setNeuNd] = useState(false);
+  const ndBerichte = db.notdiensteinsatzbericht
+    .filter((n) => n.projekt_id === projektId)
     .sort((a, b) => (a.datum < b.datum ? 1 : -1));
   const benutzerName = (id: string) => db.benutzer.find((u) => u.id === id)?.name ?? "—";
   const kzSchnitt = (k: import("../domain/types").Kundenzufriedenheit) =>
@@ -136,11 +140,105 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
         ))}
       </section>
 
+      <section className="card">
+        <div className="card-head"><h2>Notdienst-Einsatzberichte <span className="count">{ndBerichte.length}</span></h2>
+          <button className="btn btn-sm btn-primary" onClick={() => setNeuNd(true)}>+ Notdienst</button>
+        </div>
+        {ndBerichte.length === 0 && <p className="muted">Noch kein Notdienst-Bericht. Bei Erstmaßnahme/Notdienst die Sofortmaßnahmen mit Unterschrift dokumentieren.</p>}
+        {ndBerichte.map((n) => (
+          <div key={n.id} className="listrow static">
+            <div className="listrow-main">
+              <span className="listrow-title">Notdienst {fmtDatum(n.datum)}</span>
+              <span className="listrow-sub">{benutzerName(n.erstellt_von)}{n.ankunft ? ` · Ankunft ${n.ankunft} Uhr` : ""}</span>
+            </div>
+            <div className="listrow-side">
+              {n.unterschrift_kunde && <span className="chip small chip-live"><Icon name="check" size={12} /> unterschrieben</span>}
+            </div>
+            <button className="btn btn-sm" onClick={() => projekt && printHtml(notdiensteinsatzberichtHtml(n, projekt, db))}>
+              <Icon name="fileText" size={14} /> PDF
+            </button>
+          </div>
+        ))}
+      </section>
+
       <AnimatePresence>{neu && <BerichtForm projektId={projektId} userId={userId} onClose={() => setNeu(false)} />}</AnimatePresence>
       <AnimatePresence>{neuAbnahme && <AbnahmeForm projektId={projektId} userId={userId} onClose={() => setNeuAbnahme(false)} />}</AnimatePresence>
       <AnimatePresence>{neuEf && <ErsatzfliesenForm projektId={projektId} userId={userId} onClose={() => setNeuEf(false)} />}</AnimatePresence>
       <AnimatePresence>{neuKz && <KundenzufriedenheitForm projektId={projektId} userId={userId} onClose={() => setNeuKz(false)} />}</AnimatePresence>
+      <AnimatePresence>{neuNd && <NotdienstForm projektId={projektId} userId={userId} onClose={() => setNeuNd(false)} />}</AnimatePresence>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+function NotdienstForm({ projektId, userId, onClose }: { projektId: string; userId: string; onClose: () => void }) {
+  const db = useDB();
+  const ich = db.benutzer.find((u) => u.id === userId);
+  const heute = new Date().toISOString().slice(0, 10);
+  const [datum, setDatum] = useState(heute);
+  const [alarmierung, setAlarmierung] = useState("");
+  const [ankunft, setAnkunft] = useState("");
+  const [schadenursache, setSchadenursache] = useState("");
+  const [sofortmassnahmen, setSofortmassnahmen] = useState("");
+  const [bemerkungen, setBemerkungen] = useState("");
+  const [sigKunde, setSigKunde] = useState<string | null>(null);
+  const [sigKundeName, setSigKundeName] = useState("");
+  const [sigMitarbeiter, setSigMitarbeiter] = useState<string | null>(null);
+
+  const gueltig = !!datum && sofortmassnahmen.trim().length > 0;
+
+  const speichern = () => {
+    if (!gueltig) return;
+    store.addNotdiensteinsatzbericht({
+      projekt_id: projektId, datum, alarmierung: alarmierung || null, ankunft: ankunft || null,
+      schadenursache: schadenursache.trim() || null, sofortmassnahmen: sofortmassnahmen.trim(),
+      bemerkungen: bemerkungen.trim() || null,
+      unterschrift_kunde: sigKunde, unterschrift_kunde_name: sigKunde ? (sigKundeName.trim() || null) : null,
+      unterschrift_mitarbeiter: sigMitarbeiter, erstellt_von: userId,
+    });
+    onClose();
+  };
+
+  return (
+    <Modal onClose={onClose} dismissable={false}>
+        <h2>Notdienst-Einsatzbericht</h2>
+        <p className="muted small">Erstmaßnahme/Notdienst am Objekt dokumentieren.</p>
+
+        <label className="field"><span>Datum *</span>
+          <input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+        </label>
+        <div className="two-col">
+          <label className="field"><span>Alarmierung</span>
+            <input type="time" value={alarmierung} onChange={(e) => setAlarmierung(e.target.value)} />
+          </label>
+          <label className="field"><span>Ankunft</span>
+            <input type="time" value={ankunft} onChange={(e) => setAnkunft(e.target.value)} />
+          </label>
+        </div>
+        <label className="field"><span>Schadenursache</span>
+          <textarea rows={2} value={schadenursache} onChange={(e) => setSchadenursache(e.target.value)} placeholder="z. B. Rohrbruch unter der Spüle" />
+        </label>
+        <label className="field"><span>Durchgeführte Sofortmaßnahmen *</span>
+          <textarea rows={4} value={sofortmassnahmen} onChange={(e) => setSofortmassnahmen(e.target.value)} placeholder={"z. B.\nWasser abgesperrt\nRestwasser abgesaugt\nErstgeräte aufgebaut"} />
+        </label>
+        <label className="field"><span>Bemerkungen</span>
+          <textarea rows={2} value={bemerkungen} onChange={(e) => setBemerkungen(e.target.value)} placeholder="optional" />
+        </label>
+
+        <h3>Unterschriften <span className="muted small">(optional)</span></h3>
+        <label className="field"><span>Kunde / Auftraggeber</span>
+          <input value={sigKundeName} onChange={(e) => setSigKundeName(e.target.value)} placeholder="Name des Unterzeichnenden" />
+        </label>
+        <SignaturPad value={sigKunde} onChange={setSigKunde} />
+        <label className="field" style={{ marginTop: 14 }}><span>Mitarbeiter ({ich?.name ?? ""})</span></label>
+        <SignaturPad value={sigMitarbeiter} onChange={setSigMitarbeiter} />
+
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose}>Abbrechen</button>
+          <button className="btn btn-primary" onClick={speichern} disabled={!gueltig}>Speichern</button>
+        </div>
+      </Modal>
   );
 }
 
