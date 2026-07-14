@@ -51,6 +51,7 @@ export type DokumentTyp =
   | "schadensaufnahme_doku"
   | "erstbericht"
   | "abschlussbericht"
+  | "abnahmeprotokoll"
   | "kva"
   | "strombrief";
 
@@ -310,6 +311,23 @@ export interface StundenEintrag {
   pause_min: number;
 }
 
+// Abnahme der Trocknungsleistung durch den Kunden (Alt-System: Abnahmeprotokoll).
+export type AbnahmeStatus = "ohne_mangel" | "mit_mangel" | "verweigert";
+
+export interface Abnahmeprotokoll {
+  id: string;
+  projekt_id: string;
+  datum: string; // ISO-Date der Abnahme
+  abnahme_status: AbnahmeStatus;
+  maengel: string | null; // Mängelbeschreibung (bei mit_mangel/verweigert)
+  bemerkungen: string | null;
+  unterschrift_kunde: string | null; // PNG-Data-URL
+  unterschrift_kunde_name: string | null;
+  unterschrift_mitarbeiter: string | null;
+  erstellt_von: string; // FK benutzer
+  erstellt_am: string;
+}
+
 export interface FirmenEinstellung {
   schluessel: string; // z.B. freigabegrenze_eur
   wert: string;
@@ -339,6 +357,7 @@ export interface DryTrackDB {
   raum_foto: RaumFoto[];
   besuchsbericht: Besuchsbericht[];
   stunden_eintrag: StundenEintrag[];
+  abnahmeprotokoll: Abnahmeprotokoll[];
   termin: Termin[];
   firmen_einstellung: FirmenEinstellung[];
 }

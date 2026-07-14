@@ -51,7 +51,8 @@ class Store {
       benutzer: [], geraetetyp: [], geraet: [], versicherung: [], projekt: [], raum: [],
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messung: [], grundriss: [], grundriss_markierung: [],
-      bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], termin: [], firmen_einstellung: [],
+      bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
+      termin: [], firmen_einstellung: [],
     };
     const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
     return { ...base, ...parsed } as DryTrackDB;
@@ -330,6 +331,30 @@ class Store {
         `Besuchsbericht vom ${new Date(params.datum).toLocaleDateString("de-DE")} erstellt (${params.stunden.length} Stunden-Einträge).`));
     });
     return berichtId;
+  }
+
+  /** Abnahmeprotokoll anlegen (Kunden-Abnahme der Trocknungsleistung, mit Unterschriften). */
+  addAbnahmeprotokoll(params: {
+    projekt_id: string; datum: string; abnahme_status: import("./types").AbnahmeStatus;
+    maengel: string | null; bemerkungen: string | null;
+    unterschrift_kunde: string | null; unterschrift_kunde_name: string | null; unterschrift_mitarbeiter: string | null;
+    erstellt_von: string;
+  }) {
+    const id = uid("ap");
+    this.commit((db) => {
+      db.abnahmeprotokoll.push({
+        id, projekt_id: params.projekt_id, datum: params.datum, abnahme_status: params.abnahme_status,
+        maengel: params.maengel, bemerkungen: params.bemerkungen,
+        unterschrift_kunde: params.unterschrift_kunde, unterschrift_kunde_name: params.unterschrift_kunde_name,
+        unterschrift_mitarbeiter: params.unterschrift_mitarbeiter,
+        erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
+      });
+      const status = params.abnahme_status === "ohne_mangel" ? "ohne Mängel"
+        : params.abnahme_status === "mit_mangel" ? "mit Mängeln" : "verweigert";
+      db.feed_eintrag.push(autoFeed(params.projekt_id, null, "check_out", params.erstellt_von,
+        `Abnahmeprotokoll vom ${new Date(params.datum).toLocaleDateString("de-DE")} erstellt (Abnahme ${status}).`));
+    });
+    return id;
   }
 
   /** Termin anlegen (Wochenplanung, Backlog ③). */

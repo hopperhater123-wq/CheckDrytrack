@@ -4,17 +4,23 @@ import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
-import { besuchsberichtHtml, printHtml } from "../domain/report";
+import { besuchsberichtHtml, abnahmeprotokollHtml, printHtml } from "../domain/report";
+import { ABNAHME_STATUS_LABEL } from "../app/labels";
 import { Icon } from "../ui/Icon";
 import { SignaturPad } from "../ui/SignaturPad";
+import type { AbnahmeStatus } from "../domain/types";
 
 // Besuchsberichte mit Stundennachweis (Alt-System-Analyse 13.07.2026, Backlog ①).
 export function BerichteTab({ projektId, userId }: { projektId: string; userId: string }) {
   const db = useDB();
   const [neu, setNeu] = useState(false);
+  const [neuAbnahme, setNeuAbnahme] = useState(false);
   const projekt = db.projekt.find((p) => p.id === projektId);
   const berichte = db.besuchsbericht
     .filter((b) => b.projekt_id === projektId)
+    .sort((a, b) => (a.datum < b.datum ? 1 : -1));
+  const abnahmen = db.abnahmeprotokoll
+    .filter((a) => a.projekt_id === projektId)
     .sort((a, b) => (a.datum < b.datum ? 1 : -1));
   const benutzerName = (id: string) => db.benutzer.find((u) => u.id === id)?.name ?? "—";
 
@@ -54,8 +60,102 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
         })}
       </section>
 
+      <section className="card">
+        <div className="card-head"><h2>Abnahmeprotokolle <span className="count">{abnahmen.length}</span></h2>
+          <button className="btn btn-sm btn-primary" onClick={() => setNeuAbnahme(true)}>+ Abnahme</button>
+        </div>
+        {abnahmen.length === 0 && <p className="muted">Noch keine Abnahme. Bei Übergabe der Trocknung durch den Kunden abnehmen lassen — mit Unterschrift.</p>}
+        {abnahmen.map((a) => (
+          <div key={a.id} className="listrow static">
+            <div className="listrow-main">
+              <span className="listrow-title">Abnahme am {fmtDatum(a.datum)}</span>
+              <span className="listrow-sub">{benutzerName(a.erstellt_von)} · {ABNAHME_STATUS_LABEL[a.abnahme_status]}</span>
+            </div>
+            <div className="listrow-side">
+              {a.unterschrift_kunde && <span className="chip small chip-live"><Icon name="check" size={12} /> unterschrieben</span>}
+            </div>
+            <button className="btn btn-sm" onClick={() => projekt && printHtml(abnahmeprotokollHtml(a, projekt, db))}>
+              <Icon name="fileText" size={14} /> PDF
+            </button>
+          </div>
+        ))}
+      </section>
+
       <AnimatePresence>{neu && <BerichtForm projektId={projektId} userId={userId} onClose={() => setNeu(false)} />}</AnimatePresence>
+      <AnimatePresence>{neuAbnahme && <AbnahmeForm projektId={projektId} userId={userId} onClose={() => setNeuAbnahme(false)} />}</AnimatePresence>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+function AbnahmeForm({ projektId, userId, onClose }: { projektId: string; userId: string; onClose: () => void }) {
+  const db = useDB();
+  const ich = db.benutzer.find((u) => u.id === userId);
+  const heute = new Date().toISOString().slice(0, 10);
+  const [datum, setDatum] = useState(heute);
+  const [status, setStatus] = useState<AbnahmeStatus>("ohne_mangel");
+  const [maengel, setMaengel] = useState("");
+  const [bemerkungen, setBemerkungen] = useState("");
+  const [sigKunde, setSigKunde] = useState<string | null>(null);
+  const [sigKundeName, setSigKundeName] = useState("");
+  const [sigMitarbeiter, setSigMitarbeiter] = useState<string | null>(null);
+
+  const brauchtMaengel = status !== "ohne_mangel";
+  const gueltig = !!datum && (!brauchtMaengel || maengel.trim().length > 0);
+
+  const speichern = () => {
+    if (!gueltig) return;
+    store.addAbnahmeprotokoll({
+      projekt_id: projektId, datum, abnahme_status: status,
+      maengel: brauchtMaengel ? maengel.trim() : null,
+      bemerkungen: bemerkungen.trim() || null,
+      unterschrift_kunde: sigKunde, unterschrift_kunde_name: sigKunde ? (sigKundeName.trim() || null) : null,
+      unterschrift_mitarbeiter: sigMitarbeiter,
+      erstellt_von: userId,
+    });
+    onClose();
+  };
+
+  const STATUS: AbnahmeStatus[] = ["ohne_mangel", "mit_mangel", "verweigert"];
+
+  return (
+    // Kein Schließen per Backdrop: schützt die erfassten Unterschriften vor versehentlichem Verwerfen.
+    <Modal onClose={onClose} dismissable={false}>
+        <h2>Abnahmeprotokoll</h2>
+
+        <label className="field"><span>Abnahmedatum *</span>
+          <input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+        </label>
+
+        <label className="field"><span>Ergebnis der Abnahme *</span>
+          <select value={status} onChange={(e) => setStatus(e.target.value as AbnahmeStatus)}>
+            {STATUS.map((s) => <option key={s} value={s}>{ABNAHME_STATUS_LABEL[s]}</option>)}
+          </select>
+        </label>
+
+        {brauchtMaengel && (
+          <label className="field"><span>Festgestellte Mängel *</span>
+            <textarea rows={3} value={maengel} onChange={(e) => setMaengel(e.target.value)} placeholder="z. B. Fuge im Bad nachzuarbeiten…" />
+          </label>
+        )}
+        <label className="field"><span>Bemerkungen</span>
+          <textarea rows={2} value={bemerkungen} onChange={(e) => setBemerkungen(e.target.value)} placeholder="optional" />
+        </label>
+
+        <h3>Unterschriften <span className="muted small">(optional — direkt auf dem Gerät)</span></h3>
+        <label className="field"><span>Kunde / Auftraggeber</span>
+          <input value={sigKundeName} onChange={(e) => setSigKundeName(e.target.value)} placeholder="Name des Unterzeichnenden" />
+        </label>
+        <SignaturPad value={sigKunde} onChange={setSigKunde} />
+        <label className="field" style={{ marginTop: 14 }}><span>Mitarbeiter ({ich?.name ?? ""})</span></label>
+        <SignaturPad value={sigMitarbeiter} onChange={setSigMitarbeiter} />
+
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose}>Abbrechen</button>
+          <button className="btn btn-primary" onClick={speichern} disabled={!gueltig}>Speichern</button>
+        </div>
+      </Modal>
   );
 }
 
