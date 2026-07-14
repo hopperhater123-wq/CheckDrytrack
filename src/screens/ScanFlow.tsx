@@ -8,6 +8,7 @@ import { GERAET_STATUS_LABEL } from "../app/labels";
 import { fmtZahl } from "../app/format";
 import { AbbauModal } from "./AbbauModal";
 import { Icon } from "../ui/Icon";
+import { CameraScanner } from "../ui/CameraScanner";
 import type { Einsatz } from "../domain/types";
 
 // Scanner-Flow (08 Scanner / 10 Einsätze). Kamera-Scan in Produktion;
@@ -20,6 +21,7 @@ export function ScanFlow() {
   const [inv, setInv] = useState<string | null>(null);
   const [abbau, setAbbau] = useState<Einsatz | null>(null);
   const [modus, setModus] = useState<"barcode" | "qr">("barcode");
+  const [kamera, setKamera] = useState(false);
 
   const geraet = inv ? db.geraet.find((g) => g.inventarnummer === inv) : undefined;
   const typ = geraet ? db.geraetetyp.find((t) => t.id === geraet.geraetetyp_id) : undefined;
@@ -48,12 +50,15 @@ export function ScanFlow() {
           ? <div className="scan-visual barcode">{Array.from({ length: 15 }, (_, i) => <i key={i} />)}<div className="scanline" /></div>
           : <div className="scan-visual qr"><QrDemo /><div className="scanline" /></div>}
         <p className="muted small">Beide Formate codieren dieselbe Inventarnummer — die Umstellung von Barcode auf QR ist jederzeit möglich (nur das Etikett ändert sich).</p>
+        <button className="btn btn-primary block" onClick={() => setKamera(true)}>
+          <Icon name="scan" size={18} /> Mit Kamera scannen
+        </button>
         <div className="inline-add">
           <input
-            className="scan-input" placeholder="z. B. KT-1001" value={eingabe}
-            onChange={(e) => setEingabe(e.target.value)} onKeyDown={(e) => e.key === "Enter" && suchen()} autoFocus
+            className="scan-input" placeholder="oder Nummer eingeben, z. B. KT-1001" value={eingabe}
+            onChange={(e) => setEingabe(e.target.value)} onKeyDown={(e) => e.key === "Enter" && suchen()}
           />
-          <button className="btn btn-primary" onClick={suchen} disabled={!eingabe.trim()}>Suchen</button>
+          <button className="btn" onClick={suchen} disabled={!eingabe.trim()}>Suchen</button>
         </div>
         {db.geraet.length > 0 && (
           <div className="quickpick">
@@ -99,6 +104,13 @@ export function ScanFlow() {
       )}
 
       <AnimatePresence>{abbau && <AbbauModal einsatz={abbau} onClose={() => { setAbbau(null); reset(); }} />}</AnimatePresence>
+
+      {kamera && (
+        <CameraScanner
+          onClose={() => setKamera(false)}
+          onDetect={(code) => { setKamera(false); const c = code.trim().toUpperCase(); setEingabe(c); setInv(c); }}
+        />
+      )}
     </div>
   );
 }

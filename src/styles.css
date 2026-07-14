@@ -530,3 +530,21 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
 .geschoss-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .geschoss-name { font-weight: 700; font-size: 1rem; }
 .rhm-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+
+/* Kamera-Scanner (Vollbild-Overlay) */
+.scanner-overlay { position: fixed; inset: 0; z-index: 60; background: #0b0d12; color: #fff;
+  display: flex; flex-direction: column; }
+.scanner-top { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px;
+  padding-top: max(16px, env(safe-area-inset-top)); font-weight: 600; }
+.scanner-view { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.scanner-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.scanner-rahmen { position: relative; width: min(72vw, 300px); aspect-ratio: 1; border-radius: 20px;
+  box-shadow: 0 0 0 100vmax rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.85); overflow: hidden; }
+.scanner-rahmen .scanline { position: absolute; left: 0; right: 0; height: 2px; background: var(--accent);
+  box-shadow: 0 0 12px 2px var(--accent); animation: scanmove 2s ease-in-out infinite; }
+@keyframes scanmove { 0%,100% { top: 6%; } 50% { top: 94%; } }
+.scanner-hint { position: absolute; bottom: 8%; left: 0; right: 0; text-align: center; font-size: .85rem;
+  color: rgba(255,255,255,0.9); text-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+.scanner-fehler { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; text-align: center; padding: 24px; color: rgba(255,255,255,0.9); }
+@media (prefers-reduced-motion: reduce) { .scanner-rahmen .scanline { animation: none; top: 50%; } }
