@@ -10,9 +10,9 @@ Torrek (Arbeitstitel früher „DryTrack") ist eine **mobile-first, offline-fäh
 
 | Was | URL |
 |---|---|
-| **Live-App (Demo)** | https://hopperhater123-wq.github.io/CheckDrytrack/ |
-| **Marketing-/Landingpage** | https://hopperhater123-wq.github.io/CheckDrytrack/website/ |
-| **Repository** | https://github.com/hopperhater123-wq/CheckDrytrack |
+| **Live-App (Demo)** | https://hopperhater123-wq.github.io/torrek/ |
+| **Marketing-/Landingpage** | https://hopperhater123-wq.github.io/torrek/website/ |
+| **Repository** | https://github.com/hopperhater123-wq/torrek |
 
 Die Demo läuft ohne Login-Zwang: Auf dem Anmeldebildschirm eine Demo-Rolle wählen (z. B. Monteur). Alle Daten liegen offline im Browser (`localStorage`) und syncen best-effort mit Supabase.
 
