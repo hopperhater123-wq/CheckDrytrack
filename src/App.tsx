@@ -13,6 +13,7 @@ import { GeraetDetail } from "./screens/GeraetDetail";
 import { ScanFlow } from "./screens/ScanFlow";
 import { Einstellungen } from "./screens/Einstellungen";
 import { TermineScreen } from "./screens/TermineScreen";
+import { BestellungenScreen } from "./screens/BestellungenScreen";
 import { ROLLEN_LABEL } from "./domain/roles";
 import { Icon, type IconName } from "./ui/Icon";
 import { Intro } from "./ui/Intro";
@@ -43,6 +44,7 @@ const NAV_ITEMS: { icon: IconName; label: string; ziel: Route; match: Route["nam
   { icon: "folder", label: "Projekte", ziel: { name: "projekte" }, match: ["projekte", "projekt"] },
   { icon: "scan", label: "Scan", ziel: { name: "scan" }, match: ["scan"] },
   { icon: "calendar", label: "Termine", ziel: { name: "termine" }, match: ["termine"], nurDesktop: true },
+  { icon: "layers", label: "Bestellungen", ziel: { name: "bestellungen" }, match: ["bestellungen"], nurDesktop: true },
   { icon: "wind", label: "Geräte", ziel: { name: "geraete" }, match: ["geraete", "geraet"] },
   { icon: "menu", label: "Einstellungen", ziel: { name: "einstellungen" }, match: ["einstellungen"] },
 ];
@@ -147,6 +149,7 @@ function Screen({ route }: { route: Route }) {
     case "geraet": return <GeraetDetail inv={route.inv} />;
     case "scan": return <ScanFlow />;
     case "termine": return <TermineScreen />;
+    case "bestellungen": return <BestellungenScreen />;
     case "einstellungen": return <Einstellungen />;
   }
 }

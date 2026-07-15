@@ -149,6 +149,7 @@ export function Dashboard() {
                 </div>
               </button>
             ))}
+          <button className="linkbtn" style={{ marginTop: 10 }} onClick={() => nav({ name: "bestellungen" })}>Alle Bestellungen →</button>
         </motion.section>
 
         {/* Letzte Aktivitäten */}
