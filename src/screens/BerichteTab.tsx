@@ -487,6 +487,9 @@ function KundenzufriedenheitForm({ projektId, userId, onClose }: { projektId: st
 // Bemusterung: Ersatzmaterial mit Musterfoto erfassen (nutzt Tabelle bemusterung).
 const EINLEGER_ARTEN: BemusterungArt[] = ["einleger_keramik", "einleger_edelstahl", "sondereinleger"];
 const istEinleger = (a: BemusterungArt) => EINLEGER_ARTEN.includes(a);
+// Flächen-Beläge: Menge in m² → Vorschlag aus der betroffenen Raumfläche (Aufmaß).
+const BELAG_ARTEN: BemusterungArt[] = ["ersatzfliese", "parkett", "laminat", "vinyl", "teppich"];
+const istBelag = (a: BemusterungArt) => BELAG_ARTEN.includes(a);
 
 function BemusterungListe({ projektId }: { projektId: string }) {
   const db = useDB();
@@ -502,6 +505,9 @@ function BemusterungListe({ projektId }: { projektId: string }) {
   // Bohrlöcher im Projekt = Messpunkte mit erfasster Bohrtiefe → Stück-Vorschlag für Einleger.
   const raumIds = new Set(db.raum.filter((r) => r.projekt_id === projektId).map((r) => r.id));
   const bohrloecher = db.messpunkt.filter((mp) => raumIds.has(mp.raum_id) && mp.tiefe_cm != null).length;
+  // Aufmaß: Summe der betroffenen Raumflächen → m²-Vorschlag für Flächen-Beläge.
+  const flaeche = db.raum.filter((r) => r.projekt_id === projektId).reduce((s, r) => s + (r.betroffene_flaeche_m2 ?? 0), 0);
+  const flaecheText = flaeche.toLocaleString("de-DE");
 
   const fotoWaehlen = async (liste: FileList | null) => {
     if (!liste?.length) return;
@@ -510,10 +516,12 @@ function BemusterungListe({ projektId }: { projektId: string }) {
     finally { setLaedt(false); if (inputRef.current) inputRef.current.value = ""; }
   };
 
-  // Art wählen: bei Einlegern die Menge aus den Bohrlöchern vorschlagen (nur wenn Menge leer).
+  // Art wählen: Menge vorschlagen (nur wenn leer) — Einleger aus Bohrlöchern, Beläge aus Raumfläche.
   const waehleArt = (a: BemusterungArt) => {
     setArt(a);
-    if (istEinleger(a) && !menge.trim() && bohrloecher > 0) setMenge(`${bohrloecher} Stück`);
+    if (menge.trim()) return;
+    if (istEinleger(a) && bohrloecher > 0) setMenge(`${bohrloecher} Stück`);
+    else if (istBelag(a) && flaeche > 0) setMenge(`${flaecheText} m²`);
   };
 
   const hinzufuegen = () => {
@@ -554,6 +562,11 @@ function BemusterungListe({ projektId }: { projektId: string }) {
         {istEinleger(art) && bohrloecher > 0 && (
           <button type="button" className="linkbtn" style={{ alignSelf: "flex-start" }} onClick={() => setMenge(`${bohrloecher} Stück`)}>
             Aus Bohrlöchern übernehmen: {bohrloecher} Stück
+          </button>
+        )}
+        {istBelag(art) && flaeche > 0 && (
+          <button type="button" className="linkbtn" style={{ alignSelf: "flex-start" }} onClick={() => setMenge(`${flaecheText} m²`)}>
+            Aus Raumflächen übernehmen: {flaecheText} m²
           </button>
         )}
         <input placeholder="Lieferant (optional)" value={lieferant} onChange={(e) => setLieferant(e.target.value)} />
