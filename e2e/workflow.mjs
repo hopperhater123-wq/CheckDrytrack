@@ -32,6 +32,10 @@ const server = createServer((_q, res) => {
 
 const browser = await chromium.launch({ executablePath });
 const page = await browser.newPage({ viewport: { width: 400, height: 850 } });
+// Hermetisch: Supabase blockieren. Sonst zieht der Sync in CI den Remote-Stand
+// mitten im Test herein (überschreibt erledigt/Feed) und jeder CI-Lauf würde
+// Testdaten in die geteilte Demo-Datenbank schreiben.
+await page.route(/supabase\.co/, (route) => route.abort());
 const fehler = [];
 page.on("pageerror", (e) => fehler.push(String(e)));
 const ok = (name, cond) => { console.log(`${cond ? "✓" : "✗"} ${name}`); if (!cond) process.exitCode = 1; };
