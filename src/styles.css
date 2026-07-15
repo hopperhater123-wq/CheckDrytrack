@@ -783,3 +783,6 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
 .intro-line-fill { display: block; height: 100%; border-radius: 999px;
   background: linear-gradient(90deg, #2AA7B0 0%, #3F9AA0 42%, #E9B457 100%); }
 .intro-tagline { margin-top: 18px; color: rgba(234, 241, 239, 0.6); letter-spacing: 0.14em; text-align: center; }
+/* Chips in Kartenköpfen nie quetschen — bei Platzmangel in die nächste Zeile umbrechen */
+.tour-card-head { flex-wrap: wrap; }
+.tour-card-head .chip, .messrow-head .chip { flex: none; }
