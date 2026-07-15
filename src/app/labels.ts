@@ -14,7 +14,8 @@ export const BEMUSTERUNG_ART_LABEL: Record<BemusterungArt, string> = {
   einleger_edelstahl: "Einleger · Edelstahl",
   sondereinleger: "Sondereinleger",
   ersatzfliese: "Ersatzfliese",
-  parkett: "Parkett / Bodenbelag",
+  parkett: "Parkett",
+  laminat: "Laminat",
   sonstiges: "Sonstiges",
 };
 
