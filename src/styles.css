@@ -701,3 +701,18 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 10px 0 max(10px, env(safe-area-inset-bottom));
   background: var(--bg); border-top: 1px solid var(--hairline); }
+
+/* --- Messpunkte + Verlaufsmatrix (Alt-System) ------------------------------- */
+.mp-bereich { margin-bottom: 4px; }
+.mp-form { background: var(--surface-2); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px; }
+.matrix-scroll { overflow-x: auto; margin-bottom: 12px; -webkit-overflow-scrolling: touch; }
+.matrix { border-collapse: collapse; width: 100%; font-size: 0.8rem; }
+.matrix th, .matrix td { padding: 6px 9px; border: 1px solid var(--hairline); text-align: center; white-space: nowrap; }
+.matrix thead th { font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--muted); background: var(--surface-2); }
+.matrix tbody th { text-align: left; font-weight: 600; background: var(--surface-2); font-size: 0.78rem; }
+.matrix td { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.matrix td.leer { color: var(--muted); }
+.matrix td.mz-trocken { background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+.matrix td.mz-grenzwertig { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
+.matrix td.mz-feucht, .matrix td.mz-kontaminiert, .matrix td.mz-austausch { background: var(--danger-soft); color: var(--danger); font-weight: 600; }

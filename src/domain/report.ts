@@ -23,6 +23,7 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
       : "<li class='muted'>kein Bodenaufbau erfasst</li>";
 
     const messungen = db.messung.filter((m) => m.raum_id === r.id).sort((a, b) => (a.gemessen_am < b.gemessen_am ? -1 : 1));
+    const messpunktName = (id: string | null) => (id ? db.messpunkt.find((p) => p.id === id)?.bezeichnung ?? "—" : "—");
     const zeilen = messungen.map((m) => {
       const material = mat(m.material_id);
       const b = bewerteMessung(m, material);
@@ -30,6 +31,7 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
       const gkg = m.absolute_feuchte_g_kg != null ? `${m.absolute_feuchte_g_kg} g/kg` : "—";
       const msWert = m.stroemung_m_s != null ? `${m.stroemung_m_s} m/s` : "—";
       return `<tr>
+        <td>${esc(messpunktName(m.messpunkt_id))}</td>
         <td>${esc(material?.bezeichnung ?? (m.messverfahren === "hygrometer" ? "Raumluft" : "—"))}</td>
         <td>${m.anlass === "eingangsmessung" ? "Eingang" : "Frei"}</td>
         <td>${wert}</td>
@@ -43,7 +45,7 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
     return `<section class="raum">
       <h3>${esc(r.bezeichnung)}</h3>
       <div class="aufbau"><span class="lbl">Bodenaufbau</span><ul>${aufbau}</ul></div>
-      ${messungen.length ? `<table><thead><tr><th>Material</th><th>Anlass</th><th>Wert</th><th>abs. Feuchte</th><th>m/s</th><th>Bewertung</th><th>Datum</th></tr></thead><tbody>${zeilen}</tbody></table>` : "<p class='muted'>Keine Messungen erfasst.</p>"}
+      ${messungen.length ? `<table><thead><tr><th>Messpunkt</th><th>Material</th><th>Anlass</th><th>Wert</th><th>abs. Feuchte</th><th>m/s</th><th>Bewertung</th><th>Datum</th></tr></thead><tbody>${zeilen}</tbody></table>` : "<p class='muted'>Keine Messungen erfasst.</p>"}
     </section>`;
   }).join("");
 

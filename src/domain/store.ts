@@ -50,7 +50,7 @@ class Store {
     const leer: DryTrackDB = {
       benutzer: [], geraetetyp: [], geraet: [], versicherung: [], projekt: [], raum: [],
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
-      bodenaufbau_schicht: [], messung: [], grundriss: [], grundriss_markierung: [],
+      bodenaufbau_schicht: [], messpunkt: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
       ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [],
       termin: [], firmen_einstellung: [],
@@ -326,8 +326,23 @@ class Store {
   }
 
   /** Messung erfassen (FR-MESS-001/003/006). Absolute Feuchte wird aus Temp + rel. Feuchte berechnet. */
+  // Benannte Messpunkte (Alt-System-Matrix): je Raum wiederkehrende Messstellen.
+  addMesspunkt(params: { raum_id: string; bezeichnung: string; messort: string | null; tiefe_cm: number | null; material_id: string | null }) {
+    this.commit((db) => {
+      db.messpunkt.push({ id: uid("mp"), ...params });
+    });
+  }
+
+  removeMesspunkt(id: string) {
+    this.commit((db) => {
+      db.messpunkt = db.messpunkt.filter((m) => m.id !== id);
+      // Messungen behalten — nur die Zuordnung lösen.
+      for (const m of db.messung) if (m.messpunkt_id === id) m.messpunkt_id = null;
+    });
+  }
+
   addMessung(params: {
-    raum_id: string; material_id: string; messverfahren: Messverfahren; anlass: Messanlass;
+    raum_id: string; messpunkt_id: string | null; material_id: string; messverfahren: Messverfahren; anlass: Messanlass;
     anzeige_digit: number | null; referenz_digit: number | null;
     status_checkliste: MessStatusCheckliste | null;
     temperatur_c: number | null; rel_luftfeuchte_prozent: number | null;
@@ -338,7 +353,7 @@ class Store {
       ? absoluteFeuchteGKg(params.temperatur_c, params.rel_luftfeuchte_prozent) : null;
     this.commit((db) => {
       db.messung.push({
-        id: uid("me"), raum_id: params.raum_id, material_id: params.material_id,
+        id: uid("me"), raum_id: params.raum_id, messpunkt_id: params.messpunkt_id, material_id: params.material_id,
         messverfahren: params.messverfahren, anzeige_digit: params.anzeige_digit,
         referenz_digit: params.referenz_digit, status_checkliste: params.status_checkliste,
         absolute_feuchte_g_kg: abs, temperatur_c: params.temperatur_c,

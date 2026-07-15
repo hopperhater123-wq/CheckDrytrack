@@ -9,7 +9,7 @@ import { messprotokollHtml, printHtml } from "../domain/report";
 import { Icon } from "../ui/Icon";
 import { TrockenMoment } from "../ui/TrockenMoment";
 import type {
-  EstrichBauart, Materialdatenbank, Messanlass, MessStatusCheckliste, Messung, Messverfahren, Raum, SchichtTyp,
+  EstrichBauart, Materialdatenbank, Messanlass, Messpunkt, MessStatusCheckliste, Messung, Messverfahren, Raum, SchichtTyp,
 } from "../domain/types";
 
 // Feier-Inhalt des „Objekt trocken"-Moments (Freimessung → trocken).
@@ -61,20 +61,24 @@ export function MessprotokollTab({ projektId, userId }: { projektId: string; use
 
 function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
   const db = useDB();
-  const [neu, setNeu] = useState(false);
+  // false = Formular zu; { mp } = offen, optional mit vorgewähltem Messpunkt.
+  const [form, setForm] = useState<false | { mp: Messpunkt | null }>(false);
   const [feier, setFeier] = useState<Feier | null>(null);
   const materialById = (id: string) => db.materialdatenbank.find((m) => m.id === id);
+  const messpunktById = (id: string | null) => (id ? db.messpunkt.find((p) => p.id === id) : undefined);
   const messungen = db.messung
     .filter((m) => m.raum_id === raum.id)
     .sort((a, b) => (a.gemessen_am < b.gemessen_am ? 1 : -1));
 
   return (
     <section className="card">
-      <div className="card-head"><h2>{raum.bezeichnung}</h2>
-        <button className="btn btn-sm" onClick={() => setNeu(true)}>+ Messung</button>
+      <div className="card-head"><h2>{raum.bezeichnung}{raum.geschoss ? <span className="muted small" style={{ fontFamily: "var(--font)", marginLeft: 8 }}>{raum.geschoss}</span> : null}</h2>
+        <button className="btn btn-sm" onClick={() => setForm({ mp: null })}>+ Messung</button>
       </div>
 
       <AufbauEditor raum={raum} />
+
+      <MesspunktBereich raum={raum} onMessen={(mp) => setForm({ mp })} />
 
       <h3>Messungen <span className="count">{messungen.length}</span></h3>
       {messungen.length === 0 && <p className="muted small">Noch keine Messung erfasst.</p>}
@@ -85,7 +89,10 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
         return (
           <div key={m.id} className="messrow">
             <div className="messrow-head">
-              <span className="messrow-mat">{mat?.bezeichnung ?? (m.messverfahren === "hygrometer" ? "Raumluft" : "?")}</span>
+              <span className="messrow-mat">
+                {messpunktById(m.messpunkt_id) ? `${messpunktById(m.messpunkt_id)!.bezeichnung} — ` : ""}
+                {mat?.bezeichnung ?? (m.messverfahren === "hygrometer" ? "Raumluft" : "?")}
+              </span>
               <span className={`chip small ${BEWERTUNG_CHIP[b.bewertung]}`}>{BEWERTUNG_LABEL[b.bewertung]}</span>
             </div>
             <div className="messrow-meta">
@@ -102,9 +109,140 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
         );
       })}
 
-      <AnimatePresence>{neu && <MessungForm raum={raum} userId={userId} onClose={() => setNeu(false)} onTrocken={setFeier} />}</AnimatePresence>
+      <AnimatePresence>{form && <MessungForm raum={raum} userId={userId} vorMesspunkt={form.mp} onClose={() => setForm(false)} onTrocken={setFeier} />}</AnimatePresence>
       <AnimatePresence>{feier && <TrockenMoment titel={feier.titel} sub={feier.sub} onDone={() => setFeier(null)} />}</AnimatePresence>
     </section>
+  );
+}
+
+// --- Messpunkte (Alt-System-Matrix) -----------------------------------------
+// Wiederkehrende Messstellen je Raum — die Zeilen des Papier-Protokolls.
+// Die Matrix zeigt den Verlauf: Zeile = Messpunkt, Spalte = Messtag.
+
+function MesspunktBereich({ raum, onMessen }: { raum: Raum; onMessen: (mp: Messpunkt) => void }) {
+  const db = useDB();
+  const [neu, setNeu] = useState(false);
+  const punkte = db.messpunkt.filter((p) => p.raum_id === raum.id);
+  const materialById = (id: string | null) => (id ? db.materialdatenbank.find((m) => m.id === id) : undefined);
+
+  const zugeordnet = db.messung.filter((m) => m.raum_id === raum.id && m.messpunkt_id);
+  const tage = [...new Set(zugeordnet.map((m) => m.gemessen_am.slice(0, 10)))].sort();
+  const fmtTag = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+
+  // Letzte Messung eines Punkts an einem Tag (bei mehreren zählt die jüngste).
+  const zelle = (mpId: string, tag: string): Messung | undefined =>
+    zugeordnet
+      .filter((m) => m.messpunkt_id === mpId && m.gemessen_am.slice(0, 10) === tag)
+      .sort((a, b) => (a.gemessen_am < b.gemessen_am ? 1 : -1))[0];
+
+  const zellWert = (m: Messung): string => {
+    if (m.anzeige_digit != null) return `${fmtZahl(m.anzeige_digit)}`;
+    if (m.absolute_feuchte_g_kg != null) return `${fmtZahl(m.absolute_feuchte_g_kg)}`;
+    const b = bewerteMessung(m, materialById(m.material_id));
+    return BEWERTUNG_LABEL[b.bewertung];
+  };
+
+  return (
+    <div className="mp-bereich">
+      <h3 style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span>Messpunkte <span className="count">{punkte.length}</span></span>
+        <button className="btn btn-sm" onClick={() => setNeu(!neu)}>{neu ? "Schließen" : "+ Messpunkt"}</button>
+      </h3>
+      {punkte.length === 0 && !neu && (
+        <p className="muted small">Feste Messstellen wie im Papier-Protokoll — einmal anlegen, bei jedem Besuch erneut messen. Der Verlauf entsteht automatisch.</p>
+      )}
+
+      {neu && <MesspunktForm raumId={raum.id} onFertig={() => setNeu(false)} />}
+
+      {/* Verlaufsmatrix: Messpunkte × Messtage (wie die Spalten im Alt-System) */}
+      {punkte.length > 0 && tage.length > 0 && (
+        <div className="matrix-scroll">
+          <table className="matrix">
+            <thead>
+              <tr><th>Messpunkt</th>{tage.map((t) => <th key={t}>{fmtTag(t)}</th>)}</tr>
+            </thead>
+            <tbody>
+              {punkte.map((mp) => (
+                <tr key={mp.id}>
+                  <th>{mp.bezeichnung}</th>
+                  {tage.map((t) => {
+                    const m = zelle(mp.id, t);
+                    if (!m) return <td key={t} className="leer">—</td>;
+                    const b = bewerteMessung(m, materialById(m.material_id));
+                    return <td key={t} className={`mz-${b.bewertung}`} title={b.text}>{zellWert(m)}</td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="muted small" style={{ margin: "6px 0 0" }}>Werte: Digits bzw. g/kg (Hygrometer) · Farbe = Bewertung</p>
+        </div>
+      )}
+
+      {punkte.map((mp) => {
+        const mat = materialById(mp.material_id);
+        const sub = [mat?.bezeichnung, mp.messort, mp.tiefe_cm != null ? `Tiefe ${fmtZahl(mp.tiefe_cm)} cm` : null].filter(Boolean).join(" · ");
+        return (
+          <div key={mp.id} className="listrow static">
+            <div className="listrow-main">
+              <span className="listrow-title">{mp.bezeichnung}</span>
+              {sub && <span className="listrow-sub">{sub}</span>}
+            </div>
+            <div className="btn-row">
+              <button className="btn btn-sm btn-primary" onClick={() => onMessen(mp)}>Messen</button>
+              <button className="iconbtn" onClick={() => store.removeMesspunkt(mp.id)} title="Messpunkt entfernen" aria-label="Messpunkt entfernen">
+                <Icon name="trash" size={15} />
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MesspunktForm({ raumId, onFertig }: { raumId: string; onFertig: () => void }) {
+  const db = useDB();
+  const [bezeichnung, setBezeichnung] = useState("");
+  const [messort, setMessort] = useState("");
+  const [tiefe, setTiefe] = useState("");
+  const [materialId, setMaterialId] = useState("");
+
+  const speichern = () => {
+    if (!bezeichnung.trim()) return;
+    const t = parseFloat(tiefe.replace(",", "."));
+    store.addMesspunkt({
+      raum_id: raumId, bezeichnung: bezeichnung.trim(), messort: messort.trim() || null,
+      tiefe_cm: Number.isFinite(t) ? t : null, material_id: materialId || null,
+    });
+    onFertig();
+  };
+
+  return (
+    <div className="mp-form">
+      <div className="two-col">
+        <label className="field"><span>Bezeichnung *</span>
+          <input value={bezeichnung} onChange={(e) => setBezeichnung(e.target.value)} placeholder="z. B. Randfuge Süd" />
+        </label>
+        <label className="field"><span>Material / Messstelle</span>
+          <select value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
+            <option value="">— später wählen —</option>
+            {db.materialdatenbank.map((m) => <option key={m.id} value={m.id}>{m.bezeichnung}</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="two-col">
+        <label className="field"><span>Messort</span>
+          <input value={messort} onChange={(e) => setMessort(e.target.value)} placeholder="z. B. Wand Nord, 30 cm über OKF" />
+        </label>
+        <label className="field"><span>Bohrtiefe cm</span>
+          <input inputMode="decimal" value={tiefe} onChange={(e) => setTiefe(e.target.value)} placeholder="z. B. 4" />
+        </label>
+      </div>
+      <div className="btn-row" style={{ justifyContent: "flex-end" }}>
+        <button className="btn btn-sm btn-primary" onClick={speichern} disabled={!bezeichnung.trim()}>Messpunkt anlegen</button>
+      </div>
+    </div>
   );
 }
 
@@ -214,7 +352,9 @@ export function AufbauEditor({ raum }: { raum: Raum }) {
 
 const LEERE_CHECKLISTE: MessStatusCheckliste = { trocken: false, feucht: false, kontaminiert: false, austausch_erforderlich: false };
 
-function MessungForm({ raum, userId, onClose, onTrocken }: { raum: Raum; userId: string; onClose: () => void; onTrocken: (f: Feier) => void }) {
+function MessungForm({ raum, userId, vorMesspunkt, onClose, onTrocken }: {
+  raum: Raum; userId: string; vorMesspunkt: Messpunkt | null; onClose: () => void; onTrocken: (f: Feier) => void;
+}) {
   const db = useDB();
   // Materialien, die im Bauteilaufbau dieses Raums hinterlegt sind — sie stehen zuoberst
   // und die oberste Schicht ist vorausgewählt (keine doppelte Oberbelag-Auswahl mehr).
@@ -223,9 +363,25 @@ function MessungForm({ raum, userId, onClose, onTrocken }: { raum: Raum; userId:
     .sort((a, b) => a.reihenfolge - b.reihenfolge);
   const aufbauMatIds = [...new Set(aufbau.map((s) => s.material_id))];
   const weitere = db.materialdatenbank.filter((m) => !aufbauMatIds.includes(m.id) && m.id !== "mat-raumluft");
+  const messpunkte = db.messpunkt.filter((p) => p.raum_id === raum.id);
 
-  const [materialId, setMaterialId] = useState(aufbauMatIds[0] ?? db.materialdatenbank[0]?.id ?? "");
-  const [verfahren, setVerfahren] = useState<Messverfahren>("widerstand");
+  const [messpunktId, setMesspunktId] = useState(vorMesspunkt?.id ?? "");
+  const [materialId, setMaterialId] = useState(
+    vorMesspunkt?.material_id ?? aufbauMatIds[0] ?? db.materialdatenbank[0]?.id ?? "",
+  );
+  const [verfahren, setVerfahren] = useState<Messverfahren>(
+    vorMesspunkt?.material_id === "mat-raumluft" ? "hygrometer" : "widerstand",
+  );
+
+  // Messpunkt wählen übernimmt dessen Standard-Messstelle (bleibt frei änderbar).
+  const waehleMesspunkt = (id: string) => {
+    setMesspunktId(id);
+    const mp = messpunkte.find((p) => p.id === id);
+    if (mp?.material_id) {
+      setMaterialId(mp.material_id);
+      if (mp.material_id === "mat-raumluft") setVerfahren("hygrometer");
+    }
+  };
   const [anlass, setAnlass] = useState<Messanlass | "">(""); // Pflicht (FR-MESS-006)
   const [digit, setDigit] = useState("");
   const [referenz, setReferenz] = useState("");
@@ -264,7 +420,7 @@ function MessungForm({ raum, userId, onClose, onTrocken }: { raum: Raum; userId:
   const speichern = () => {
     if (!gueltig) return; // gueltig ⇒ anlass ist gesetzt (Messanlass), narrowing greift
     store.addMessung({
-      raum_id: raum.id, material_id: materialId, messverfahren: verfahren, anlass,
+      raum_id: raum.id, messpunkt_id: messpunktId || null, material_id: materialId, messverfahren: verfahren, anlass,
       anzeige_digit: hygro || modell === "status_checkliste" ? null : num(digit),
       referenz_digit: modell === "vergleichsmessung" ? num(referenz) : null,
       status_checkliste: modell === "status_checkliste" ? checkliste : null,
@@ -274,7 +430,7 @@ function MessungForm({ raum, userId, onClose, onTrocken }: { raum: Raum; userId:
     // „Objekt trocken"-Moment: Freimessung mit Bewertung „trocken" feiern —
     // eskaliert, wenn damit der ganze Raum (letzte Messung je Material) trocken ist.
     const neue: Messung = {
-      id: "neu", raum_id: raum.id, material_id: materialId, messverfahren: verfahren,
+      id: "neu", raum_id: raum.id, messpunkt_id: messpunktId || null, material_id: materialId, messverfahren: verfahren,
       anzeige_digit: hygro || modell === "status_checkliste" ? null : num(digit),
       referenz_digit: modell === "vergleichsmessung" ? num(referenz) : null,
       status_checkliste: modell === "status_checkliste" ? checkliste : null,
@@ -303,6 +459,17 @@ function MessungForm({ raum, userId, onClose, onTrocken }: { raum: Raum; userId:
   return (
     <Modal onClose={onClose}>
         <h2>Messung — {raum.bezeichnung}</h2>
+
+        {messpunkte.length > 0 && (
+          <label className="field"><span>Messpunkt (optional)</span>
+            <select value={messpunktId} onChange={(e) => waehleMesspunkt(e.target.value)}>
+              <option value="">— ohne Messpunkt —</option>
+              {messpunkte.map((mp) => (
+                <option key={mp.id} value={mp.id}>{mp.bezeichnung}{mp.messort ? ` · ${mp.messort}` : ""}</option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <label className="field"><span>Messverfahren</span>
           <select value={verfahren} onChange={(e) => wechsleVerfahren(e.target.value as Messverfahren)}>

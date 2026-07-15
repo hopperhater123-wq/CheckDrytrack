@@ -115,11 +115,17 @@ export function seedDB(): DryTrackDB {
       { id: "bs-2", raum_id: "r-1", reihenfolge: 1, schicht_typ: "estrich", material_id: "mat-schwimm", fussbodenheizung: false, bauart: "schwimmend" },
       { id: "bs-3", raum_id: "r-1", reihenfolge: 2, schicht_typ: "daemmung", material_id: "mat-kmf", fussbodenheizung: null, bauart: null },
     ],
+    messpunkt: [
+      // Wiederkehrende Messstellen (Alt-System-Matrix): werden je Besuch erneut gemessen.
+      { id: "mp-1", raum_id: "r-1", bezeichnung: "Estrich Mitte", messort: "Küche, Raummitte", tiefe_cm: null, material_id: "mat-schwimm" },
+      { id: "mp-2", raum_id: "r-1", bezeichnung: "Randfuge Süd", messort: "Wand Süd, Sockelleiste", tiefe_cm: 4, material_id: "mat-randfuge" },
+      { id: "mp-3", raum_id: "r-1", bezeichnung: "Raumluft", messort: null, tiefe_cm: null, material_id: "mat-raumluft" },
+    ],
     messung: [
-      { id: "me-1", raum_id: "r-1", material_id: "mat-schwimm", messverfahren: "widerstand", anzeige_digit: 78, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 11.9, temperatur_c: 21, rel_luftfeuchte_prozent: 62, stroemung_m_s: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(8) },
-      { id: "me-2", raum_id: "r-1", material_id: "mat-schwimm", messverfahren: "widerstand", anzeige_digit: 54, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 8.9, temperatur_c: 22, rel_luftfeuchte_prozent: 51, stroemung_m_s: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(3) },
-      { id: "me-3", raum_id: "r-1", material_id: "mat-kmf", messverfahren: "widerstand", anzeige_digit: null, referenz_digit: null, status_checkliste: { trocken: false, feucht: true, kontaminiert: false, austausch_erforderlich: true }, absolute_feuchte_g_kg: null, temperatur_c: null, rel_luftfeuchte_prozent: null, stroemung_m_s: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(5) },
-      { id: "me-4", raum_id: "r-4", material_id: "mat-zement", messverfahren: "widerstand", anzeige_digit: 44, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 7.1, temperatur_c: 23, rel_luftfeuchte_prozent: 45, stroemung_m_s: null, anlass: "freimessung", gemessen_von: "u-monteur", gemessen_am: tage(24) },
+      { id: "me-1", raum_id: "r-1", messpunkt_id: "mp-1", material_id: "mat-schwimm", messverfahren: "widerstand", anzeige_digit: 78, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 11.9, temperatur_c: 21, rel_luftfeuchte_prozent: 62, stroemung_m_s: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(8) },
+      { id: "me-2", raum_id: "r-1", messpunkt_id: "mp-1", material_id: "mat-schwimm", messverfahren: "widerstand", anzeige_digit: 54, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 8.9, temperatur_c: 22, rel_luftfeuchte_prozent: 51, stroemung_m_s: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(3) },
+      { id: "me-3", raum_id: "r-1", messpunkt_id: null, material_id: "mat-kmf", messverfahren: "widerstand", anzeige_digit: null, referenz_digit: null, status_checkliste: { trocken: false, feucht: true, kontaminiert: false, austausch_erforderlich: true }, absolute_feuchte_g_kg: null, temperatur_c: null, rel_luftfeuchte_prozent: null, stroemung_m_s: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(5) },
+      { id: "me-4", raum_id: "r-4", messpunkt_id: null, material_id: "mat-zement", messverfahren: "widerstand", anzeige_digit: 44, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 7.1, temperatur_c: 23, rel_luftfeuchte_prozent: 45, stroemung_m_s: null, anlass: "freimessung", gemessen_von: "u-monteur", gemessen_am: tage(24) },
     ],
     grundriss: [
       { id: "gr-1", projekt_id: "p-1", geschoss: "EG", raumhoehe_m: 2.5, quelle: "magicplan", datei_referenz: "magicplan://p-1/eg.pdf", erstellt_am: tage(8) },

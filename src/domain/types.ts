@@ -229,9 +229,23 @@ export interface BodenaufbauSchicht {
   bauart: EstrichBauart | null; // nur estrich relevant
 }
 
+// Benannter Messpunkt je Raum (Alt-System: Zeilen der Messprotokoll-Matrix,
+// z. B. "Randfuge Süd", "Putzmessung Wand", "Raumluft") — wird Besuch für Besuch
+// erneut gemessen, optional mit Messort und Bohrtiefe.
+export interface Messpunkt {
+  id: string;
+  raum_id: string;
+  bezeichnung: string;
+  messort: string | null; // z. B. "Wand Nord, 30 cm über OKF"
+  tiefe_cm: number | null; // Bohrtiefe (6-mm-Bohrung, Schachtmessung)
+  material_id: string | null; // Standard-Material/Messstelle dieses Punkts
+}
+
 export interface Messung {
   id: string;
   raum_id: string;
+  // Zuordnung zu einem benannten Messpunkt (optional — Einzelmessungen bleiben möglich).
+  messpunkt_id: string | null;
   material_id: string;
   messverfahren: Messverfahren;
   anzeige_digit: number | null;
@@ -431,6 +445,7 @@ export interface DryTrackDB {
   dokument: Dokument[];
   materialdatenbank: Materialdatenbank[];
   bodenaufbau_schicht: BodenaufbauSchicht[];
+  messpunkt: Messpunkt[];
   messung: Messung[];
   grundriss: Grundriss[];
   grundriss_markierung: GrundrissMarkierung[];

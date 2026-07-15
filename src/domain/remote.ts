@@ -16,7 +16,7 @@ export type TabelleName = keyof DryTrackDB;
 export const TABELLEN: TabelleName[] = [
   "benutzer", "geraetetyp", "geraet", "versicherung", "projekt", "raum", "einsatz",
   "feed_eintrag", "feed_kommentar", "dokument", "materialdatenbank", "bodenaufbau_schicht",
-  "messung", "grundriss", "grundriss_markierung", "bemusterung", "raum_foto",
+  "messpunkt", "messung", "grundriss", "grundriss_markierung", "bemusterung", "raum_foto",
   "besuchsbericht", "stunden_eintrag", "abnahmeprotokoll", "ersatzfliesenbericht", "kundenzufriedenheit",
   "notdiensteinsatzbericht", "stundenlohnbericht", "termin", "firmen_einstellung",
 ];
