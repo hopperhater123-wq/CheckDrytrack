@@ -5,6 +5,7 @@ import { store } from "../domain/store";
 import { ROLLEN_LABEL } from "../domain/roles";
 import { Icon } from "../ui/Icon";
 import { setSoundAn, soundAn, spiele } from "../ui/sound";
+import { setzeTheme, themeWahl, type ThemeWahl } from "../ui/theme";
 
 // beforeinstallprompt ist Chromium-only und untypisiert.
 interface InstallPromptEvent extends Event {
@@ -53,6 +54,24 @@ function InstallCard() {
   );
 }
 
+// Design: Hell / Dunkel / Automatisch (folgt dem System).
+function ThemeCard() {
+  const [wahl, setWahl] = useState<ThemeWahl>(themeWahl);
+  const waehle = (w: ThemeWahl) => { setzeTheme(w); setWahl(w); };
+  const OPTIONEN: [ThemeWahl, string][] = [["hell", "Hell"], ["dunkel", "Dunkel"], ["auto", "Automatisch"]];
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Design</h2></div>
+      <div className="segmented" style={{ display: "flex" }}>
+        {OPTIONEN.map(([w, label]) => (
+          <button key={w} type="button" className={wahl === w ? "seg active" : "seg"} onClick={() => waehle(w)}>{label}</button>
+        ))}
+      </div>
+      <p className="muted small" style={{ marginBottom: 0 }}>„Automatisch" folgt der Einstellung deines Geräts.</p>
+    </section>
+  );
+}
+
 // Dezente UI-Sounds (Speichern, Trocken-Moment, Intro) an-/abschalten.
 function SoundCard() {
   const [an, setAn] = useState(soundAn);
@@ -97,6 +116,8 @@ export function Einstellungen() {
       <h1>Mehr</h1>
 
       <InstallCard />
+
+      <ThemeCard />
 
       <SoundCard />
 

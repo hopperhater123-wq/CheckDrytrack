@@ -2,8 +2,12 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { store } from "./domain/store";
+import { wendeThemeAn } from "./ui/theme";
 import "./fonts.generated.css";
 import "./styles.css";
+
+// Gespeicherte Design-Wahl (Hell/Dunkel/Auto) vor dem ersten Rendern anwenden.
+wendeThemeAn();
 
 // Supabase-Sync starten (008 Backend): Pull → Realtime; ohne Netz/Konfig rein lokal.
 store.starteRemoteSync();
