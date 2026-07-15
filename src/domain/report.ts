@@ -50,6 +50,19 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
     </section>`;
   }).join("");
 
+  // Ergebnis der Trocknung je Geschoss (Alt-System "Messprotokoll – Trocknung")
+  const ergebnisse = db.trocknungsergebnis.filter((e) => e.projekt_id === projekt.id);
+  const ergebnisBlock = ergebnisse.length
+    ? `<section class="raum"><h3>Ergebnis der Trocknung</h3>
+        ${ergebnisse.map((e) => `<p style="margin:6px 0"><b>${esc(e.geschoss)}:</b>
+          ${e.beginn_datum ? `Beginn ${new Date(e.beginn_datum).toLocaleDateString("de-DE")}` : "noch nicht begonnen"}
+          · ${e.abgeschlossen ? "abgeschlossen" : "läuft"}
+          ${e.bemerkungen ? ` · ${esc(e.bemerkungen)}` : ""}
+          ${e.unterschrift_kunde ? `<br><img src="${e.unterschrift_kunde}" alt="Unterschrift" style="max-height:60px"><br><span class="muted">Unterschrift Kunde${e.unterschrift_kunde_name ? `: ${esc(e.unterschrift_kunde_name)}` : ""}</span>` : ""}
+        </p>`).join("")}
+      </section>`
+    : "";
+
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Messprotokoll ${esc(projekt.projektnummer)}</title>
   <style>
     * { box-sizing: border-box; }
@@ -78,6 +91,7 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
       </div>
     </header>
     ${raumBlocks || "<p class='muted'>Keine Räume erfasst.</p>"}
+    ${ergebnisBlock}
     <footer>¹ Praxisrichtwert (kein DIN-Normwert). Widerstandsmessung maßgeblich; dielektrische Werte sind Orientierung. Richtwert absolute Feuchte ≤ 10 g/kg = trocken.</footer>
   </body></html>`;
 }

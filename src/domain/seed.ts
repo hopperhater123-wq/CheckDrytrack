@@ -156,6 +156,9 @@ export function seedDB(): DryTrackDB {
       { id: "t-3", projekt_id: "p-2", datum: datum(2), uhrzeit: "09:00", mitarbeiter_id: null, beschreibung: "Gefährdungsbeurteilung abschließen (Fäkalien)", erledigt: false, erstellt_von: "u-pl", erstellt_am: tage(1) },
       { id: "t-4", projekt_id: "p-1", datum: datum(-1), uhrzeit: "10:00", mitarbeiter_id: "u-monteur", beschreibung: "Kontrollmessung Küche", erledigt: true, erstellt_von: "u-dispo", erstellt_am: tage(4) },
     ],
+    trocknungsergebnis: [
+      { id: "te-1", projekt_id: "p-1", geschoss: "EG", beginn_datum: tage(8).slice(0, 10), abgeschlossen: false, bemerkungen: null, unterschrift_kunde: null, unterschrift_kunde_name: null, erstellt_von: "u-monteur", erstellt_am: tage(8) },
+    ],
     firmen_einstellung: [
       { schluessel: "freigabegrenze_eur", wert: "1500" },
     ],

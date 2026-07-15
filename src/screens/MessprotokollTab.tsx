@@ -7,6 +7,7 @@ import { fmtDatum, fmtZahl } from "../app/format";
 import { BEWERTUNG_LABEL, GKG_RICHTWERT, absoluteFeuchteGKg, bewerteMessung, type Bewertung } from "../domain/mess";
 import { messprotokollHtml, printHtml } from "../domain/report";
 import { Icon } from "../ui/Icon";
+import { SignaturPad } from "../ui/SignaturPad";
 import { TrockenMoment } from "../ui/TrockenMoment";
 import type {
   EstrichBauart, Materialdatenbank, Messanlass, Messpunkt, MessStatusCheckliste, Messung, Messverfahren, Raum, SchichtTyp,
@@ -45,6 +46,8 @@ export function MessprotokollTab({ projektId, userId }: { projektId: string; use
         </div>
       )}
       {raeume.map((r) => <RaumMessblock key={r.id} raum={r} userId={userId} />)}
+
+      {raeume.length > 0 && <TrocknungsErgebnisBereich projektId={projektId} userId={userId} />}
 
       {/* Raum direkt hier anlegen — auch mitten im geführten Besuch, ohne Umweg über die Übersicht. */}
       <section className="card">
@@ -113,6 +116,95 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
       <AnimatePresence>{form && <MessungForm raum={raum} userId={userId} vorMesspunkt={form.mp} onClose={() => setForm(false)} onTrocken={setFeier} />}</AnimatePresence>
       <AnimatePresence>{feier && <TrockenMoment titel={feier.titel} sub={feier.sub} onDone={() => setFeier(null)} />}</AnimatePresence>
     </section>
+  );
+}
+
+// --- Ergebnis der Trocknung je Geschoss (Alt-System "Messprotokoll – Trocknung") ---
+
+function TrocknungsErgebnisBereich({ projektId, userId }: { projektId: string; userId: string }) {
+  const db = useDB();
+  const [signiere, setSigniere] = useState<string | null>(null); // geschoss
+  const raeume = db.raum.filter((r) => r.projekt_id === projektId);
+  const geschosse = [...new Set(raeume.map((r) => r.geschoss ?? "Gesamt"))];
+  const ergebnisVon = (g: string) => db.trocknungsergebnis.find((e) => e.projekt_id === projektId && e.geschoss === g);
+
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Ergebnis der Trocknung</h2><span className="muted small">je Geschoss</span></div>
+      {geschosse.map((g) => {
+        const e = ergebnisVon(g);
+        const status = e?.abgeschlossen ? "abgeschlossen" : e?.beginn_datum ? "läuft" : "offen";
+        return (
+          <div key={g} className="aufbau" style={{ marginBottom: 12 }}>
+            <div className="aufbau-title">{g}
+              <span className={`chip small ${e?.abgeschlossen ? "chip-live" : e?.beginn_datum ? "chip-warn" : ""}`}>{status}</span>
+              {e?.unterschrift_kunde && <span className="chip small chip-live"><Icon name="check" size={12} /> unterschrieben</span>}
+            </div>
+            <div className="two-col">
+              <label className="field"><span>Beginn Trocknung</span>
+                <input type="date" value={e?.beginn_datum ?? ""}
+                  onChange={(ev) => store.setTrocknungsergebnis({ projekt_id: projektId, geschoss: g, autor_id: userId, beginn_datum: ev.target.value || null })} />
+              </label>
+              <label className="field"><span>Bemerkungen</span>
+                <input defaultValue={e?.bemerkungen ?? ""} placeholder="optional"
+                  onBlur={(ev) => store.setTrocknungsergebnis({ projekt_id: projektId, geschoss: g, autor_id: userId, bemerkungen: ev.target.value.trim() || null })} />
+              </label>
+            </div>
+            <div className="btn-row" style={{ alignItems: "center" }}>
+              <label className="toggle">
+                <input type="checkbox" checked={e?.abgeschlossen ?? false}
+                  onChange={(ev) => store.setTrocknungsergebnis({ projekt_id: projektId, geschoss: g, autor_id: userId, abgeschlossen: ev.target.checked })} />
+                Trocknung abgeschlossen
+              </label>
+              <button className="btn btn-sm" onClick={() => setSigniere(g)}>
+                {e?.unterschrift_kunde ? "Unterschrift erneuern" : "Kunde unterschreiben lassen"}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+
+      <AnimatePresence>
+        {signiere && (
+          <ErgebnisSignaturModal
+            geschoss={signiere} projektId={projektId} userId={userId}
+            vorhandenName={ergebnisVon(signiere)?.unterschrift_kunde_name ?? ""}
+            onClose={() => setSigniere(null)}
+          />
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
+
+function ErgebnisSignaturModal({ geschoss, projektId, userId, vorhandenName, onClose }: {
+  geschoss: string; projektId: string; userId: string; vorhandenName: string; onClose: () => void;
+}) {
+  const [name, setName] = useState(vorhandenName);
+  const [sig, setSig] = useState<string | null>(null);
+
+  const speichern = () => {
+    store.setTrocknungsergebnis({
+      projekt_id: projektId, geschoss, autor_id: userId,
+      unterschrift_kunde: sig, unterschrift_kunde_name: name.trim() || null,
+    });
+    onClose();
+  };
+
+  return (
+    <Modal onClose={onClose} dismissable={false}>
+      <h2>Ergebnis der Trocknung — {geschoss}</h2>
+      <p className="muted small">Der Kunde bestätigt das Trocknungsergebnis für dieses Geschoss mit Unterschrift.</p>
+      <label className="field"><span>Name des Unterzeichnenden</span>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Vor- und Nachname" />
+      </label>
+      <label className="field"><span>Unterschrift Kunde</span></label>
+      <SignaturPad value={sig} onChange={setSig} />
+      <div className="modal-actions">
+        <button className="btn" onClick={onClose}>Abbrechen</button>
+        <button className="btn btn-primary" onClick={speichern} disabled={!sig}>Unterschrift speichern</button>
+      </div>
+    </Modal>
   );
 }
 

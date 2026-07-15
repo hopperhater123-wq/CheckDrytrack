@@ -53,7 +53,7 @@ class Store {
       bodenaufbau_schicht: [], messpunkt: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
       ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [],
-      termin: [], firmen_einstellung: [],
+      termin: [], trocknungsergebnis: [], firmen_einstellung: [],
     };
     const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
     return { ...base, ...parsed } as DryTrackDB;
@@ -326,6 +326,31 @@ class Store {
   }
 
   /** Messung erfassen (FR-MESS-001/003/006). Absolute Feuchte wird aus Temp + rel. Feuchte berechnet. */
+  // Ergebnis der Trocknung je Geschoss (Alt-System): Upsert auf (projekt, geschoss).
+  setTrocknungsergebnis(params: {
+    projekt_id: string; geschoss: string; autor_id: string;
+    beginn_datum?: string | null; abgeschlossen?: boolean; bemerkungen?: string | null;
+    unterschrift_kunde?: string | null; unterschrift_kunde_name?: string | null;
+  }) {
+    this.commit((db) => {
+      let e = db.trocknungsergebnis.find((x) => x.projekt_id === params.projekt_id && x.geschoss === params.geschoss);
+      if (!e) {
+        e = {
+          id: uid("te"), projekt_id: params.projekt_id, geschoss: params.geschoss,
+          beginn_datum: null, abgeschlossen: false, bemerkungen: null,
+          unterschrift_kunde: null, unterschrift_kunde_name: null,
+          erstellt_von: params.autor_id, erstellt_am: new Date().toISOString(),
+        };
+        db.trocknungsergebnis.push(e);
+      }
+      if (params.beginn_datum !== undefined) e.beginn_datum = params.beginn_datum;
+      if (params.abgeschlossen !== undefined) e.abgeschlossen = params.abgeschlossen;
+      if (params.bemerkungen !== undefined) e.bemerkungen = params.bemerkungen;
+      if (params.unterschrift_kunde !== undefined) e.unterschrift_kunde = params.unterschrift_kunde;
+      if (params.unterschrift_kunde_name !== undefined) e.unterschrift_kunde_name = params.unterschrift_kunde_name;
+    });
+  }
+
   // Benannte Messpunkte (Alt-System-Matrix): je Raum wiederkehrende Messstellen.
   addMesspunkt(params: { raum_id: string; bezeichnung: string; messort: string | null; tiefe_cm: number | null; material_id: string | null }) {
     this.commit((db) => {

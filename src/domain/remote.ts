@@ -18,7 +18,7 @@ export const TABELLEN: TabelleName[] = [
   "feed_eintrag", "feed_kommentar", "dokument", "materialdatenbank", "bodenaufbau_schicht",
   "messpunkt", "messung", "grundriss", "grundriss_markierung", "bemusterung", "raum_foto",
   "besuchsbericht", "stunden_eintrag", "abnahmeprotokoll", "ersatzfliesenbericht", "kundenzufriedenheit",
-  "notdiensteinsatzbericht", "stundenlohnbericht", "termin", "firmen_einstellung",
+  "notdiensteinsatzbericht", "stundenlohnbericht", "termin", "trocknungsergebnis", "firmen_einstellung",
 ];
 
 export function pkVon(tabelle: TabelleName): string {

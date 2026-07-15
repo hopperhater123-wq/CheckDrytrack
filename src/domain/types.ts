@@ -428,6 +428,21 @@ export interface Ersatzfliesenbericht {
   erstellt_am: string;
 }
 
+// Ergebnis der Trocknung je Geschoss (Alt-System "Messprotokoll – Trocknung"):
+// Beginn, Abschluss und Kundenunterschrift werden je Geschoss festgehalten.
+export interface Trocknungsergebnis {
+  id: string;
+  projekt_id: string;
+  geschoss: string; // "EG", "1. OG" … — "Gesamt", wenn keine Geschosse gepflegt sind
+  beginn_datum: string | null; // ISO-Date
+  abgeschlossen: boolean;
+  bemerkungen: string | null;
+  unterschrift_kunde: string | null; // PNG-Data-URL
+  unterschrift_kunde_name: string | null;
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 export interface FirmenEinstellung {
   schluessel: string; // z.B. freigabegrenze_eur
   wert: string;
@@ -464,5 +479,6 @@ export interface DryTrackDB {
   notdiensteinsatzbericht: Notdiensteinsatzbericht[];
   stundenlohnbericht: Stundenlohnbericht[];
   termin: Termin[];
+  trocknungsergebnis: Trocknungsergebnis[];
   firmen_einstellung: FirmenEinstellung[];
 }
