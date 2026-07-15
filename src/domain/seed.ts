@@ -133,7 +133,7 @@ export function seedDB(): DryTrackDB {
     ],
     grundriss_markierung: [],
     bemusterung: [
-      { id: "bm-1", projekt_id: "p-1", material_beschreibung: "Cera Vogue Feinsteinzeug 60×60, anthrazit", lieferant: "Cera Vogue", musterfoto_referenz: null, bestellstatus: "ausgewaehlt", menge: "18 m²", bestelldatum: null },
+      { id: "bm-1", projekt_id: "p-1", material_beschreibung: "Cera Vogue Einleger, Keramik anthrazit", lieferant: "Cera Vogue", musterfoto_referenz: null, bestellstatus: "ausgewaehlt", menge: "14 Stück (Bohrlöcher)", bestelldatum: null },
       { id: "bm-2", projekt_id: "p-2", material_beschreibung: "Eiche-Landhausdiele, geölt", lieferant: "Parkett Kraus", musterfoto_referenz: null, bestellstatus: "bestellt", menge: "24 m²", bestelldatum: tage(2) },
     ],
     raum_foto: [],
