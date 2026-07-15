@@ -757,3 +757,4 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
 .aufbau-zu { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0;
   padding: 2px 0; cursor: pointer; color: var(--text); text-align: left; }
 .aufbau-kurz { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tour-adresse { margin-right: 16px; }
