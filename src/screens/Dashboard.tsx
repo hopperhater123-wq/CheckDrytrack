@@ -133,9 +133,9 @@ export function Dashboard() {
         {/* Einsätze auf einen Blick (schematische Karte aus Geo-Koordinaten) */}
         <EinsatzKarte />
 
-        {/* Ersatzmaterial & Bestellungen */}
+        {/* Bestellübersicht: Ersatzmaterial nach der Bemusterung */}
         <motion.section variants={fadeUpItem} className="tile col-2">
-          <div className="card-head"><h2>Ersatzmaterial</h2>
+          <div className="card-head"><h2>Bestellübersicht</h2>
             {(zuBestellen + unterwegs) > 0 && <span className="chip small">{zuBestellen} zu bestellen · {unterwegs} unterwegs</span>}
           </div>
           {offenesMaterial.length === 0
