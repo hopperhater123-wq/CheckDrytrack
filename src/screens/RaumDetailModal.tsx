@@ -94,7 +94,7 @@ export function RaumDetailModal({ raumId, onClose }: { raumId: string; onClose: 
 
 // Foto-Dokumentation je Raum (FlashApp-Ersatz, 14 · Dokumente). Aufnahme über die
 // Kamera (capture="environment") oder Galerie; Bilder werden vor dem Speichern komprimiert.
-function RaumFotos({ raumId }: { raumId: string }) {
+export function RaumFotos({ raumId }: { raumId: string }) {
   const db = useDB();
   const { user } = useSession();
   const fotos = db.raum_foto.filter((f) => f.raum_id === raumId);

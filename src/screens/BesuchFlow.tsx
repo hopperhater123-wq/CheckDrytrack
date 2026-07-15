@@ -10,6 +10,7 @@ import { Icon, type IconName } from "../ui/Icon";
 import { TrockenMoment } from "../ui/TrockenMoment";
 import { MessprotokollTab } from "./MessprotokollTab";
 import { EinsaetzeTab, FeedTab } from "./ProjektDetail";
+import { RaumFotos } from "./RaumDetailModal";
 import { BerichtForm } from "./BerichteTab";
 
 // Geführter Besuch — der Arbeitsablauf des Trocknungstechnikers als Schrittfolge.
@@ -111,7 +112,18 @@ export function BesuchFlow({ projektId, terminId }: { projektId: string; terminI
               <EinsaetzeTab projektId={projektId} einsaetze={db.einsatz.filter((e) => e.projekt_id === projektId)} />
             </>
           )}
-          {schritt.key === "doku" && <FeedTab projektId={projektId} userId={user.id} />}
+          {schritt.key === "doku" && (
+            <>
+              {/* Foto-Doku je Raum direkt im Besuch — kein Umweg über Übersicht → Raum-Detail. */}
+              {db.raum.filter((r) => r.projekt_id === projektId).map((r) => (
+                <section key={r.id} className="card">
+                  <div className="card-head"><h2>Fotos — {r.bezeichnung}</h2></div>
+                  <RaumFotos raumId={r.id} />
+                </section>
+              ))}
+              <FeedTab projektId={projektId} userId={user.id} />
+            </>
+          )}
           {schritt.key === "abschluss" && <AbschlussSchritt projektId={projektId} userId={user.id} />}
         </motion.div>
       </AnimatePresence>

@@ -752,3 +752,8 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
   display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-display);
   text-transform: uppercase; letter-spacing: .04em; }
 .geschoss-sprung:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Bodenaufbau eingeklappt (Folgebesuche): eine Zeile mit Kurzfassung */
+.aufbau-zu { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0;
+  padding: 2px 0; cursor: pointer; color: var(--text); text-align: left; }
+.aufbau-kurz { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

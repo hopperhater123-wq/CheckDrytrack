@@ -67,6 +67,18 @@ export function MessprotokollTab({ projektId, userId }: { projektId: string; use
         </div>
       )}
 
+      {/* Raum anlegen ZUERST (Arbeitsablauf: erst anlegen, wo gemessen wird, dann messen). */}
+      <section className="card">
+        <div className="card-head"><h2>{raeume.length === 0 ? "Ersten Raum anlegen" : "Räume"}</h2>
+          {raeume.length > 0 && <span className="count">{raeume.length}</span>}
+        </div>
+        {raeume.length === 0 && <p className="muted small" style={{ marginTop: 0 }}>Noch keine Räume erfasst — jeder Raum bekommt Bodenaufbau, Messpunkte und Messungen.</p>}
+        <div className="inline-add" style={{ marginTop: 0 }}>
+          <input placeholder="Neuer Raum, z. B. Kinderzimmer" value={neuerRaum} onChange={(e) => setNeuerRaum(e.target.value)} onKeyDown={(e) => e.key === "Enter" && raumAnlegen()} />
+          <button className="btn" disabled={!neuerRaum.trim()} onClick={raumAnlegen}>+ Raum</button>
+        </div>
+      </section>
+
       {gruppen.map((g) => (
         <div key={g.geschoss} id={`mp-geschoss-${g.geschoss}`}>
           {gruppen.length > 1 && <div className="eyebrow" style={{ margin: "4px 0 10px" }}>{g.geschoss}</div>}
@@ -75,16 +87,6 @@ export function MessprotokollTab({ projektId, userId }: { projektId: string; use
       ))}
 
       {raeume.length > 0 && <TrocknungsErgebnisBereich projektId={projektId} userId={userId} />}
-
-      {/* Raum direkt hier anlegen — auch mitten im geführten Besuch, ohne Umweg über die Übersicht. */}
-      <section className="card">
-        <div className="card-head"><h2>{raeume.length === 0 ? "Ersten Raum anlegen" : "Weiterer Raum"}</h2></div>
-        {raeume.length === 0 && <p className="muted small" style={{ marginTop: 0 }}>Noch keine Räume erfasst — jeder Raum bekommt Bodenaufbau und Messungen.</p>}
-        <div className="inline-add" style={{ marginTop: raeume.length === 0 ? 0 : undefined }}>
-          <input placeholder="z. B. Kinderzimmer" value={neuerRaum} onChange={(e) => setNeuerRaum(e.target.value)} onKeyDown={(e) => e.key === "Enter" && raumAnlegen()} />
-          <button className="btn" disabled={!neuerRaum.trim()} onClick={raumAnlegen}>+ Raum</button>
-        </div>
-      </section>
     </>
   );
 }
@@ -94,11 +96,14 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
   // false = Formular zu; { mp } = offen, optional mit vorgewähltem Messpunkt.
   const [form, setForm] = useState<false | { mp: Messpunkt | null }>(false);
   const [feier, setFeier] = useState<Feier | null>(null);
+  const [alleZeigen, setAlleZeigen] = useState(false);
   const materialById = (id: string) => db.materialdatenbank.find((m) => m.id === id);
   const messpunktById = (id: string | null) => (id ? db.messpunkt.find((p) => p.id === id) : undefined);
   const messungen = db.messung
     .filter((m) => m.raum_id === raum.id)
     .sort((a, b) => (a.gemessen_am < b.gemessen_am ? 1 : -1));
+  // Historie wächst mit jedem Besuch — nur die jüngsten zeigen, Rest auf Klick.
+  const sichtbare = alleZeigen ? messungen : messungen.slice(0, 5);
 
   return (
     <section className="card">
@@ -112,7 +117,7 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
 
       <h3>Messungen <span className="count">{messungen.length}</span></h3>
       {messungen.length === 0 && <p className="muted small">Noch keine Messung erfasst.</p>}
-      {messungen.map((m) => {
+      {sichtbare.map((m) => {
         const mat = materialById(m.material_id);
         const b = bewerteMessung(m, mat);
         const gkgFeucht = m.absolute_feuchte_g_kg != null && m.absolute_feuchte_g_kg > GKG_RICHTWERT;
@@ -139,6 +144,15 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
           </div>
         );
       })}
+
+      {messungen.length > sichtbare.length && (
+        <button className="linkbtn" style={{ marginTop: 8 }} onClick={() => setAlleZeigen(true)}>
+          Alle {messungen.length} Messungen anzeigen
+        </button>
+      )}
+      {alleZeigen && messungen.length > 5 && (
+        <button className="linkbtn" style={{ marginTop: 8 }} onClick={() => setAlleZeigen(false)}>Weniger anzeigen</button>
+      )}
 
       <AnimatePresence>{form && <MessungForm raum={raum} userId={userId} vorMesspunkt={form.mp} onClose={() => setForm(false)} onTrocken={setFeier} />}</AnimatePresence>
       <AnimatePresence>{feier && <TrockenMoment titel={feier.titel} sub={feier.sub} onDone={() => setFeier(null)} />}</AnimatePresence>
@@ -377,6 +391,9 @@ const ALLE_SCHICHTEN: SchichtTyp[] = [...SCHICHTEN, ...WEITERE_BAUTEILE];
 export function AufbauEditor({ raum }: { raum: Raum }) {
   const db = useDB();
   const schichten = db.bodenaufbau_schicht.filter((s) => s.raum_id === raum.id);
+  // Einmal erfasst, ändert sich der Aufbau selten — bei Folgebesuchen eingeklappt,
+  // damit Messpunkte und Messungen sofort im Blick sind. Beim Ersttermin offen.
+  const [offen, setOffen] = useState(schichten.length === 0);
   const ausStore = (): AufbauEntwurf => {
     const e: AufbauEntwurf = {};
     for (const s of schichten) e[s.schicht_typ] = { material_id: s.material_id, fussbodenheizung: s.fussbodenheizung, bauart: s.bauart };
@@ -409,10 +426,30 @@ export function AufbauEditor({ raum }: { raum: Raum }) {
 
   const estrich = zeile("estrich");
 
+  // Kurzfassung für den eingeklappten Zustand: gespeicherte Boden-Schichten von oben nach unten.
+  const zusammenfassung = SCHICHTEN
+    .map((t) => schichten.find((s) => s.schicht_typ === t))
+    .filter(Boolean)
+    .map((s) => db.materialdatenbank.find((m) => m.id === s!.material_id)?.bezeichnung ?? "?")
+    .join(" › ");
+
+  if (!offen) {
+    return (
+      <div className="aufbau">
+        <button className="aufbau-zu" onClick={() => setOffen(true)}>
+          <span className="aufbau-title" style={{ marginBottom: 0 }}>Bodenaufbau</span>
+          <span className="muted small aufbau-kurz">{zusammenfassung || "noch nicht erfasst"}</span>
+          <Icon name="chevronRight" size={15} />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="aufbau">
       <div className="aufbau-title">Bodenaufbau <span className="muted small">(von oben nach unten)</span>
         {dirty && <span className="chip small chip-warn">ungespeichert</span>}
+        <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setOffen(false)}>Einklappen</button>
       </div>
       {SCHICHTEN.map((typ, i) => {
         const optionen = db.materialdatenbank.filter((m) => m.schicht_typ === typ);
