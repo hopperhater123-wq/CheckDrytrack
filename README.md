@@ -11,8 +11,8 @@ Digitale Arbeitsplattform für Sanierungs- und Gebäudetrocknungsunternehmen.
 
 ## 🌐 Live
 
-- **App (PWA, installierbar):** https://hopperhater123-wq.github.io/torrek/
-- **Landingpage:** https://hopperhater123-wq.github.io/torrek/website/
+- **App (PWA, installierbar):** https://hopperhater123-wq.github.io/CheckDrytrack/
+- **Landingpage:** https://hopperhater123-wq.github.io/CheckDrytrack/website/
 
 **Installieren:** Android/Chrome: Menü ⋮ → „App installieren" · iPhone/Safari: Teilen →
 „Zum Home-Bildschirm" · Desktop: gleiche URL, ab 1024 px erscheint die Office-Ansicht.
