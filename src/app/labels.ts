@@ -1,7 +1,13 @@
 import type {
-  DokumentTyp, EstrichBauart, FeedKategorie, FeedUrsprung, GeraetStatus, KontaminationArt,
+  Bestellstatus, DokumentTyp, EstrichBauart, FeedKategorie, FeedUrsprung, GeraetStatus, KontaminationArt,
   Messanlass, Messverfahren, ProjektStatus, SchichtTyp,
 } from "../domain/types";
+
+export const BESTELLSTATUS_LABEL: Record<Bestellstatus, string> = {
+  ausgewaehlt: "Zu bestellen",
+  bestellt: "Bestellt",
+  geliefert: "Geliefert",
+};
 
 export const PROJEKT_STATUS_LABEL: Record<ProjektStatus, string> = {
   angelegt: "Angelegt",

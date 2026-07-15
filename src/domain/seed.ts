@@ -132,7 +132,10 @@ export function seedDB(): DryTrackDB {
       { id: "gr-2", projekt_id: "p-1", geschoss: "1. OG", raumhoehe_m: 2.432, quelle: "skizze_foto", datei_referenz: "storage://p-1/1og-skizze.jpg", erstellt_am: tage(7) },
     ],
     grundriss_markierung: [],
-    bemusterung: [],
+    bemusterung: [
+      { id: "bm-1", projekt_id: "p-1", material_beschreibung: "Cera Vogue Feinsteinzeug 60×60, anthrazit", lieferant: "Cera Vogue", musterfoto_referenz: null, bestellstatus: "ausgewaehlt", menge: "18 m²", bestelldatum: null },
+      { id: "bm-2", projekt_id: "p-2", material_beschreibung: "Eiche-Landhausdiele, geölt", lieferant: "Parkett Kraus", musterfoto_referenz: null, bestellstatus: "bestellt", menge: "24 m²", bestelldatum: tage(2) },
+    ],
     raum_foto: [],
     besuchsbericht: [
       { id: "bb-1", projekt_id: "p-1", datum: datum(-8), naechster_termin: datum(2), fahrtkilometer: 24,

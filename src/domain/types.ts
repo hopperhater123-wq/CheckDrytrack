@@ -291,12 +291,20 @@ export interface GrundrissMarkierung {
   erstellt_am: string;
 }
 
+// Bestellweg des Ersatzmaterials nach der Bemusterung (schlank — kein ERP):
+// ausgewählt (Kunde hat gewählt) → bestellt → geliefert.
+export type Bestellstatus = "ausgewaehlt" | "bestellt" | "geliefert";
+
 export interface Bemusterung {
   id: string;
   projekt_id: string;
   material_beschreibung: string;
   musterfoto_referenz: string | null;
   lieferant: string | null;
+  // Ersatzmaterial-Bestellung (additiv, 013 Geschäftsprozess Schritt „Bemusterung → Bestellung → Einbau").
+  bestellstatus: Bestellstatus;
+  menge: string | null; // frei, z. B. „18 m²"
+  bestelldatum: string | null; // gesetzt beim Wechsel auf „bestellt"
 }
 
 export interface RaumFoto {

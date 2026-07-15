@@ -1,7 +1,7 @@
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
-import { FEED_KATEGORIE_LABEL, FEED_URSPRUNG_LABEL, PROJEKT_STATUS_LABEL, PROJEKT_STATUS_REIHENFOLGE } from "../app/labels";
+import { BESTELLSTATUS_LABEL, FEED_KATEGORIE_LABEL, FEED_URSPRUNG_LABEL, PROJEKT_STATUS_LABEL, PROJEKT_STATUS_REIHENFOLGE } from "../app/labels";
 import { relativZeit } from "../app/format";
 import { istLaufend } from "../domain/einsatz";
 import { bewerteMessung } from "../domain/mess";
@@ -9,9 +9,6 @@ import { Icon, type IconName } from "../ui/Icon";
 import { motion, staggerContainer, fadeUpItem } from "../ui/motion";
 import { DryingLine } from "../ui/DryingLine";
 import type { DryTrackDB, FeedUrsprung, Projekt } from "../domain/types";
-
-// Farbrampe für den Geräteverteilungs-Donut: Feuchte-Skala nass (Teal) → trocken (Amber).
-const DONUT_FARBEN = ["#0E7C86", "#3F9AA0", "#6FB3A6", "#C6892A", "#E0A43B", "#8CA0A0"];
 
 const geraeteText = (n: number) => `${n} ${n === 1 ? "Gerät" : "Geräte"}`;
 
@@ -25,7 +22,6 @@ export function Dashboard() {
   const { user } = useSession();
   const nav = useNav();
 
-  const inWerkstatt = db.geraet.filter((g) => g.status === "werkstatt").length;
   const offene = db.projekt.filter((p) => !p.storniert && p.status !== "abgeschlossen");
   const laufende = db.einsatz.filter(istLaufend).length;
 
@@ -46,11 +42,11 @@ export function Dashboard() {
   const in30 = mitEcheck.filter((g) => { const t = tage(g.e_check_datum!); return t > 7 && t <= 30; }).length;
   const inOrdnung = db.geraet.length - ueberfaellig - in7 - in30;
 
-  // Geräteverteilung nach Typ
-  const verteilung = db.geraetetyp
-    .map((t) => ({ label: t.bezeichnung, value: db.geraet.filter((g) => g.geraetetyp_id === t.id).length }))
-    .filter((d) => d.value > 0)
-    .sort((a, b) => b.value - a.value);
+  // Ersatzmaterial-Bestellungen offener Objekte (Bemusterung → Bestellung → Einbau, 013 Geschäftsprozess).
+  const materialAktiv = db.bemusterung.filter((m) => offene.some((p) => p.id === m.projekt_id));
+  const offenesMaterial = materialAktiv.filter((m) => m.bestellstatus !== "geliefert");
+  const zuBestellen = materialAktiv.filter((m) => m.bestellstatus === "ausgewaehlt").length;
+  const unterwegs = materialAktiv.filter((m) => m.bestellstatus === "bestellt").length;
 
   // Globale letzte Aktivitäten (Audit-Trail aus allen Projekt-Feeds)
   const aktivitaeten = [...db.feed_eintrag]
@@ -137,21 +133,22 @@ export function Dashboard() {
         {/* Einsätze auf einen Blick (schematische Karte aus Geo-Koordinaten) */}
         <EinsatzKarte />
 
-        {/* Geräteverteilung */}
+        {/* Ersatzmaterial & Bestellungen */}
         <motion.section variants={fadeUpItem} className="tile col-2">
-          <div className="card-head"><h2>Geräteverteilung</h2></div>
-          <div className="donut-wrap">
-            <Donut data={verteilung} total={db.geraet.length} />
-            <div className="donut-legend">
-              {verteilung.map((d, i) => (
-                <div key={d.label} className="row">
-                  <span className="name"><i className="ldot" style={{ background: DONUT_FARBEN[i % DONUT_FARBEN.length] }} />{d.label}</span>
-                  <b>{Math.round((d.value / Math.max(1, db.geraet.length)) * 100)}%</b>
-                </div>
-              ))}
-            </div>
+          <div className="card-head"><h2>Ersatzmaterial</h2>
+            {(zuBestellen + unterwegs) > 0 && <span className="chip small">{zuBestellen} zu bestellen · {unterwegs} unterwegs</span>}
           </div>
-          {inWerkstatt > 0 && <p className="muted small" style={{ marginBottom: 0 }}>{geraeteText(inWerkstatt)} aktuell in der Werkstatt.</p>}
+          {offenesMaterial.length === 0
+            ? <p className="muted small">Kein offenes Ersatzmaterial. Bemusterungen erscheinen hier, sobald im Projekt (Berichte → Ersatzfliesen) erfasst.</p>
+            : offenesMaterial.slice(0, 4).map((m) => (
+              <button key={m.id} className="activity" onClick={() => nav({ name: "projekt", id: m.projekt_id })}>
+                <span className="iconbox"><Icon name="layers" size={15} /></span>
+                <div style={{ minWidth: 0 }}>
+                  <div className="activity-text">{m.material_beschreibung}{m.menge ? ` · ${m.menge}` : ""}</div>
+                  <div className="muted small">{projektNr(m.projekt_id)}{m.lieferant ? ` · ${m.lieferant}` : ""} · {BESTELLSTATUS_LABEL[m.bestellstatus]}</div>
+                </div>
+              </button>
+            ))}
         </motion.section>
 
         {/* Letzte Aktivitäten */}
@@ -300,29 +297,3 @@ function Bucket({ farbe, label, wert, tone, onClick }: { farbe: string; label: s
   );
 }
 
-function Donut({ data, total }: { data: { label: string; value: number }[]; total: number }) {
-  const R = 38, C = 2 * Math.PI * R;
-  const sum = data.reduce((s, d) => s + d.value, 0) || 1;
-  let cum = 0;
-  return (
-    <svg viewBox="0 0 100 100" width={112} height={112} role="img" aria-label="Geräteverteilung">
-      <circle cx="50" cy="50" r={R} fill="none" stroke="var(--surface-2)" strokeWidth="13" />
-      {data.map((d, i) => {
-        const frac = d.value / sum;
-        const el = (
-          <circle
-            key={d.label} cx="50" cy="50" r={R} fill="none"
-            stroke={DONUT_FARBEN[i % DONUT_FARBEN.length]} strokeWidth="13"
-            strokeDasharray={`${frac * C} ${C - frac * C}`}
-            strokeDashoffset={-cum * C}
-            transform="rotate(-90 50 50)"
-          />
-        );
-        cum += frac;
-        return el;
-      })}
-      <text x="50" y="47" textAnchor="middle" fontSize="20" fontWeight="700" fill="var(--text)">{total}</text>
-      <text x="50" y="62" textAnchor="middle" fontSize="8.5" fill="var(--muted)">Gesamt</text>
-    </svg>
-  );
-}

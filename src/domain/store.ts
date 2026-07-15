@@ -440,13 +440,26 @@ class Store {
     return id;
   }
 
-  /** Bemusterung (Ersatzmaterial) zu einem Projekt erfassen — Beschreibung, Lieferant, Musterfoto. */
-  addBemusterung(params: { projekt_id: string; material_beschreibung: string; lieferant: string | null; musterfoto_referenz: string | null }) {
+  /** Bemusterung (Ersatzmaterial) zu einem Projekt erfassen — Beschreibung, Lieferant, Musterfoto, Menge. */
+  addBemusterung(params: { projekt_id: string; material_beschreibung: string; lieferant: string | null; musterfoto_referenz: string | null; menge?: string | null }) {
     this.commit((db) => {
       db.bemusterung.push({
         id: uid("bm"), projekt_id: params.projekt_id, material_beschreibung: params.material_beschreibung,
         musterfoto_referenz: params.musterfoto_referenz, lieferant: params.lieferant,
+        bestellstatus: "ausgewaehlt", menge: params.menge ?? null, bestelldatum: null,
       });
+    });
+  }
+
+  /** Bestellstatus des Ersatzmaterials setzen (schlanker Bestellweg, kein ERP). */
+  setBemusterungStatus(id: string, status: import("./types").Bestellstatus) {
+    this.commit((db) => {
+      const b = db.bemusterung.find((x) => x.id === id);
+      if (!b) return;
+      b.bestellstatus = status;
+      // Bestelldatum beim ersten Wechsel auf „bestellt" festhalten.
+      if (status === "bestellt" && !b.bestelldatum) b.bestelldatum = new Date().toISOString();
+      if (status === "ausgewaehlt") b.bestelldatum = null;
     });
   }
 

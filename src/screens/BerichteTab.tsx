@@ -5,11 +5,11 @@ import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
 import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, printHtml } from "../domain/report";
-import { ABNAHME_STATUS_LABEL } from "../app/labels";
+import { ABNAHME_STATUS_LABEL, BESTELLSTATUS_LABEL } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
 import { Icon } from "../ui/Icon";
 import { SignaturPad } from "../ui/SignaturPad";
-import type { AbnahmeStatus } from "../domain/types";
+import type { AbnahmeStatus, Bestellstatus } from "../domain/types";
 
 // Besuchsberichte mit Stundennachweis (Alt-System-Analyse 13.07.2026, Backlog ①).
 export function BerichteTab({ projektId, userId }: { projektId: string; userId: string }) {
@@ -491,6 +491,7 @@ function BemusterungListe({ projektId }: { projektId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [beschreibung, setBeschreibung] = useState("");
   const [lieferant, setLieferant] = useState("");
+  const [menge, setMenge] = useState("");
   const [foto, setFoto] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
 
@@ -503,21 +504,28 @@ function BemusterungListe({ projektId }: { projektId: string }) {
 
   const hinzufuegen = () => {
     if (!beschreibung.trim()) return;
-    store.addBemusterung({ projekt_id: projektId, material_beschreibung: beschreibung.trim(), lieferant: lieferant.trim() || null, musterfoto_referenz: foto });
-    setBeschreibung(""); setLieferant(""); setFoto(null);
+    store.addBemusterung({ projekt_id: projektId, material_beschreibung: beschreibung.trim(), lieferant: lieferant.trim() || null, musterfoto_referenz: foto, menge: menge.trim() || null });
+    setBeschreibung(""); setLieferant(""); setMenge(""); setFoto(null);
   };
 
   return (
     <div className="bemusterung">
       {muster.length === 0
-        ? <p className="muted small">Noch keine Bemusterung. Ersatzmaterial mit Musterfoto und Lieferant erfassen.</p>
-        : <div className="foto-grid">
+        ? <p className="muted small">Noch keine Bemusterung. Ersatzmaterial mit Musterfoto, Menge und Lieferant erfassen.</p>
+        : <div className="muster-liste">
             {muster.map((m) => (
-              <div key={m.id} className="foto-item">
-                <div className="foto-thumb" style={{ cursor: "default" }}>
-                  {m.musterfoto_referenz ? <img src={m.musterfoto_referenz} alt={m.material_beschreibung} loading="lazy" /> : <div className="muster-noimg">kein Foto</div>}
-                  <span className="foto-tag">{m.material_beschreibung}{m.lieferant ? ` · ${m.lieferant}` : ""}</span>
+              <div key={m.id} className="muster-row">
+                {m.musterfoto_referenz
+                  ? <img className="muster-mini" src={m.musterfoto_referenz} alt="" loading="lazy" />
+                  : <span className="muster-mini muster-noimg"><Icon name="layers" size={16} /></span>}
+                <div className="muster-main">
+                  <div className="muster-titel">{m.material_beschreibung}</div>
+                  <div className="muted small">{[m.menge, m.lieferant].filter(Boolean).join(" · ") || "—"}</div>
                 </div>
+                <select className="muster-status" value={m.bestellstatus} aria-label="Bestellstatus"
+                  onChange={(e) => store.setBemusterungStatus(m.id, e.target.value as Bestellstatus)}>
+                  {(Object.keys(BESTELLSTATUS_LABEL) as Bestellstatus[]).map((s) => <option key={s} value={s}>{BESTELLSTATUS_LABEL[s]}</option>)}
+                </select>
                 <button className="foto-del" onClick={() => store.removeBemusterung(m.id)} aria-label="Bemusterung löschen"><Icon name="trash" size={14} /></button>
               </div>
             ))}
@@ -525,6 +533,7 @@ function BemusterungListe({ projektId }: { projektId: string }) {
 
       <div className="bemusterung-add">
         <input placeholder="Material (z. B. Feinsteinzeug 60×60, anthrazit)" value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} />
+        <input placeholder="Menge (z. B. 18 m²)" value={menge} onChange={(e) => setMenge(e.target.value)} />
         <input placeholder="Lieferant (optional)" value={lieferant} onChange={(e) => setLieferant(e.target.value)} />
         <input ref={inputRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => void fotoWaehlen(e.target.files)} />
         <div className="btn-row">
