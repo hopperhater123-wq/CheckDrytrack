@@ -103,6 +103,11 @@ export function HeuteScreen() {
                       <Icon name="map" size={14} /> {p.adresse}
                     </a>
                   )}
+                  {p?.telefon && (
+                    <a className="tour-adresse" href={`tel:${p.telefon.replace(/\s/g, "")}`}>
+                      <Icon name="phone" size={14} /> {p.ansprechpartner ? `${p.ansprechpartner} · ` : ""}{p.telefon}
+                    </a>
+                  )}
                   <div className="btn-row" style={{ marginTop: 10 }}>
                     {!t.erledigt && (
                       <button className="btn btn-sm btn-primary" onClick={() => nav({ name: "besuch", projektId: t.projekt_id, terminId: t.id })}>

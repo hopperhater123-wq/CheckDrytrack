@@ -125,25 +125,39 @@ function ObjektdatenCard({ projektId, canEdit, userId }: { projektId: string; ca
       </div>
 
       {canEdit ? (
-        <div className="objekt-grid">
-          <label className="field"><span>Baujahr</span>
-            <input inputMode="numeric" defaultValue={p.baujahr ?? ""} placeholder="z. B. 1998"
-              onBlur={(e) => store.setObjektdaten(p.id, { baujahr: num(e.target.value) })} />
-          </label>
-          <label className="field"><span>Geschosse</span>
-            <input inputMode="numeric" defaultValue={p.geschosse ?? ""} placeholder="z. B. 2"
-              onBlur={(e) => store.setObjektdaten(p.id, { geschosse: num(e.target.value) })} />
-          </label>
-          <label className="field"><span>Bauweise</span>
-            <input defaultValue={p.bauweise ?? ""} placeholder="Massiv, Holzständer …"
-              onBlur={(e) => store.setObjektdaten(p.id, { bauweise: e.target.value.trim() || null })} />
-          </label>
-        </div>
+        <>
+          <div className="objekt-grid">
+            <label className="field"><span>Baujahr</span>
+              <input inputMode="numeric" defaultValue={p.baujahr ?? ""} placeholder="z. B. 1998"
+                onBlur={(e) => store.setObjektdaten(p.id, { baujahr: num(e.target.value) })} />
+            </label>
+            <label className="field"><span>Geschosse</span>
+              <input inputMode="numeric" defaultValue={p.geschosse ?? ""} placeholder="z. B. 2"
+                onBlur={(e) => store.setObjektdaten(p.id, { geschosse: num(e.target.value) })} />
+            </label>
+            <label className="field"><span>Bauweise</span>
+              <input defaultValue={p.bauweise ?? ""} placeholder="Massiv, Holzständer …"
+                onBlur={(e) => store.setObjektdaten(p.id, { bauweise: e.target.value.trim() || null })} />
+            </label>
+          </div>
+          <div className="two-col">
+            <label className="field"><span>Ansprechpartner vor Ort</span>
+              <input defaultValue={p.ansprechpartner ?? ""} placeholder="z. B. Frau Müller (VN)"
+                onBlur={(e) => store.setObjektdaten(p.id, { ansprechpartner: e.target.value.trim() || null })} />
+            </label>
+            <label className="field"><span>Telefon</span>
+              <input inputMode="tel" defaultValue={p.telefon ?? ""} placeholder="z. B. 0211 555123"
+                onBlur={(e) => store.setObjektdaten(p.id, { telefon: e.target.value.trim() || null })} />
+            </label>
+          </div>
+        </>
       ) : (
         <dl className="facts">
           <div><dt>Baujahr</dt><dd>{p.baujahr ?? "—"}</dd></div>
           <div><dt>Geschosse</dt><dd>{p.geschosse ?? "—"}</dd></div>
           <div><dt>Bauweise</dt><dd>{p.bauweise ?? "—"}</dd></div>
+          <div><dt>Ansprechpartner</dt><dd>{p.ansprechpartner ?? "—"}</dd></div>
+          <div><dt>Telefon</dt><dd>{p.telefon ? <a href={`tel:${p.telefon.replace(/\s/g, "")}`}>{p.telefon}</a> : "—"}</dd></div>
         </dl>
       )}
 

@@ -39,19 +39,19 @@ export function seedDB(): DryTrackDB {
         id: "p-1", projektnummer: "2026-0042", status: "trocknung_laeuft", storniert: false, ist_erstmassnahme: false,
         bezeichnung: "Wasserschaden Küche — Fam. Müller", adresse: "Lindenstraße 12, 40477 Düsseldorf",
         geo_lat: 51.2412, geo_lng: 6.7841, kontamination_art: "sauber", gefaehrdungsbeurteilung_abgeschlossen: true,
-        versicherung_id: "v-allianz", baujahr: 1998, geschosse: 2, bauweise: "Massiv", aundv_unterschrieben: true, aundv_unterschrift: null, aundv_unterschrift_name: null, aundv_datum: null, vollmacht_unterschrift: null, vollmacht_unterschrift_name: null, vollmacht_datum: null, angelegt_von: "u-dispo", angelegt_am: tage(9),
+        versicherung_id: "v-allianz", baujahr: 1998, geschosse: 2, bauweise: "Massiv", ansprechpartner: "Frau Müller (VN)", telefon: "0211 555123", aundv_unterschrieben: true, aundv_unterschrift: null, aundv_unterschrift_name: null, aundv_datum: null, vollmacht_unterschrift: null, vollmacht_unterschrift_name: null, vollmacht_datum: null, angelegt_von: "u-dispo", angelegt_am: tage(9),
       },
       {
         id: "p-2", projektnummer: "2026-0043", status: "schadenaufnahme", storniert: false, ist_erstmassnahme: true,
         bezeichnung: "Rohrbruch Keller — Bäckerei Kern", adresse: "Marktplatz 3, 50667 Köln",
         geo_lat: 50.9375, geo_lng: 6.9603, kontamination_art: "faekalien", gefaehrdungsbeurteilung_abgeschlossen: false,
-        versicherung_id: "v-provinzial", baujahr: 1965, geschosse: 3, bauweise: "Massiv", aundv_unterschrieben: false, aundv_unterschrift: null, aundv_unterschrift_name: null, aundv_datum: null, vollmacht_unterschrift: null, vollmacht_unterschrift_name: null, vollmacht_datum: null, angelegt_von: "u-pl", angelegt_am: tage(2),
+        versicherung_id: "v-provinzial", baujahr: 1965, geschosse: 3, bauweise: "Massiv", ansprechpartner: "Herr Kern (Inhaber)", telefon: "0221 998877", aundv_unterschrieben: false, aundv_unterschrift: null, aundv_unterschrift_name: null, aundv_datum: null, vollmacht_unterschrift: null, vollmacht_unterschrift_name: null, vollmacht_datum: null, angelegt_von: "u-pl", angelegt_am: tage(2),
       },
       {
         id: "p-3", projektnummer: "2026-0039", status: "abgeschlossen", storniert: false, ist_erstmassnahme: false,
         bezeichnung: "Leitungswasser Bad — Fam. Schulz", adresse: "Am Hang 7, 42117 Wuppertal",
         geo_lat: 51.2562, geo_lng: 7.1508, kontamination_art: "sauber", gefaehrdungsbeurteilung_abgeschlossen: true,
-        versicherung_id: "v-allianz", baujahr: 2012, geschosse: 2, bauweise: "Holzständer", aundv_unterschrieben: true, aundv_unterschrift: null, aundv_unterschrift_name: null, aundv_datum: null, vollmacht_unterschrift: null, vollmacht_unterschrift_name: null, vollmacht_datum: null, angelegt_von: "u-dispo", angelegt_am: tage(40),
+        versicherung_id: "v-allianz", baujahr: 2012, geschosse: 2, bauweise: "Holzständer", ansprechpartner: null, telefon: null, aundv_unterschrieben: true, aundv_unterschrift: null, aundv_unterschrift_name: null, aundv_datum: null, vollmacht_unterschrift: null, vollmacht_unterschrift_name: null, vollmacht_datum: null, angelegt_von: "u-dispo", angelegt_am: tage(40),
       },
     ],
     raum: [

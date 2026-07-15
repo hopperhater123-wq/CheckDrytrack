@@ -173,6 +173,11 @@ function AnkunftSchritt({ projektId, terminBeschreibung, angekommen, onAnkommen 
         <a className="tour-adresse" style={{ marginTop: 10 }} href={`https://www.google.com/maps?q=${encodeURIComponent(p.adresse)}`} target="_blank" rel="noreferrer">
           <Icon name="map" size={14} /> {p.adresse}
         </a>
+        {p.telefon && (
+          <a className="tour-adresse" style={{ marginTop: 4, display: "flex" }} href={`tel:${p.telefon.replace(/\s/g, "")}`}>
+            <Icon name="phone" size={14} /> {p.ansprechpartner ? `${p.ansprechpartner} · ` : ""}{p.telefon}
+          </a>
+        )}
         <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={onAnkommen} disabled={angekommen}>
           {angekommen ? <><Icon name="check" size={15} /> Ankunft erfasst</> : "Ankunft erfassen"}
         </button>

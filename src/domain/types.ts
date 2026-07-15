@@ -132,6 +132,9 @@ export interface Projekt {
   baujahr: number | null;
   geschosse: number | null;
   bauweise: string | null; // z. B. "Massiv", "Holzständer", "Fertighaus"
+  // Kontakt vor Ort (Alt-System: "VN Frau Fässer 0866 94390 ab 9 Uhr da" im Termin-Betreff).
+  ansprechpartner: string | null;
+  telefon: string | null;
   aundv_unterschrieben: boolean; // Auftrag & Abtretungserklärung unterschrieben
   aundv_unterschrift: string | null; // PNG-Data-URL der Kundenunterschrift
   aundv_unterschrift_name: string | null; // Name des Unterzeichnenden

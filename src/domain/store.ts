@@ -239,7 +239,7 @@ class Store {
       storniert: false, ist_erstmassnahme: params.ist_erstmassnahme, bezeichnung: params.bezeichnung,
       adresse: params.adresse, geo_lat: null, geo_lng: null, kontamination_art: null,
       gefaehrdungsbeurteilung_abgeschlossen: false, versicherung_id: null,
-      baujahr: null, geschosse: null, bauweise: null, aundv_unterschrieben: false,
+      baujahr: null, geschosse: null, bauweise: null, ansprechpartner: null, telefon: null, aundv_unterschrieben: false,
       aundv_unterschrift: null, aundv_unterschrift_name: null, aundv_datum: null,
       vollmacht_unterschrift: null, vollmacht_unterschrift_name: null, vollmacht_datum: null,
       angelegt_von: params.angelegt_von, angelegt_am: new Date().toISOString(),
@@ -274,7 +274,7 @@ class Store {
   }
 
   /** Objektdaten pflegen (Baujahr/Geschosse/Bauweise/A&A), Backlog ④. */
-  setObjektdaten(projekt_id: string, patch: Partial<Pick<Projekt, "baujahr" | "geschosse" | "bauweise" | "aundv_unterschrieben">>) {
+  setObjektdaten(projekt_id: string, patch: Partial<Pick<Projekt, "baujahr" | "geschosse" | "bauweise" | "aundv_unterschrieben" | "ansprechpartner" | "telefon">>) {
     this.commit((db) => {
       const p = db.projekt.find((x) => x.id === projekt_id);
       if (p) Object.assign(p, patch);
