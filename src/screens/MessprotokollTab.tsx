@@ -7,6 +7,7 @@ import { fmtDatum, fmtZahl } from "../app/format";
 import { BEWERTUNG_LABEL, GKG_RICHTWERT, absoluteFeuchteGKg, bewerteMessung, type Bewertung } from "../domain/mess";
 import { messprotokollHtml, printHtml } from "../domain/report";
 import { Icon } from "../ui/Icon";
+import { spiele } from "../ui/sound";
 import { SignaturPad } from "../ui/SignaturPad";
 import { TrockenMoment } from "../ui/TrockenMoment";
 import type {
@@ -603,6 +604,7 @@ function MessungForm({ raum, userId, vorMesspunkt, onClose, onTrocken }: {
       status_checkliste: modell === "status_checkliste" ? checkliste : null,
       temperatur_c: tempN, rel_luftfeuchte_prozent: rhN, stroemung_m_s: num(ms), messgeraet: geraetWert, gemessen_von: userId,
     });
+    spiele("tick");
 
     // „Objekt trocken"-Moment: Freimessung mit Bewertung „trocken" feiern —
     // eskaliert, wenn damit der ganze Raum (letzte Messung je Material) trocken ist.

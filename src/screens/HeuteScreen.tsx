@@ -5,6 +5,7 @@ import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
 import { store } from "../domain/store";
 import { Icon } from "../ui/Icon";
+import { spiele } from "../ui/sound";
 import type { Termin } from "../domain/types";
 
 // „Mein Tag" — Startpunkt des Monteurs. Der Tag ist die Route: Termine in
@@ -84,7 +85,7 @@ export function HeuteScreen() {
                   <span className="tour-uhr">{t.uhrzeit ?? "—"}</span>
                   <button
                     className={`termin-check${t.erledigt ? " on" : ""}`}
-                    onClick={() => store.setTerminErledigt(t.id, !t.erledigt)}
+                    onClick={() => { store.setTerminErledigt(t.id, !t.erledigt); if (!t.erledigt) spiele("tick"); }}
                     aria-label={t.erledigt ? "Als offen markieren" : "Als erledigt markieren"}
                   >
                     {t.erledigt && <Icon name="check" size={13} />}

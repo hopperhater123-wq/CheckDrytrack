@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { motion } from "./motion";
+import { spiele } from "./sound";
 
 // App-Intro — die Marken-Signatur als Eröffnung: ein Tropfen fällt, schlägt auf,
 // TORREK setzt sich, die Trocknungslinie zieht von Nass nach Trocken durch.
@@ -13,7 +14,9 @@ export function Intro({ onDone }: { onDone: () => void }) {
 
   useEffect(() => {
     const t = setTimeout(onDone, ruhig ? 1100 : 2600);
-    return () => clearTimeout(t);
+    // Tropfen-Aufprall (Autoplay-Sperren vor der ersten Berührung schluckt sound.ts still).
+    const s = ruhig ? undefined : setTimeout(() => spiele("plopp"), 550);
+    return () => { clearTimeout(t); if (s) clearTimeout(s); };
   }, [onDone, ruhig]);
 
   return (

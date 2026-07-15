@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 import { motion } from "./motion";
 import { DryingLine } from "./DryingLine";
+import { spiele } from "./sound";
 
 // „Objekt trocken"-Moment: zurückhaltende Mikro-Feier nach einer Freimessung mit
 // Bewertung „trocken". Keine Konfetti — die Marken-Signatur selbst feiert: die
 // Trocknungslinie schwingt auf 100 % ein. Schließt sich selbst (oder per Tap).
 export function TrockenMoment({ titel, sub, onDone }: { titel: string; sub?: string; onDone: () => void }) {
   useEffect(() => {
+    spiele("erfolg");
     const t = setTimeout(onDone, 3000);
     return () => clearTimeout(t);
   }, [onDone]);

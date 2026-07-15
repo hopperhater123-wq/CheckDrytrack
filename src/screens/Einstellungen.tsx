@@ -4,6 +4,7 @@ import { useSession } from "../app/session";
 import { store } from "../domain/store";
 import { ROLLEN_LABEL } from "../domain/roles";
 import { Icon } from "../ui/Icon";
+import { setSoundAn, soundAn, spiele } from "../ui/sound";
 
 // beforeinstallprompt ist Chromium-only und untypisiert.
 interface InstallPromptEvent extends Event {
@@ -52,6 +53,27 @@ function InstallCard() {
   );
 }
 
+// Dezente UI-Sounds (Speichern, Trocken-Moment, Intro) an-/abschalten.
+function SoundCard() {
+  const [an, setAn] = useState(soundAn);
+  const umschalten = (neu: boolean) => {
+    setSoundAn(neu);
+    setAn(neu);
+    if (neu) spiele("erfolg"); // Hörprobe
+  };
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Soundeffekte</h2>
+        <span className={`chip small${an ? " chip-live" : ""}`}>{an ? "an" : "aus"}</span>
+      </div>
+      <label className="toggle">
+        <input type="checkbox" checked={an} onChange={(e) => umschalten(e.target.checked)} />
+        Dezente Töne bei Speichern, Trocken-Moment und App-Start
+      </label>
+    </section>
+  );
+}
+
 export function Einstellungen() {
   const db = useDB();
   const { user, can } = useSession();
@@ -75,6 +97,8 @@ export function Einstellungen() {
       <h1>Mehr</h1>
 
       <InstallCard />
+
+      <SoundCard />
 
       <section className="card">
         <div className="card-head"><h2>Angemeldet als</h2></div>
