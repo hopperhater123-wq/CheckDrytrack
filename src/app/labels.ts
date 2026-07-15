@@ -75,6 +75,8 @@ export const DOKUMENT_TYP_LABEL: Record<DokumentTyp, string> = {
   auftrag_abtretung: "Auftrag & Abtretung", vertretervollmacht: "Vertretervollmacht",
   ersatzfliesenbericht: "Ersatzfliesenbericht", kundenzufriedenheit: "Kundenzufriedenheit",
   notdienst_einsatzbericht: "Notdienst-Einsatzbericht", stundenlohnbericht: "Stundenlohnbericht",
+  zusatzerklaerung: "Zusatzerklärung zum Auftrag", organschaft: "Erklärung zur Organschaft",
+  merkblatt_hochwasser: "Merkblatt Überschwemmung/Hochwasser",
   kva: "KVA", strombrief: "Strombrief",
 };
 

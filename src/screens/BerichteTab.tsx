@@ -211,6 +211,12 @@ function StundenlohnForm({ projektId, userId, onClose }: { projektId: string; us
   const [datum, setDatum] = useState(heute);
   const [stunden, setStunden] = useState<SlStundeZeile[]>([{ mitarbeiter_name: ich?.name ?? "", taetigkeit: "Regiearbeit", stunden: "1" }]);
   const [material, setMaterial] = useState<SlMaterialZeile[]>([]);
+  // Felder aus dem Alt-System-Formular (Frame-Analyse 15.07.2026)
+  const [schadenrolle, setSchadenrolle] = useState("");
+  const [km, setKm] = useState("");
+  const [hinRueck, setHinRueck] = useState(false);
+  const [anteilig, setAnteilig] = useState(false);
+  const [naechster, setNaechster] = useState("");
   const [bemerkungen, setBemerkungen] = useState("");
   const [sigKunde, setSigKunde] = useState<string | null>(null);
   const [sigKundeName, setSigKundeName] = useState("");
@@ -226,10 +232,14 @@ function StundenlohnForm({ projektId, userId, onClose }: { projektId: string; us
 
   const speichern = () => {
     if (!gueltig) return;
+    const kmZahl = parseFloat(km.replace(",", "."));
     store.addStundenlohnbericht({
       projekt_id: projektId, datum,
       stunden: gueltigeStunden.map((z) => ({ mitarbeiter_name: z.mitarbeiter_name.trim(), taetigkeit: z.taetigkeit.trim() || "Regiearbeit", stunden: zahl(z.stunden) })),
       material: material.filter((m) => m.bezeichnung.trim()).map((m) => ({ bezeichnung: m.bezeichnung.trim(), menge: zahl(m.menge), einheit: m.einheit.trim() || "Stk" })),
+      schadenrolle: schadenrolle || null,
+      fahrtkilometer: Number.isFinite(kmZahl) ? kmZahl : null,
+      hin_und_rueckfahrt: hinRueck, anteilig, naechster_termin: naechster || null,
       bemerkungen: bemerkungen.trim() || null,
       unterschrift_kunde: sigKunde, unterschrift_kunde_name: sigKunde ? (sigKundeName.trim() || null) : null,
       unterschrift_mitarbeiter: sigMitarbeiter, erstellt_von: userId,
@@ -242,9 +252,35 @@ function StundenlohnForm({ projektId, userId, onClose }: { projektId: string; us
         <h2>Stundenlohnbericht</h2>
         <p className="muted small">Regie-/Stundenlohnarbeiten mit Stundennachweis und Material.</p>
 
-        <label className="field"><span>Datum *</span>
-          <input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
-        </label>
+        <div className="two-col">
+          <label className="field"><span>Datum *</span>
+            <input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} />
+          </label>
+          <label className="field"><span>Schadenrolle</span>
+            <select value={schadenrolle} onChange={(e) => setSchadenrolle(e.target.value)}>
+              <option value="">— nicht ausgewählt —</option>
+              {["Leitungswasser", "Rückstau", "Elementar / Hochwasser", "Sturm / Hagel", "Feuer", "Sonstige"].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="two-col">
+          <label className="field"><span>Fahrtkilometer</span>
+            <input inputMode="decimal" value={km} onChange={(e) => setKm(e.target.value)} placeholder="z. B. 24" />
+          </label>
+          <label className="field"><span>Nächster Termin</span>
+            <input type="date" value={naechster} onChange={(e) => setNaechster(e.target.value)} />
+          </label>
+        </div>
+        <div className="btn-row">
+          <label className="toggle">
+            <input type="checkbox" checked={hinRueck} onChange={(e) => setHinRueck(e.target.checked)} /> Hin- und Rückfahrt
+          </label>
+          <label className="toggle">
+            <input type="checkbox" checked={anteilig} onChange={(e) => setAnteilig(e.target.checked)} /> anteilig
+          </label>
+        </div>
 
         <h3>Stundennachweis</h3>
         {stunden.map((z, i) => (

@@ -746,3 +746,9 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
   padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); }
 .anno-seg.segmented { background: rgba(255,255,255,.12); border-color: transparent; }
 .anno-seg .seg.active { background: #fff; color: #0b0d12; }
+
+/* Geschoss-Sprungleiste im Messprotokoll */
+.geschoss-sprung { border: 1px solid var(--border); background: var(--surface); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-display);
+  text-transform: uppercase; letter-spacing: .04em; }
+.geschoss-sprung:hover { border-color: var(--accent); color: var(--accent); }

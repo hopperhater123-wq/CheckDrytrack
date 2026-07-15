@@ -37,15 +37,17 @@ export function GrundrissTab({ projektId, userId }: { projektId: string; userId:
       )}
 
       {geschosse.map((geschoss) => {
-        const g = grundrisse.find((x) => x.geschoss === geschoss);
+        const gs = grundrisse
+          .filter((x) => x.geschoss === geschoss)
+          .sort((a, b) => (a.erstellt_am < b.erstellt_am ? -1 : 1));
         return (
           <GeschossBlock
-            key={geschoss} projektId={projektId} geschoss={geschoss} grundriss={g}
+            key={geschoss} projektId={projektId} geschoss={geschoss} grundrisse={gs}
             raeume={raeume.filter((r) => r.geschoss === geschoss)}
-            markierungen={g ? db.grundriss_markierung.filter((m) => m.grundriss_id === g.id) : []}
+            markierungen={db.grundriss_markierung.filter((m) => gs.some((g) => g.id === m.grundriss_id))}
             benutzerName={(uid) => db.benutzer.find((b) => b.id === uid)?.name ?? "?"}
             raumName={(rid) => (rid ? db.raum.find((r) => r.id === rid)?.bezeichnung ?? "?" : "ganzer Plan")}
-            onMarkierung={() => g && setNeuFuer(g.id)}
+            onMarkierung={(gid) => setNeuFuer(gid)}
           />
         );
       })}
@@ -71,29 +73,37 @@ export function GrundrissTab({ projektId, userId }: { projektId: string; userId:
   );
 }
 
-function GeschossBlock({ projektId, geschoss, grundriss, raeume, markierungen, benutzerName, raumName, onMarkierung }: {
-  projektId: string; geschoss: string; grundriss: Grundriss | undefined; raeume: Raum[];
+function GeschossBlock({ projektId, geschoss, grundrisse, raeume, markierungen, benutzerName, raumName, onMarkierung }: {
+  projektId: string; geschoss: string; grundrisse: Grundriss[]; raeume: Raum[];
   markierungen: import("../domain/types").GrundrissMarkierung[];
-  benutzerName: (uid: string) => string; raumName: (rid: string | null) => string; onMarkierung: () => void;
+  benutzerName: (uid: string) => string; raumName: (rid: string | null) => string; onMarkierung: (grundrissId: string) => void;
 }) {
   const fotoInput = useRef<HTMLInputElement>(null);
+  const modusRef = useRef<"ersetzen" | "neu">("ersetzen"); // was der nächste Upload bewirkt
+  const [idx, setIdx] = useState(0);
   const [malen, setMalen] = useState(false);
   const [laedt, setLaedt] = useState(false);
+
+  // Aktuelle Skizze (Alt-System: "Skizze 1 von 3" je Geschoss).
+  const sicherIdx = Math.min(idx, Math.max(0, grundrisse.length - 1));
+  const grundriss: Grundriss | undefined = grundrisse[sicherIdx];
   const hatBild = !!grundriss && grundriss.datei_referenz.startsWith("data:");
 
-  // Skizze/Foto hochladen — ersetzt Platzhalter-Referenzen durch ein echtes Bild.
+  // Skizze/Foto hochladen — ersetzt das aktuelle Bild oder legt eine weitere Skizze an.
   const hochladen = async (liste: FileList | null) => {
     if (!liste || !liste.length) return;
     setLaedt(true);
     try {
       const dataUrl = await komprimiereBild(liste[0]);
-      if (grundriss) store.setGrundrissBild(grundriss.id, dataUrl);
-      else store.setGrundriss(projektId, geschoss, "skizze_foto", dataUrl);
+      if (!grundriss) store.setGrundriss(projektId, geschoss, "skizze_foto", dataUrl);
+      else if (modusRef.current === "neu") { store.addGrundriss(projektId, geschoss, "skizze_foto", dataUrl); setIdx(grundrisse.length); }
+      else store.setGrundrissBild(grundriss.id, dataUrl);
     } finally {
       setLaedt(false);
       if (fotoInput.current) fotoInput.current.value = "";
     }
   };
+  const uploadStarten = (modus: "ersetzen" | "neu") => { modusRef.current = modus; fotoInput.current?.click(); };
 
   return (
     <div className="geschoss-block">
@@ -112,23 +122,35 @@ function GeschossBlock({ projektId, geschoss, grundriss, raeume, markierungen, b
           <button className="btn btn-primary btn-sm" onClick={() => store.setGrundriss(projektId, geschoss, "magicplan", `magicplan://${projektId}/${geschoss}.pdf`)}>
             <Icon name="layers" size={15} /> MagicPlan
           </button>
-          <button className="btn btn-sm" disabled={laedt} onClick={() => fotoInput.current?.click()}>
+          <button className="btn btn-sm" disabled={laedt} onClick={() => uploadStarten("ersetzen")}>
             <Icon name="camera" size={15} /> Skizze / Foto
           </button>
         </div>
       ) : (
         <>
+          {/* Pager, wenn mehrere Skizzen zum Geschoss existieren (Alt-System: "Skizze 1 von 3") */}
+          {grundrisse.length > 1 && (
+            <div className="wochen-nav" style={{ marginBottom: 8 }}>
+              <button className="iconbtn" onClick={() => setIdx(Math.max(0, sicherIdx - 1))} disabled={sicherIdx === 0} aria-label="Vorherige Skizze"><Icon name="chevronLeft" size={16} /></button>
+              <span className="muted small">Skizze {sicherIdx + 1} von {grundrisse.length}</span>
+              <button className="iconbtn" onClick={() => setIdx(Math.min(grundrisse.length - 1, sicherIdx + 1))} disabled={sicherIdx === grundrisse.length - 1} aria-label="Nächste Skizze"><Icon name="chevronRight" size={16} /></button>
+            </div>
+          )}
+
           {hatBild ? (
             <>
               <div className="grundriss-bildwrap">
                 <img className="grundriss-bild" src={grundriss.datei_referenz} alt={`Skizze ${geschoss}`} />
               </div>
-              <div className="btn-row" style={{ marginBottom: 10 }}>
+              <div className="btn-row" style={{ marginBottom: 10, flexWrap: "wrap" }}>
                 <button className="btn btn-sm btn-primary" onClick={() => setMalen(true)}>
                   <Icon name="pen" size={14} /> Markieren
                 </button>
-                <button className="btn btn-sm" disabled={laedt} onClick={() => fotoInput.current?.click()}>
+                <button className="btn btn-sm" disabled={laedt} onClick={() => uploadStarten("ersetzen")}>
                   <Icon name="camera" size={14} /> Neues Bild
+                </button>
+                <button className="btn btn-sm" disabled={laedt} onClick={() => uploadStarten("neu")}>
+                  <Icon name="plus" size={14} /> Skizze
                 </button>
               </div>
             </>
@@ -138,7 +160,7 @@ function GeschossBlock({ projektId, geschoss, grundriss, raeume, markierungen, b
                 <Icon name="map" size={26} />
                 <span className="muted small">{grundriss.datei_referenz}</span>
                 <span className="muted small">importiert am {fmtDatum(grundriss.erstellt_am)}</span>
-                <button className="btn btn-sm" disabled={laedt} onClick={() => fotoInput.current?.click()}>
+                <button className="btn btn-sm" disabled={laedt} onClick={() => uploadStarten("ersetzen")}>
                   <Icon name="camera" size={14} /> {laedt ? "Wird verarbeitet…" : "Skizze/Foto hochladen"}
                 </button>
               </div>
@@ -163,7 +185,7 @@ function GeschossBlock({ projektId, geschoss, grundriss, raeume, markierungen, b
 
           <div className="card-head" style={{ marginTop: 4 }}>
             <h3 style={{ margin: 0 }}>Markierungen <span className="count">{markierungen.length}</span></h3>
-            <button className="btn btn-sm" onClick={onMarkierung}><Icon name="plus" size={14} /> Markierung</button>
+            <button className="btn btn-sm" onClick={() => onMarkierung(grundriss.id)}><Icon name="plus" size={14} /> Markierung</button>
           </div>
           {markierungen.length === 0 && <p className="muted small">Hinweise für Sanierer/Trocknungsmonteur hier verorten (FR-PROJ-025).</p>}
           {markierungen.map((m) => (

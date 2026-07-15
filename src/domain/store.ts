@@ -523,6 +523,8 @@ class Store {
   addStundenlohnbericht(params: {
     projekt_id: string; datum: string;
     stunden: import("./types").StundenlohnStunde[]; material: import("./types").StundenlohnMaterial[];
+    schadenrolle: string | null; fahrtkilometer: number | null;
+    hin_und_rueckfahrt: boolean; anteilig: boolean; naechster_termin: string | null;
     bemerkungen: string | null;
     unterschrift_kunde: string | null; unterschrift_kunde_name: string | null; unterschrift_mitarbeiter: string | null;
     erstellt_von: string;
@@ -531,7 +533,10 @@ class Store {
     this.commit((db) => {
       db.stundenlohnbericht.push({
         id, projekt_id: params.projekt_id, datum: params.datum,
-        stunden: params.stunden, material: params.material, bemerkungen: params.bemerkungen,
+        stunden: params.stunden, material: params.material,
+        schadenrolle: params.schadenrolle, fahrtkilometer: params.fahrtkilometer,
+        hin_und_rueckfahrt: params.hin_und_rueckfahrt, anteilig: params.anteilig,
+        naechster_termin: params.naechster_termin, bemerkungen: params.bemerkungen,
         unterschrift_kunde: params.unterschrift_kunde, unterschrift_kunde_name: params.unterschrift_kunde_name,
         unterschrift_mitarbeiter: params.unterschrift_mitarbeiter,
         erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
@@ -569,6 +574,13 @@ class Store {
   setGrundriss(projekt_id: string, geschoss: string | null, quelle: "magicplan" | "skizze_foto", datei_referenz: string) {
     this.commit((db) => {
       db.grundriss = db.grundriss.filter((g) => !(g.projekt_id === projekt_id && g.geschoss === geschoss));
+      db.grundriss.push({ id: uid("gr"), projekt_id, geschoss, raumhoehe_m: null, quelle, datei_referenz, erstellt_am: new Date().toISOString() });
+    });
+  }
+
+  /** Weitere Skizze zum selben Geschoss hinzufügen (Alt-System: "Skizze 1 von 3"). */
+  addGrundriss(projekt_id: string, geschoss: string | null, quelle: "magicplan" | "skizze_foto", datei_referenz: string) {
+    this.commit((db) => {
       db.grundriss.push({ id: uid("gr"), projekt_id, geschoss, raumhoehe_m: null, quelle, datei_referenz, erstellt_am: new Date().toISOString() });
     });
   }

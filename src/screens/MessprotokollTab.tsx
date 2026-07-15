@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Modal, AnimatePresence } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
-import { BAUART_LABEL, MESSANLASS_LABEL, MESSVERFAHREN_LABEL, SCHICHT_TYP_LABEL, WEITERE_BAUTEILE } from "../app/labels";
+import { BAUART_LABEL, GESCHOSSE, MESSANLASS_LABEL, MESSVERFAHREN_LABEL, SCHICHT_TYP_LABEL, WEITERE_BAUTEILE } from "../app/labels";
 import { fmtDatum, fmtZahl } from "../app/format";
 import { BEWERTUNG_LABEL, GKG_RICHTWERT, absoluteFeuchteGKg, bewerteMessung, type Bewertung } from "../domain/mess";
 import { messprotokollHtml, printHtml } from "../domain/report";
@@ -37,6 +37,16 @@ export function MessprotokollTab({ projektId, userId }: { projektId: string; use
     setNeuerRaum("");
   };
 
+  // Räume nach Geschoss gruppiert (Alt-System: EG/UG-Kacheln als Navigation).
+  const geschossVon = (r: Raum) => r.geschoss ?? "Ohne Geschoss";
+  const geschossReihenfolge = [...GESCHOSSE, "Ohne Geschoss"];
+  const gruppen = geschossReihenfolge
+    .filter((g) => raeume.some((r) => geschossVon(r) === g))
+    .map((g) => ({ geschoss: g, raeume: raeume.filter((r) => geschossVon(r) === g) }));
+
+  const springe = (g: string) =>
+    document.getElementById(`mp-geschoss-${g}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+
   return (
     <>
       {raeume.length > 0 && (
@@ -45,7 +55,24 @@ export function MessprotokollTab({ projektId, userId }: { projektId: string; use
           <button className="btn btn-sm" onClick={exportPdf}><Icon name="fileText" size={15} /> Als PDF exportieren</button>
         </div>
       )}
-      {raeume.map((r) => <RaumMessblock key={r.id} raum={r} userId={userId} />)}
+
+      {/* Geschoss-Sprungleiste bei mehreren Geschossen */}
+      {gruppen.length > 1 && (
+        <div className="btn-row" style={{ flexWrap: "wrap" }}>
+          {gruppen.map((g) => (
+            <button key={g.geschoss} className="chip geschoss-sprung" onClick={() => springe(g.geschoss)}>
+              {g.geschoss} <span className="count">{g.raeume.length}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {gruppen.map((g) => (
+        <div key={g.geschoss} id={`mp-geschoss-${g.geschoss}`}>
+          {gruppen.length > 1 && <div className="eyebrow" style={{ margin: "4px 0 10px" }}>{g.geschoss}</div>}
+          {g.raeume.map((r) => <RaumMessblock key={r.id} raum={r} userId={userId} />)}
+        </div>
+      ))}
 
       {raeume.length > 0 && <TrocknungsErgebnisBereich projektId={projektId} userId={userId} />}
 

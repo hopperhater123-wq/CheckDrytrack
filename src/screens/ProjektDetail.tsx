@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { AnimatePresence, motion, EASE, Modal } from "../ui/motion";
 import { QrCode } from "../ui/QrCode";
-import { strombriefHtml, abschlussberichtHtml, aundvHtml, vollmachtHtml, printHtml } from "../domain/report";
+import {
+  strombriefHtml, abschlussberichtHtml, aundvHtml, vollmachtHtml,
+  zusatzerklaerungHtml, organschaftHtml, merkblattHochwasserHtml, printHtml,
+} from "../domain/report";
 import { SignaturPad } from "../ui/SignaturPad";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
@@ -492,10 +495,19 @@ function DokumenteTab({ projektId, kostenSichtbar, benutzerName, userId }: { pro
     printHtml(abschlussberichtHtml(projekt, db));
     store.addDokument({ projekt_id: projektId, typ: "abschlussbericht", speicher_referenz: `abschlussbericht://${projektId}/${Date.now()}.pdf`, erstellt_von: userId });
   };
+  // Einfache Erklärungs-/Merkblatt-Dokumente (Alt-System "Neue Dokumente").
+  const erzeuge = (typ: import("../domain/types").DokumentTyp, html: string) => {
+    printHtml(html);
+    store.addDokument({ projekt_id: projektId, typ, speicher_referenz: `${typ}://${projektId}/${Date.now()}.pdf`, erstellt_von: userId });
+  };
+
   // Doc-Zeile erneut als PDF öffnen (für generierte Dokumente; andere Typen sind Platzhalter).
   const oeffnen = (typ: string) => {
     if (typ === "strombrief") printHtml(strombriefHtml(projekt, db));
     else if (typ === "abschlussbericht") printHtml(abschlussberichtHtml(projekt, db));
+    else if (typ === "zusatzerklaerung") printHtml(zusatzerklaerungHtml(projekt, db));
+    else if (typ === "organschaft") printHtml(organschaftHtml(projekt, db));
+    else if (typ === "merkblatt_hochwasser") printHtml(merkblattHochwasserHtml(projekt));
   };
 
   return (
@@ -505,6 +517,11 @@ function DokumenteTab({ projektId, kostenSichtbar, benutzerName, userId }: { pro
           <button className="btn btn-sm" onClick={strombrief}><Icon name="fileText" size={14} /> Strombrief</button>
           <button className="btn btn-sm btn-primary" onClick={abschlussbericht}><Icon name="fileText" size={14} /> Abschlussbericht</button>
         </div>
+      </div>
+      <div className="btn-row" style={{ marginBottom: 12, flexWrap: "wrap" }}>
+        <button className="btn btn-sm" onClick={() => erzeuge("zusatzerklaerung", zusatzerklaerungHtml(projekt, db))}>Zusatzerklärung</button>
+        <button className="btn btn-sm" onClick={() => erzeuge("organschaft", organschaftHtml(projekt, db))}>Organschaft</button>
+        <button className="btn btn-sm" onClick={() => erzeuge("merkblatt_hochwasser", merkblattHochwasserHtml(projekt))}>Merkblatt Hochwasser</button>
       </div>
       {dokumente.length === 0 && <p className="muted">Noch keine Dokumente. Abschlussbericht fasst Trocknungsergebnis, Geräteeinsätze und Verbrauch zusammen; der Strombrief listet Einsatzdauer und Stromverbrauch je Gerät.</p>}
       {dokumente.map((d) => (

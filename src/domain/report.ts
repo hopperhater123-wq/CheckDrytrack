@@ -227,6 +227,14 @@ export function stundenlohnberichtHtml(bericht: Stundenlohnbericht, projekt: Pro
       </div>
     </header>
 
+    <h3>Allgemeine Informationen</h3>
+    <div class="text">
+      Schadenrolle: <b>${esc(bericht.schadenrolle ?? "nicht ausgewählt")}</b>
+      · Fahrtkilometer: <b>${bericht.fahrtkilometer != null ? bericht.fahrtkilometer.toLocaleString("de-DE") : "—"}</b>${bericht.hin_und_rueckfahrt ? " (Hin- und Rückfahrt)" : ""}
+      · anteilig: <b>${bericht.anteilig ? "ja" : "nein"}</b>
+      ${bericht.naechster_termin ? ` · nächster Termin: <b>${new Date(bericht.naechster_termin).toLocaleDateString("de-DE")}</b>` : ""}
+    </div>
+
     <h3>Stundennachweis (Regie)</h3>
     <table>
       <thead><tr><th>Mitarbeiter</th><th>Tätigkeit</th><th class="num">Stunden</th></tr></thead>
@@ -881,6 +889,102 @@ export function abschlussberichtHtml(projekt: Projekt, db: DryTrackDB): string {
 }
 
 /** Öffnet den Druckdialog für den übergebenen HTML-Report in einem isolierten iframe. */
+// Gemeinsamer Rahmen für die einfachen Erklärungs-/Merkblatt-Dokumente (Alt-System "Neue Dokumente").
+function einfachesDokument(titel: string, projekt: Projekt, inhalt: string): string {
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${esc(titel)} ${esc(projekt.projektnummer)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; line-height: 1.55; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
+    h1 { font-size: 16px; margin: 8px 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
+    .meta { color: #667085; font-size: 12px; text-align: right; }
+    ul { padding-left: 18px; } li { margin: 4px 0; }
+    .zeile { border-bottom: 1px dotted #98a1b0; height: 26px; }
+    .check { display: inline-block; width: 13px; height: 13px; border: 1.5px solid #0b0d12; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; page-break-inside: avoid; }
+    .sig-linie { border-bottom: 1px solid #0b0d12; height: 44px; }
+    .sig-label { font-size: 11px; color: #667085; margin-top: 4px; }
+    footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
+  </style></head><body>
+    <header>
+      <div><div class="brand">◐ Tor<span>rek</span></div><h1>${esc(titel)}</h1></div>
+      <div class="meta">
+        <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.bezeichnung)}</div>
+        <div>${esc(projekt.adresse)}</div>
+        <div>${new Date().toLocaleDateString("de-DE")}</div>
+      </div>
+    </header>
+    ${inhalt}
+    <footer>Torrek · ${esc(titel)} · erstellt am ${new Date().toLocaleString("de-DE")}</footer>
+  </body></html>`;
+}
+
+// Zusatzerklärung zum Auftrag (Alt-System-Kachel): Zusatzleistungen über den
+// versicherten Schadenumfang hinaus gehen zu Lasten des Auftraggebers.
+export function zusatzerklaerungHtml(projekt: Projekt, db: DryTrackDB): string {
+  const versicherung = db.versicherung.find((v) => v.id === projekt.versicherung_id)?.name ?? "—";
+  return einfachesDokument("Zusatzerklärung zum Auftrag", projekt, `
+    <p>Der Auftraggeber beauftragt über den von der Versicherung (${esc(versicherung)}) anerkannten
+    Schadenumfang hinaus die folgenden <b>Zusatzleistungen</b>. Ihm ist bekannt, dass diese Leistungen
+    nicht Bestandteil der versicherten Schadenbeseitigung sind und — soweit die Versicherung die Kosten
+    nicht übernimmt — <b>vom Auftraggeber selbst zu tragen</b> sind.</p>
+    <h3>Beauftragte Zusatzleistungen</h3>
+    <div class="zeile"></div><div class="zeile"></div><div class="zeile"></div><div class="zeile"></div>
+    <h3>Vereinbarung</h3>
+    <p>Die Abrechnung erfolgt nach Aufwand gemäß der jeweils gültigen Preisliste, sofern kein
+    Pauschalpreis vereinbart wurde. Ort/Datum und Unterschriften:</p>
+    <div class="sig-grid">
+      <div><div class="sig-linie"></div><div class="sig-label">Ort, Datum · Unterschrift Auftraggeber</div></div>
+      <div><div class="sig-linie"></div><div class="sig-label">Unterschrift Auftragnehmer</div></div>
+    </div>
+  `);
+}
+
+// Erklärung zur Organschaft / zum Vorsteuerabzug (relevant für die Abrechnung mit der Versicherung).
+export function organschaftHtml(projekt: Projekt, db: DryTrackDB): string {
+  const versicherung = db.versicherung.find((v) => v.id === projekt.versicherung_id)?.name ?? "—";
+  return einfachesDokument("Erklärung zur Organschaft / zum Vorsteuerabzug", projekt, `
+    <p>Zur korrekten Abrechnung des Schadens mit der Versicherung (${esc(versicherung)}) erklärt der
+    Versicherungsnehmer / Auftraggeber:</p>
+    <h3>Vorsteuerabzug</h3>
+    <p><span class="check"></span> Ich bin <b>nicht</b> zum Vorsteuerabzug berechtigt (Privatperson) — die Abrechnung erfolgt <b>brutto</b>.</p>
+    <p><span class="check"></span> Ich bin zum Vorsteuerabzug berechtigt — die Abrechnung erfolgt <b>netto</b>.</p>
+    <h3>Organschaft</h3>
+    <p><span class="check"></span> Es besteht <b>keine</b> umsatzsteuerliche Organschaft.</p>
+    <p><span class="check"></span> Es besteht eine umsatzsteuerliche Organschaft mit folgendem Organträger:</p>
+    <div class="zeile"></div>
+    <h3>USt-IdNr. / Steuernummer (falls vorhanden)</h3>
+    <div class="zeile"></div>
+    <div class="sig-grid">
+      <div><div class="sig-linie"></div><div class="sig-label">Ort, Datum · Unterschrift Versicherungsnehmer</div></div>
+      <div></div>
+    </div>
+  `);
+}
+
+// Merkblatt für Überschwemmungs- und Hochwasserschäden mit Empfangsbestätigung.
+export function merkblattHochwasserHtml(projekt: Projekt): string {
+  return einfachesDokument("Merkblatt für Überschwemmungs- und Hochwasserschäden", projekt, `
+    <p>Wichtige Verhaltensregeln nach einem Überschwemmungs- oder Hochwasserschaden:</p>
+    <ul>
+      <li><b>Strom:</b> Elektrische Anlagen in durchnässten Bereichen erst nach Freigabe durch eine Elektrofachkraft wieder in Betrieb nehmen.</li>
+      <li><b>Hygiene:</b> Hochwasser kann mit Fäkalien, Heizöl oder Chemikalien belastet sein — direkten Hautkontakt vermeiden, Schutzhandschuhe tragen, nach Kontakt gründlich waschen.</li>
+      <li><b>Trocknungsgeräte:</b> Aufgestellte Geräte durchgehend laufen lassen und nicht umstellen — jede Unterbrechung verlängert die Trocknung.</li>
+      <li><b>Lüften:</b> Nur nach Anweisung des Trocknungstechnikers lüften; falsches Lüften kann Feuchte in die Konstruktion treiben.</li>
+      <li><b>Kinder/Haustiere:</b> Von Geräten, Kabeln und offenen Bohrlöchern fernhalten.</li>
+      <li><b>Dokumentation:</b> Beschädigten Hausrat vor der Entsorgung fotografieren und der Versicherung melden; Belege aufbewahren.</li>
+      <li><b>Schimmel:</b> Sichtbaren Schimmel nicht selbst behandeln — den Trocknungstechniker informieren.</li>
+    </ul>
+    <h3>Empfangsbestätigung</h3>
+    <p>Der Auftraggeber bestätigt den Erhalt dieses Merkblatts.</p>
+    <div class="sig-grid">
+      <div><div class="sig-linie"></div><div class="sig-label">Ort, Datum · Unterschrift Auftraggeber</div></div>
+      <div></div>
+    </div>
+  `);
+}
+
 export function printHtml(html: string) {
   const iframe = document.createElement("iframe");
   iframe.style.position = "fixed";

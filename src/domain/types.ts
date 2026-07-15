@@ -58,6 +58,9 @@ export type DokumentTyp =
   | "kundenzufriedenheit"
   | "notdienst_einsatzbericht"
   | "stundenlohnbericht"
+  | "zusatzerklaerung"
+  | "organschaft"
+  | "merkblatt_hochwasser"
   | "kva"
   | "strombrief";
 
@@ -372,6 +375,12 @@ export interface Stundenlohnbericht {
   datum: string; // ISO-Date
   stunden: StundenlohnStunde[];
   material: StundenlohnMaterial[];
+  // Felder aus dem Alt-System-Formular (Frame-Analyse 15.07.2026)
+  schadenrolle: string | null;
+  fahrtkilometer: number | null;
+  hin_und_rueckfahrt: boolean;
+  anteilig: boolean;
+  naechster_termin: string | null; // ISO-Date
   bemerkungen: string | null;
   unterschrift_kunde: string | null;
   unterschrift_kunde_name: string | null;
