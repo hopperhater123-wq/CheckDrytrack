@@ -15,10 +15,13 @@ import { Einstellungen } from "./screens/Einstellungen";
 import { TermineScreen } from "./screens/TermineScreen";
 import { ROLLEN_LABEL } from "./domain/roles";
 import { Icon, type IconName } from "./ui/Icon";
-import { MotionConfig, EASE, DUR } from "./ui/motion";
+import { Intro } from "./ui/Intro";
+import { MotionConfig, EASE, DUR, AnimatePresence } from "./ui/motion";
 
 export function App() {
   const db = useDB();
+  // Marken-Intro beim App-Start (überspringbar); die App rendert darunter schon mit.
+  const [intro, setIntro] = useState(true);
   return (
     // Globale Motion-Defaults: konsistentes Timing/Easing, Reduced-Motion respektiert.
     <MotionConfig transition={{ duration: DUR, ease: EASE }} reducedMotion="user">
@@ -27,6 +30,7 @@ export function App() {
           ? <Login users={db.benutzer} onLogin={login} ms365Fehler={auth.ms365Fehler} />
           : <Shell />)}
       </SessionProvider>
+      <AnimatePresence>{intro && <Intro onDone={() => setIntro(false)} />}</AnimatePresence>
     </MotionConfig>
   );
 }

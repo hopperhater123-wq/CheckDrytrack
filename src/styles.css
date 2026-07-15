@@ -758,3 +758,28 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
   padding: 2px 0; cursor: pointer; color: var(--text); text-align: left; }
 .aufbau-kurz { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tour-adresse { margin-right: 16px; }
+
+/* --- App-Intro: Tropfen → Aufprall → Wortmarke → Trocknungslinie ------------ */
+.intro { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #EAF1EF;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(42, 167, 176, 0.16), transparent 60%),
+    linear-gradient(180deg, #06343B 0%, #04262B 55%, #031B1F 100%); }
+.intro::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background: repeating-linear-gradient(90deg, transparent 0 46px, rgba(255,255,255,0.035) 46px 47px); }
+.intro-buehne { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 24px;
+  position: relative; z-index: 1; }
+.intro-tropfen-zone { position: relative; height: 74px; display: flex; align-items: center; justify-content: center; }
+.intro-tropfen { color: #2AA7B0; filter: drop-shadow(0 6px 22px rgba(42,167,176,0.55)); }
+.intro-welle { position: absolute; width: 44px; height: 44px; border-radius: 50%;
+  border: 1.5px solid rgba(42, 167, 176, 0.75); }
+.intro-wort { display: flex; margin-top: 10px; font-family: var(--font-display);
+  font-size: clamp(3.2rem, 14vw, 5.5rem); font-weight: 700; letter-spacing: 0.06em; line-height: 1; }
+.intro-buchstabe { display: inline-block; }
+.intro-line { display: flex; align-items: center; gap: 12px; width: min(420px, 78vw); margin-top: 22px; }
+.intro-line-cap { font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase;
+  letter-spacing: 0.14em; color: rgba(234, 241, 239, 0.55); }
+.intro-line-track { flex: 1; height: 7px; border-radius: 999px; background: rgba(255,255,255,0.12); overflow: hidden; }
+.intro-line-fill { display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #2AA7B0 0%, #3F9AA0 42%, #E9B457 100%); }
+.intro-tagline { margin-top: 18px; color: rgba(234, 241, 239, 0.6); letter-spacing: 0.14em; text-align: center; }
