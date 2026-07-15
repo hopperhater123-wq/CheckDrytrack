@@ -629,7 +629,7 @@ function AbnahmeForm({ projektId, userId, onClose }: { projektId: string; userId
 interface StundenZeile { mitarbeiter_name: string; gewerk: string; von: string; bis: string; pause: string }
 const NEUE_ZEILE: StundenZeile = { mitarbeiter_name: "", gewerk: "Trocknung", von: "08:00", bis: "16:00", pause: "30" };
 
-function BerichtForm({ projektId, userId, onClose }: { projektId: string; userId: string; onClose: () => void }) {
+export function BerichtForm({ projektId, userId, onClose }: { projektId: string; userId: string; onClose: () => void }) {
   const db = useDB();
   const ich = db.benutzer.find((u) => u.id === userId);
   const heute = new Date().toISOString().slice(0, 10);

@@ -59,12 +59,20 @@ export function ProjektDetail({ id }: { id: string }) {
         </div>
       )}
 
+      {/* Schnellstart in den geführten Besuch — der Arbeitsablauf beginnt hier, nicht in den Tabs. */}
+      {p.status !== "abgeschlossen" && !p.storniert && (
+        <button className="btn btn-primary" style={{ marginBottom: 14 }} onClick={() => nav({ name: "besuch", projektId: id })}>
+          Besuch starten <Icon name="chevronRight" size={15} />
+        </button>
+      )}
+
+      {/* Tab-Reihenfolge = Arbeitsablauf am Objekt: erst messen, dann Geräte, dann Bericht. */}
       <div className="tabs">
         <button className={tab === "uebersicht" ? "tabh active" : "tabh"} onClick={() => setTab("uebersicht")}>Übersicht</button>
-        <button className={tab === "einsaetze" ? "tabh active" : "tabh"} onClick={() => setTab("einsaetze")}>Einsätze <span className="count">{einsaetze.length}</span></button>
         <button className={tab === "messung" ? "tabh active" : "tabh"} onClick={() => setTab("messung")}>Messprotokoll</button>
-        <button className={tab === "grundriss" ? "tabh active" : "tabh"} onClick={() => setTab("grundriss")}>Grundriss</button>
+        <button className={tab === "einsaetze" ? "tabh active" : "tabh"} onClick={() => setTab("einsaetze")}>Geräte <span className="count">{einsaetze.length}</span></button>
         <button className={tab === "berichte" ? "tabh active" : "tabh"} onClick={() => setTab("berichte")}>Berichte</button>
+        <button className={tab === "grundriss" ? "tabh active" : "tabh"} onClick={() => setTab("grundriss")}>Grundriss</button>
         <button className={tab === "feed" ? "tabh active" : "tabh"} onClick={() => setTab("feed")}>Feed</button>
         <button className={tab === "dokumente" ? "tabh active" : "tabh"} onClick={() => setTab("dokumente")}>Dokumente</button>
       </div>
@@ -338,7 +346,7 @@ function UebersichtTab(props: {
 
 // ---------------------------------------------------------------------------
 
-function EinsaetzeTab({ projektId, einsaetze }: { projektId: string; einsaetze: Einsatz[] }) {
+export function EinsaetzeTab({ projektId, einsaetze }: { projektId: string; einsaetze: Einsatz[] }) {
   const db = useDB();
   const [abbau, setAbbau] = useState<Einsatz | null>(null);
   const laufend = einsaetze.filter(istLaufend);
@@ -398,7 +406,7 @@ function EinsaetzeTab({ projektId, einsaetze }: { projektId: string; einsaetze: 
 
 const KATEGORIEN: FeedKategorie[] = ["notiz", "problem", "hinweis", "kunde", "dispo"];
 
-function FeedTab({ projektId, userId }: { projektId: string; userId: string }) {
+export function FeedTab({ projektId, userId }: { projektId: string; userId: string }) {
   const db = useDB();
   const [text, setText] = useState("");
   const [kat, setKat] = useState<FeedKategorie>("notiz");

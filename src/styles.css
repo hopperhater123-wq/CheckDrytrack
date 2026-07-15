@@ -378,6 +378,7 @@ input::placeholder { color: var(--muted); }
   display: grid; place-items: center; font-size: 0.76rem; font-weight: 700; }
 .aufbau-label { width: 82px; flex: none; font-size: 0.82rem; color: var(--muted); font-weight: 500; }
 .aufbau-row select { flex: 1; background: var(--surface); }
+.aufbau-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 
 /* Messungen */
 .messrow { border-bottom: 1px solid var(--hairline); padding: 12px 0; }
@@ -649,3 +650,54 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
 .scanner-fehler { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 14px; text-align: center; padding: 24px; color: rgba(255,255,255,0.9); }
 @media (prefers-reduced-motion: reduce) { .scanner-rahmen .scanline { animation: none; top: 50%; } }
+
+/* --- Mein Tag (Arbeitsablauf: der Tag als Route) ---------------------------- */
+.tag-fortschritt { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.tag-fortschritt-track { height: 8px; border-radius: 999px; background: var(--surface);
+  border: 1px solid var(--hairline); overflow: hidden; }
+.tag-fortschritt-fill { display: block; height: 100%; border-radius: 999px; background: var(--drygrad); }
+
+.tour { display: flex; flex-direction: column; gap: 0; }
+.tour-stop { display: flex; gap: 12px; padding-bottom: 16px; position: relative; }
+.tour-stop::before { content: ""; position: absolute; left: 27px; top: 34px; bottom: 0;
+  width: 2px; background: var(--hairline); }
+.tour-stop:last-child::before { display: none; }
+.tour-zeit { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 56px; flex: none; }
+.tour-uhr { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+.tour-card { flex: 1; min-width: 0; margin-bottom: 0; }
+.tour-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.tour-card-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tour-aufgabe { font-weight: 650; }
+.tour-adresse { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
+  font-size: 0.84rem; color: var(--accent); text-decoration: none; }
+.tour-adresse:hover { text-decoration: underline; }
+.tour-stop.erledigt .tour-card { opacity: 0.55; }
+.tour-stop.erledigt .tour-aufgabe { text-decoration: line-through; }
+
+/* --- Geführter Besuch (Schrittfolge am Objekt) ------------------------------ */
+.besuch { display: flex; flex-direction: column; min-height: 100%; }
+.besuch-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.besuch-titel { flex: 1; min-width: 0; }
+.besuch-titel h1 { margin: 0; font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.besuch-rail { position: relative; display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 18px; padding: 0 2px; }
+.besuch-rail::before { content: ""; position: absolute; left: 14px; right: 14px; top: 13px; height: 2px;
+  background: var(--hairline); }
+.rail-fill { position: absolute; left: 14px; top: 12px; height: 4px; border-radius: 999px;
+  background: var(--drygrad); max-width: calc(100% - 28px); }
+.rail-stop { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: none; border: 0; padding: 0; cursor: pointer; color: var(--muted); }
+.rail-dot { width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center;
+  background: var(--surface); border: 1.5px solid var(--hairline); color: var(--muted);
+  transition: background .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease); }
+.rail-label { font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: .06em; }
+.rail-stop.aktiv .rail-dot { border-color: var(--accent); color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.rail-stop.aktiv { color: var(--text); }
+.rail-stop.done .rail-dot { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+.besuch-fuss { position: sticky; bottom: 0; z-index: 5; margin-top: auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+  background: var(--bg); border-top: 1px solid var(--hairline); }

@@ -3,6 +3,8 @@ import { useDB } from "./app/useStore";
 import { SessionProvider, useSession } from "./app/session";
 import { NavCtx, type Route } from "./app/nav";
 import { Login } from "./screens/Login";
+import { HeuteScreen } from "./screens/HeuteScreen";
+import { BesuchFlow } from "./screens/BesuchFlow";
 import { Dashboard } from "./screens/Dashboard";
 import { ProjekteListe } from "./screens/ProjekteListe";
 import { ProjektDetail } from "./screens/ProjektDetail";
@@ -29,9 +31,11 @@ export function App() {
   );
 }
 
-// Navigationsziele — mobil als Bottom-Tabs, am Desktop als Sidebar (Office-Ansicht).
+// Navigationsziele — nach Arbeitsablauf sortiert: „Heute" ist der Startpunkt
+// des Monteurs (der Tag als Route), das Dashboard bleibt die Büro-Ansicht.
 const NAV_ITEMS: { icon: IconName; label: string; ziel: Route; match: Route["name"][]; nurDesktop?: boolean }[] = [
-  { icon: "dashboard", label: "Dashboard", ziel: { name: "dashboard" }, match: ["dashboard"] },
+  { icon: "sun", label: "Heute", ziel: { name: "heute" }, match: ["heute", "besuch"] },
+  { icon: "dashboard", label: "Dashboard", ziel: { name: "dashboard" }, match: ["dashboard"], nurDesktop: true },
   { icon: "folder", label: "Projekte", ziel: { name: "projekte" }, match: ["projekte", "projekt"] },
   { icon: "scan", label: "Scan", ziel: { name: "scan" }, match: ["scan"] },
   { icon: "calendar", label: "Termine", ziel: { name: "termine" }, match: ["termine"], nurDesktop: true },
@@ -40,23 +44,24 @@ const NAV_ITEMS: { icon: IconName; label: string; ziel: Route; match: Route["nam
 ];
 
 // Deep-Link vom Projekt-QR: ?p=<projektId> öffnet direkt das Projekt (Backlog ④).
-function startRoute(): Route {
+// Sonst startet der Monteur in seinem Tag, Büro-Rollen im Dashboard.
+function startRoute(rolle: string): Route {
   try {
     const pid = new URLSearchParams(window.location.search).get("p");
     if (pid) {
-      // Param aus der URL entfernen, damit ein Reload wieder aufs Dashboard führt.
+      // Param aus der URL entfernen, damit ein Reload wieder auf den Start führt.
       const url = new URL(window.location.href);
       url.searchParams.delete("p");
       window.history.replaceState(null, "", url.toString());
       return { name: "projekt", id: pid };
     }
   } catch { /* ignorieren */ }
-  return { name: "dashboard" };
+  return rolle === "monteur" ? { name: "heute" } : { name: "dashboard" };
 }
 
 function Shell() {
-  const [route, setRoute] = useState<Route>(startRoute);
   const { user, logout } = useSession();
+  const [route, setRoute] = useState<Route>(() => startRoute(user.rolle));
   const initialen = user.name.split(" ").map((t) => t[0]).slice(0, 2).join("");
 
   return (
@@ -129,6 +134,8 @@ function Shell() {
 
 function Screen({ route }: { route: Route }) {
   switch (route.name) {
+    case "heute": return <HeuteScreen />;
+    case "besuch": return <BesuchFlow projektId={route.projektId} terminId={route.terminId} />;
     case "dashboard": return <Dashboard />;
     case "projekte": return <ProjekteListe key={route.neu ? "neu" : "std"} neuInitial={route.neu} />;
     case "projekt": return <ProjektDetail id={route.id} />;

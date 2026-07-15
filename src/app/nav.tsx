@@ -1,6 +1,8 @@
 import { createContext, useContext } from "react";
 
 export type Route =
+  | { name: "heute" }
+  | { name: "besuch"; projektId: string; terminId?: string }
   | { name: "dashboard" }
   | { name: "projekte"; neu?: boolean }
   | { name: "projekt"; id: string }
