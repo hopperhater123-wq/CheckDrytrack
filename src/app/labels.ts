@@ -16,6 +16,9 @@ export const BEMUSTERUNG_ART_LABEL: Record<BemusterungArt, string> = {
   ersatzfliese: "Ersatzfliese",
   parkett: "Parkett",
   laminat: "Laminat",
+  vinyl: "Vinyl / Designbelag",
+  teppich: "Teppichboden",
+  sockelleiste: "Sockelleisten",
   sonstiges: "Sonstiges",
 };
 

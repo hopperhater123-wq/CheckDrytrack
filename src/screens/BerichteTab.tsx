@@ -550,7 +550,7 @@ function BemusterungListe({ projektId }: { projektId: string }) {
           {(Object.keys(BEMUSTERUNG_ART_LABEL) as BemusterungArt[]).map((a) => <option key={a} value={a}>{BEMUSTERUNG_ART_LABEL[a]}</option>)}
         </select>
         <input placeholder={istEinleger(art) ? "Einleger (z. B. Cera Vogue, Keramik anthrazit)" : "Material (z. B. Feinsteinzeug 60×60, anthrazit)"} value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} />
-        <input placeholder={istEinleger(art) ? "Menge (z. B. 14 Stück)" : "Menge (z. B. 18 m²)"} value={menge} onChange={(e) => setMenge(e.target.value)} />
+        <input placeholder={istEinleger(art) ? "Menge (z. B. 14 Stück)" : "Menge (z. B. 18 m² · 12 lfm)"} value={menge} onChange={(e) => setMenge(e.target.value)} />
         {istEinleger(art) && bohrloecher > 0 && (
           <button type="button" className="linkbtn" style={{ alignSelf: "flex-start" }} onClick={() => setMenge(`${bohrloecher} Stück`)}>
             Aus Bohrlöchern übernehmen: {bohrloecher} Stück

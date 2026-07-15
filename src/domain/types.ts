@@ -299,7 +299,7 @@ export type Bestellstatus = "ausgewaehlt" | "bestellt" | "geliefert";
 // Trocknung gebohrten Löcher — Menge ≈ Anzahl der Bohrlöcher, gezählt in Stück.
 export type BemusterungArt =
   | "einleger_keramik" | "einleger_edelstahl" | "sondereinleger"
-  | "ersatzfliese" | "parkett" | "laminat" | "sonstiges";
+  | "ersatzfliese" | "parkett" | "laminat" | "vinyl" | "teppich" | "sockelleiste" | "sonstiges";
 
 export interface Bemusterung {
   id: string;
