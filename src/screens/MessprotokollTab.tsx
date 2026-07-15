@@ -25,21 +25,36 @@ const BEWERTUNG_CHIP: Record<Bewertung, string> = {
 // Messprotokoll pro Raum: Bodenaufbau (Oberbelag › Estrich › Dämmstoff) + Feuchtemessungen.
 export function MessprotokollTab({ projektId, userId }: { projektId: string; userId: string }) {
   const db = useDB();
+  const [neuerRaum, setNeuerRaum] = useState("");
   const raeume = db.raum.filter((r) => r.projekt_id === projektId);
   const projekt = db.projekt.find((p) => p.id === projektId);
 
   const exportPdf = () => { if (projekt) printHtml(messprotokollHtml(projekt, db)); };
+  const raumAnlegen = () => {
+    if (!neuerRaum.trim()) return;
+    store.addRaum(projektId, neuerRaum.trim());
+    setNeuerRaum("");
+  };
 
-  if (raeume.length === 0) {
-    return <section className="card"><p className="muted">Noch keine Räume erfasst. Räume unter „Übersicht" anlegen.</p></section>;
-  }
   return (
     <>
-      <div className="screen-head" style={{ alignItems: "center" }}>
-        <span className="eyebrow">Feuchtemessung je Raum</span>
-        <button className="btn btn-sm" onClick={exportPdf}><Icon name="fileText" size={15} /> Als PDF exportieren</button>
-      </div>
+      {raeume.length > 0 && (
+        <div className="screen-head" style={{ alignItems: "center" }}>
+          <span className="eyebrow">Feuchtemessung je Raum</span>
+          <button className="btn btn-sm" onClick={exportPdf}><Icon name="fileText" size={15} /> Als PDF exportieren</button>
+        </div>
+      )}
       {raeume.map((r) => <RaumMessblock key={r.id} raum={r} userId={userId} />)}
+
+      {/* Raum direkt hier anlegen — auch mitten im geführten Besuch, ohne Umweg über die Übersicht. */}
+      <section className="card">
+        <div className="card-head"><h2>{raeume.length === 0 ? "Ersten Raum anlegen" : "Weiterer Raum"}</h2></div>
+        {raeume.length === 0 && <p className="muted small" style={{ marginTop: 0 }}>Noch keine Räume erfasst — jeder Raum bekommt Bodenaufbau und Messungen.</p>}
+        <div className="inline-add" style={{ marginTop: raeume.length === 0 ? 0 : undefined }}>
+          <input placeholder="z. B. Kinderzimmer" value={neuerRaum} onChange={(e) => setNeuerRaum(e.target.value)} onKeyDown={(e) => e.key === "Enter" && raumAnlegen()} />
+          <button className="btn" disabled={!neuerRaum.trim()} onClick={raumAnlegen}>+ Raum</button>
+        </div>
+      </section>
     </>
   );
 }
@@ -75,6 +90,7 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
             </div>
             <div className="messrow-meta">
               <span>{MESSANLASS_LABEL[m.anlass]}</span>
+              {m.messverfahren === "hygrometer" && <span>Hygrometer</span>}
               <span>{b.text}{b.praxisrichtwert ? " · Praxisrichtwert" : ""}</span>
               {m.absolute_feuchte_g_kg != null && (
                 <span className={gkgFeucht ? "verbrauch-schaetz" : "verbrauch"}>{fmtZahl(m.absolute_feuchte_g_kg)} g/kg</span>
@@ -218,10 +234,18 @@ function MessungForm({ raum, userId, onClose, onTrocken }: { raum: Raum; userId:
   const [rh, setRh] = useState("");
   const [ms, setMs] = useState(""); // Luftgeschwindigkeit m/s (Anemometer, Alt-System-Spalte)
 
-  const hygro = verfahren === "hygrometer"; // Raumluftmessung — kein Material/Bauteil
-  const effektivMaterialId = hygro ? "mat-raumluft" : materialId;
-  const material: Materialdatenbank | undefined = db.materialdatenbank.find((m) => m.id === effektivMaterialId);
+  // Hygrometer misst °C/rF → absolute Feuchte. Die Messstelle ist wählbar:
+  // Raumluft, Bohrloch in der Wand (Kernfeuchte, 6-mm-Bohrung) oder Dämmschicht.
+  const hygro = verfahren === "hygrometer";
+  const material: Materialdatenbank | undefined = db.materialdatenbank.find((m) => m.id === materialId);
   const modell = hygro ? undefined : material?.bewertungsmodell;
+
+  const wechsleVerfahren = (v: Messverfahren) => {
+    setVerfahren(v);
+    // Beim Umstieg sinnvolle Messstelle vorschlagen — bleibt frei änderbar.
+    if (v === "hygrometer") setMaterialId("mat-raumluft");
+    else if (materialId === "mat-raumluft") setMaterialId(aufbauMatIds[0] ?? db.materialdatenbank.find((m) => m.id !== "mat-raumluft")?.id ?? "");
+  };
 
   const num = (s: string) => { const n = parseFloat(s.replace(",", ".")); return Number.isFinite(n) ? n : null; };
   const tempN = num(temp), rhN = num(rh);
@@ -240,7 +264,7 @@ function MessungForm({ raum, userId, onClose, onTrocken }: { raum: Raum; userId:
   const speichern = () => {
     if (!gueltig) return; // gueltig ⇒ anlass ist gesetzt (Messanlass), narrowing greift
     store.addMessung({
-      raum_id: raum.id, material_id: effektivMaterialId, messverfahren: verfahren, anlass,
+      raum_id: raum.id, material_id: materialId, messverfahren: verfahren, anlass,
       anzeige_digit: hygro || modell === "status_checkliste" ? null : num(digit),
       referenz_digit: modell === "vergleichsmessung" ? num(referenz) : null,
       status_checkliste: modell === "status_checkliste" ? checkliste : null,
@@ -250,7 +274,7 @@ function MessungForm({ raum, userId, onClose, onTrocken }: { raum: Raum; userId:
     // „Objekt trocken"-Moment: Freimessung mit Bewertung „trocken" feiern —
     // eskaliert, wenn damit der ganze Raum (letzte Messung je Material) trocken ist.
     const neue: Messung = {
-      id: "neu", raum_id: raum.id, material_id: effektivMaterialId, messverfahren: verfahren,
+      id: "neu", raum_id: raum.id, material_id: materialId, messverfahren: verfahren,
       anzeige_digit: hygro || modell === "status_checkliste" ? null : num(digit),
       referenz_digit: modell === "vergleichsmessung" ? num(referenz) : null,
       status_checkliste: modell === "status_checkliste" ? checkliste : null,
@@ -281,32 +305,36 @@ function MessungForm({ raum, userId, onClose, onTrocken }: { raum: Raum; userId:
         <h2>Messung — {raum.bezeichnung}</h2>
 
         <label className="field"><span>Messverfahren</span>
-          <select value={verfahren} onChange={(e) => setVerfahren(e.target.value as Messverfahren)}>
+          <select value={verfahren} onChange={(e) => wechsleVerfahren(e.target.value as Messverfahren)}>
             <option value="widerstand">{MESSVERFAHREN_LABEL.widerstand}</option>
             <option value="dielektrisch">{MESSVERFAHREN_LABEL.dielektrisch}</option>
             <option value="hygrometer">{MESSVERFAHREN_LABEL.hygrometer}</option>
           </select>
         </label>
 
-        {hygro ? (
-          <div className="banner small">Raumluftmessung — Temperatur und rel. Feuchte genügen, das Material entfällt.</div>
-        ) : (
-          <label className="field"><span>Material / Bauteil</span>
-            <select value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
-              {aufbauMatIds.length > 0 && (
-                <optgroup label="Aus dem Bauteilaufbau">
-                  {aufbauMatIds.map((id) => {
-                    const m = db.materialdatenbank.find((x) => x.id === id);
-                    return m ? <option key={m.id} value={m.id}>{matLabel(m)}</option> : null;
-                  })}
-                </optgroup>
-              )}
-              <optgroup label={aufbauMatIds.length > 0 ? "Weitere Materialien" : "Materialien"}>
-                {weitere.map((m) => <option key={m.id} value={m.id}>{matLabel(m)}</option>)}
-              </optgroup>
-            </select>
-          </label>
+        {hygro && (
+          <div className="banner small">
+            Hygrometer: °C + rF an der Messstelle → absolute Feuchte (g/kg). Messstelle frei wählbar —
+            Raumluft, Bohrloch in der Wand (Kernfeuchte, 6-mm-Bohrung) oder Dämmschicht.
+          </div>
         )}
+
+        <label className="field"><span>{hygro ? "Messstelle" : "Material / Bauteil"}</span>
+          <select value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
+            {hygro && <option value="mat-raumluft">Raumluft</option>}
+            {aufbauMatIds.length > 0 && (
+              <optgroup label="Aus dem Bauteilaufbau">
+                {aufbauMatIds.map((id) => {
+                  const m = db.materialdatenbank.find((x) => x.id === id);
+                  return m ? <option key={m.id} value={m.id}>{matLabel(m)}</option> : null;
+                })}
+              </optgroup>
+            )}
+            <optgroup label={aufbauMatIds.length > 0 ? "Weitere Materialien" : "Materialien"}>
+              {weitere.map((m) => <option key={m.id} value={m.id}>{matLabel(m)}</option>)}
+            </optgroup>
+          </select>
+        </label>
 
         <label className="field"><span>Anlass *</span>
           <select value={anlass} onChange={(e) => setAnlass(e.target.value as Messanlass)}>
