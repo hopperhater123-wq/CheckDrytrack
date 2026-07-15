@@ -5,6 +5,7 @@ import { GERAET_STATUS_LABEL } from "../app/labels";
 import { berechneVerbrauch } from "../domain/einsatz";
 import { tabelleTeilen } from "../ui/tabelle";
 import { Icon } from "../ui/Icon";
+import { CameraScanner } from "../ui/CameraScanner";
 import type { GeraetStatus } from "../domain/types";
 
 const FILTER: (GeraetStatus | "alle")[] = ["alle", "lager", "baustelle", "werkstatt"];
@@ -14,6 +15,16 @@ export function GeraeteListe() {
   const nav = useNav();
   const [filter, setFilter] = useState<GeraetStatus | "alle">("alle");
   const [suche, setSuche] = useState("");
+  const [kamera, setKamera] = useState(false);
+
+  // Scan aus der Geräteliste: gefundenes Gerät direkt öffnen, sonst als Suche übernehmen.
+  const scanTreffer = (code: string) => {
+    setKamera(false);
+    const c = code.trim().toUpperCase();
+    const g = db.geraet.find((x) => x.inventarnummer.toUpperCase() === c);
+    if (g) nav({ name: "geraet", inv: g.inventarnummer });
+    else setSuche(c);
+  };
 
   const geraete = db.geraet
     .filter((g) => filter === "alle" || g.status === filter)
@@ -55,7 +66,10 @@ export function GeraeteListe() {
   return (
     <div className="screen">
       <h1>Geräte <span className="muted">({db.geraet.length})</span></h1>
-      <input className="search" placeholder="Inventarnummer…" value={suche} onChange={(e) => setSuche(e.target.value)} />
+      <div className="inline-add">
+        <input className="search" placeholder="Inventarnummer…" value={suche} onChange={(e) => setSuche(e.target.value)} />
+        <button className="btn" onClick={() => setKamera(true)} aria-label="Gerät scannen"><Icon name="scan" size={18} /></button>
+      </div>
       <div className="segmented">
         {FILTER.map((f) => (
           <button key={f} className={filter === f ? "seg active" : "seg"} onClick={() => setFilter(f)}>
@@ -84,6 +98,8 @@ export function GeraeteListe() {
         );
       })}
       {geraete.length === 0 && <p className="muted">Keine Geräte.</p>}
+
+      {kamera && <CameraScanner onClose={() => setKamera(false)} onDetect={scanTreffer} />}
     </div>
   );
 }

@@ -82,21 +82,37 @@ async function diffSenden(sb: SupabaseClient, diff: TabellenDiff): Promise<void>
   }
 }
 
+// Nur ein Flush gleichzeitig. Sonst hielten mehrere Läufe je eine veraltete
+// Queue-Kopie über den await hinweg und überschrieben sich beim Zurückschreiben
+// gegenseitig — dabei gingen frisch angehängte Einträge (z. B. neues Gerät +
+// Aufbau in schneller Folge) verloren und kamen nie am Server an.
+let flushLaeuft = false;
+let flushErneut = false;
+
 async function queueFlushen(): Promise<boolean> {
   const sb = supabase();
   if (!sb) return false;
-  let q = queueLesen();
-  while (q.length) {
-    try {
-      await diffSenden(sb, q[0]);
-    } catch {
-      queueSchreiben(q);
-      return false; // später erneut (online-Event / nächster Start)
-    }
-    q = q.slice(1);
-    queueSchreiben(q);
+  if (flushLaeuft) { flushErneut = true; return false; } // laufender Lauf nimmt neue Einträge mit
+  flushLaeuft = true;
+  try {
+    do {
+      flushErneut = false;
+      while (queueLesen().length) {
+        const q = queueLesen();
+        try {
+          await diffSenden(sb, q[0]);
+        } catch {
+          return false; // Eintrag bleibt an Position 0 → nächster Versuch (online-Event / Start)
+        }
+        // Frisch lesen statt veralteter Kopie: nebenläufig angehängte Einträge
+        // bleiben erhalten, nur der gerade gesendete (Position 0) fällt raus.
+        queueSchreiben(queueLesen().slice(1));
+      }
+    } while (flushErneut);
+    return true;
+  } finally {
+    flushLaeuft = false;
   }
-  return true;
 }
 
 /** Von store.commit() aufgerufen: Diff einreihen und (best effort) sofort senden. */
