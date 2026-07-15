@@ -1,0 +1,27 @@
+# CI: Typecheck, Unit-Tests, Build und E2E-Golden-Path bei jedem Push (012 · Testing).
+name: CI
+
+on:
+  push:
+    branches: ["claude/drytrack-docs-program-g64405"]
+  workflow_dispatch:
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Abhängigkeiten
+        run: npm ci
+      - name: Unit-Tests (vitest)
+        run: npm test
+      - name: Build (inkl. Typecheck via tsc -b)
+        run: npm run build
+      - name: Chromium für E2E
+        run: npx playwright-core install chromium
+      - name: E2E-Golden-Path
+        run: npm run e2e
