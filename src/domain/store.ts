@@ -208,6 +208,19 @@ class Store {
     });
   }
 
+  // Geführter Besuch (Arbeitsablauf): Ankunft/Abschluss am Objekt landen im Feed (FR-KOMM-001).
+  checkIn(projekt_id: string, autor_id: string) {
+    this.commit((db) => {
+      db.feed_eintrag.push(autoFeed(projekt_id, null, "check_in", autor_id, "Am Objekt angekommen — Besuch gestartet."));
+    });
+  }
+
+  checkOut(projekt_id: string, autor_id: string) {
+    this.commit((db) => {
+      db.feed_eintrag.push(autoFeed(projekt_id, null, "check_out", autor_id, "Besuch abgeschlossen."));
+    });
+  }
+
   setProjektStatus(projekt_id: string, status: ProjektStatus, autor_id: string) {
     this.commit((db) => {
       const p = db.projekt.find((x) => x.id === projekt_id);
@@ -318,6 +331,7 @@ class Store {
     anzeige_digit: number | null; referenz_digit: number | null;
     status_checkliste: MessStatusCheckliste | null;
     temperatur_c: number | null; rel_luftfeuchte_prozent: number | null;
+    stroemung_m_s: number | null;
     gemessen_von: string;
   }) {
     const abs = params.temperatur_c != null && params.rel_luftfeuchte_prozent != null
@@ -328,7 +342,8 @@ class Store {
         messverfahren: params.messverfahren, anzeige_digit: params.anzeige_digit,
         referenz_digit: params.referenz_digit, status_checkliste: params.status_checkliste,
         absolute_feuchte_g_kg: abs, temperatur_c: params.temperatur_c,
-        rel_luftfeuchte_prozent: params.rel_luftfeuchte_prozent, anlass: params.anlass,
+        rel_luftfeuchte_prozent: params.rel_luftfeuchte_prozent,
+        stroemung_m_s: params.stroemung_m_s, anlass: params.anlass,
         gemessen_von: params.gemessen_von, gemessen_am: new Date().toISOString(),
       });
     });

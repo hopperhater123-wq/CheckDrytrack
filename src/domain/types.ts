@@ -62,7 +62,7 @@ export type DokumentTyp =
   | "strombrief";
 
 export type Bewertungsmodell = "digit_grenzwert" | "vergleichsmessung" | "status_checkliste";
-export type Messverfahren = "widerstand" | "dielektrisch";
+export type Messverfahren = "widerstand" | "dielektrisch" | "hygrometer";
 export type Messanlass = "eingangsmessung" | "freimessung";
 
 // Bauteil-/Bodenaufbau-Schichten. Boden: Oberbelag › Estrich › Dämmung (006 Datenbank);
@@ -242,6 +242,8 @@ export interface Messung {
   absolute_feuchte_g_kg: number | null;
   temperatur_c: number | null;
   rel_luftfeuchte_prozent: number | null;
+  // Luftgeschwindigkeit in m/s (Alt-System-Spalte, Anemometer bei Schacht-/Hohlraumtrocknung).
+  stroemung_m_s: number | null;
   anlass: Messanlass;
   gemessen_von: string;
   gemessen_am: string;

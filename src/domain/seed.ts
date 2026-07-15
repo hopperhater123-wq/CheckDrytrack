@@ -106,6 +106,8 @@ export function seedDB(): DryTrackDB {
       { id: "mat-putz", bezeichnung: "Putz", kategorie: "Bauteil", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 50, schicht_typ: null },
       { id: "mat-gipskarton", bezeichnung: "Gipskarton", kategorie: "Bauteil", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: 20, schicht_typ: null },
       { id: "mat-mauerwerk", bezeichnung: "Mauerwerk (Kalksandstein)", kategorie: "Mauerwerk", trocknungsfaehig: true, austauschpflichtig: false, bewertungsmodell: "vergleichsmessung", praxisgrenzwert_digit: null, schicht_typ: null },
+      // Pseudo-Material für Hygrometer-Messungen (Raumluft, Alt-System-Zeile "Raum").
+      { id: "mat-raumluft", bezeichnung: "Raumluft", kategorie: "Raumluft", trocknungsfaehig: null, austauschpflichtig: null, bewertungsmodell: "digit_grenzwert", praxisgrenzwert_digit: null, schicht_typ: null },
     ],
     // Beispiel-Bodenaufbau für die Küche (r-1): Fliese › Schwimmender Estrich › KMF
     bodenaufbau_schicht: [
@@ -114,10 +116,10 @@ export function seedDB(): DryTrackDB {
       { id: "bs-3", raum_id: "r-1", reihenfolge: 2, schicht_typ: "daemmung", material_id: "mat-kmf", fussbodenheizung: null, bauart: null },
     ],
     messung: [
-      { id: "me-1", raum_id: "r-1", material_id: "mat-schwimm", messverfahren: "widerstand", anzeige_digit: 78, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 11.9, temperatur_c: 21, rel_luftfeuchte_prozent: 62, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(8) },
-      { id: "me-2", raum_id: "r-1", material_id: "mat-schwimm", messverfahren: "widerstand", anzeige_digit: 54, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 8.9, temperatur_c: 22, rel_luftfeuchte_prozent: 51, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(3) },
-      { id: "me-3", raum_id: "r-1", material_id: "mat-kmf", messverfahren: "widerstand", anzeige_digit: null, referenz_digit: null, status_checkliste: { trocken: false, feucht: true, kontaminiert: false, austausch_erforderlich: true }, absolute_feuchte_g_kg: null, temperatur_c: null, rel_luftfeuchte_prozent: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(5) },
-      { id: "me-4", raum_id: "r-4", material_id: "mat-zement", messverfahren: "widerstand", anzeige_digit: 44, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 7.1, temperatur_c: 23, rel_luftfeuchte_prozent: 45, anlass: "freimessung", gemessen_von: "u-monteur", gemessen_am: tage(24) },
+      { id: "me-1", raum_id: "r-1", material_id: "mat-schwimm", messverfahren: "widerstand", anzeige_digit: 78, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 11.9, temperatur_c: 21, rel_luftfeuchte_prozent: 62, stroemung_m_s: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(8) },
+      { id: "me-2", raum_id: "r-1", material_id: "mat-schwimm", messverfahren: "widerstand", anzeige_digit: 54, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 8.9, temperatur_c: 22, rel_luftfeuchte_prozent: 51, stroemung_m_s: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(3) },
+      { id: "me-3", raum_id: "r-1", material_id: "mat-kmf", messverfahren: "widerstand", anzeige_digit: null, referenz_digit: null, status_checkliste: { trocken: false, feucht: true, kontaminiert: false, austausch_erforderlich: true }, absolute_feuchte_g_kg: null, temperatur_c: null, rel_luftfeuchte_prozent: null, stroemung_m_s: null, anlass: "eingangsmessung", gemessen_von: "u-monteur", gemessen_am: tage(5) },
+      { id: "me-4", raum_id: "r-4", material_id: "mat-zement", messverfahren: "widerstand", anzeige_digit: 44, referenz_digit: null, status_checkliste: null, absolute_feuchte_g_kg: 7.1, temperatur_c: 23, rel_luftfeuchte_prozent: 45, stroemung_m_s: null, anlass: "freimessung", gemessen_von: "u-monteur", gemessen_am: tage(24) },
     ],
     grundriss: [
       { id: "gr-1", projekt_id: "p-1", geschoss: "EG", raumhoehe_m: 2.5, quelle: "magicplan", datei_referenz: "magicplan://p-1/eg.pdf", erstellt_am: tage(8) },

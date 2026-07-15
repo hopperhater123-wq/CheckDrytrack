@@ -27,6 +27,14 @@ export interface BewertungErgebnis {
 
 /** Bewertet eine Messung je nach Bewertungsmodell des Materials (FR-MESS-001). */
 export function bewerteMessung(m: Messung, material: Materialdatenbank | undefined): BewertungErgebnis {
+  // Hygrometer misst die Raumluft (°C + rF → g/kg), unabhängig vom Material (Alt-System: erste Zeile "Raum").
+  if (m.messverfahren === "hygrometer") {
+    const abs = m.absolute_feuchte_g_kg;
+    if (abs == null) return { bewertung: "offen", text: "°C und rF fehlen", praxisrichtwert: true };
+    if (abs <= GKG_RICHTWERT) return { bewertung: "trocken", text: `${abs} g/kg ≤ ${GKG_RICHTWERT}`, praxisrichtwert: true };
+    if (abs <= GKG_RICHTWERT + 1) return { bewertung: "grenzwertig", text: `${abs} g/kg (knapp über ${GKG_RICHTWERT})`, praxisrichtwert: true };
+    return { bewertung: "feucht", text: `${abs} g/kg > ${GKG_RICHTWERT}`, praxisrichtwert: true };
+  }
   if (!material) return { bewertung: "offen", text: "Material unbekannt", praxisrichtwert: false };
 
   switch (material.bewertungsmodell) {

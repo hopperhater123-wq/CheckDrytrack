@@ -28,11 +28,13 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
       const b = bewerteMessung(m, material);
       const wert = m.anzeige_digit != null ? `${m.anzeige_digit} Digits` : m.status_checkliste ? "Status" : "—";
       const gkg = m.absolute_feuchte_g_kg != null ? `${m.absolute_feuchte_g_kg} g/kg` : "—";
+      const msWert = m.stroemung_m_s != null ? `${m.stroemung_m_s} m/s` : "—";
       return `<tr>
-        <td>${esc(material?.bezeichnung ?? "—")}</td>
+        <td>${esc(material?.bezeichnung ?? (m.messverfahren === "hygrometer" ? "Raumluft" : "—"))}</td>
         <td>${m.anlass === "eingangsmessung" ? "Eingang" : "Frei"}</td>
         <td>${wert}</td>
         <td>${gkg}</td>
+        <td>${msWert}</td>
         <td class="b-${b.bewertung}">${BEWERTUNG_LABEL[b.bewertung]}${b.praxisrichtwert ? " ¹" : ""}</td>
         <td>${new Date(m.gemessen_am).toLocaleDateString("de-DE")}</td>
       </tr>`;
@@ -41,7 +43,7 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
     return `<section class="raum">
       <h3>${esc(r.bezeichnung)}</h3>
       <div class="aufbau"><span class="lbl">Bodenaufbau</span><ul>${aufbau}</ul></div>
-      ${messungen.length ? `<table><thead><tr><th>Material</th><th>Anlass</th><th>Wert</th><th>abs. Feuchte</th><th>Bewertung</th><th>Datum</th></tr></thead><tbody>${zeilen}</tbody></table>` : "<p class='muted'>Keine Messungen erfasst.</p>"}
+      ${messungen.length ? `<table><thead><tr><th>Material</th><th>Anlass</th><th>Wert</th><th>abs. Feuchte</th><th>m/s</th><th>Bewertung</th><th>Datum</th></tr></thead><tbody>${zeilen}</tbody></table>` : "<p class='muted'>Keine Messungen erfasst.</p>"}
     </section>`;
   }).join("");
 
@@ -49,10 +51,10 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
-    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
     .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
-    .brand span { color: #4f46e5; }
-    h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 14px; margin: 0 0 8px; color: #4f46e5; }
+    .brand span { color: #0E7C86; }
+    h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 14px; margin: 0 0 8px; color: #0E7C86; }
     .meta { color: #667085; font-size: 12px; }
     .raum { margin-bottom: 22px; padding: 14px; border: 1px solid #e7e9ee; border-radius: 10px; page-break-inside: avoid; }
     .aufbau { margin-bottom: 10px; } .aufbau .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
@@ -102,8 +104,8 @@ export function besuchsberichtHtml(bericht: Besuchsbericht, projekt: Projekt, db
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
-    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
     h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
     .meta { color: #667085; font-size: 12px; text-align: right; }
     .kopf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 6px; }
@@ -182,8 +184,8 @@ export function stundenlohnberichtHtml(bericht: Stundenlohnbericht, projekt: Pro
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
-    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
     h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
     .meta { color: #667085; font-size: 12px; text-align: right; }
     table { width: 100%; border-collapse: collapse; margin-top: 4px; }
@@ -250,8 +252,8 @@ export function notdiensteinsatzberichtHtml(bericht: Notdiensteinsatzbericht, pr
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
-    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
     h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
     .meta { color: #667085; font-size: 12px; text-align: right; }
     .kopf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 6px; }
@@ -314,8 +316,8 @@ export function kundenzufriedenheitHtml(bericht: Kundenzufriedenheit, projekt: P
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
-    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
     h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
     .meta { color: #667085; font-size: 12px; text-align: right; }
     table { width: 100%; border-collapse: collapse; margin-top: 4px; }
@@ -324,7 +326,7 @@ export function kundenzufriedenheitHtml(bericht: Kundenzufriedenheit, projekt: P
     .sterne { letter-spacing: 2px; color: #d7dae1; } .sterne .voll { color: #f5a623; }
     .wert { color: #667085; font-size: 12px; }
     .schnitt { display: inline-flex; align-items: baseline; gap: 8px; margin-top: 10px; }
-    .schnitt b { font-size: 24px; color: #4f46e5; }
+    .schnitt b { font-size: 24px; color: #0E7C86; }
     .empf { display: inline-block; font-weight: 700; padding: 5px 12px; border-radius: 999px; margin-top: 10px; }
     .empf.ja { background: #dcfce7; color: #059669; } .empf.nein { background: #fee2e2; color: #dc2626; }
     .text { border: 1px solid #e7e9ee; border-radius: 8px; padding: 10px 12px; line-height: 1.5; }
@@ -388,8 +390,8 @@ export function ersatzfliesenberichtHtml(bericht: Ersatzfliesenbericht, projekt:
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
-    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
     h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
     .meta { color: #667085; font-size: 12px; text-align: right; }
     .satz { line-height: 1.6; margin: 12px 0; }
@@ -454,8 +456,8 @@ export function aundvHtml(projekt: Projekt, db: DryTrackDB): string {
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; line-height: 1.5; }
-    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
     h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
     .meta { color: #667085; font-size: 12px; text-align: right; }
     dl.facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 24px; margin: 0 0 8px; }
@@ -526,8 +528,8 @@ export function vollmachtHtml(projekt: Projekt, db: DryTrackDB): string {
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; line-height: 1.5; }
-    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
     h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
     .meta { color: #667085; font-size: 12px; text-align: right; }
     dl.facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 24px; margin: 0 0 8px; }
@@ -593,8 +595,8 @@ export function abnahmeprotokollHtml(protokoll: Abnahmeprotokoll, projekt: Proje
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
-    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
     h1 { font-size: 16px; margin: 0 0 2px; } h3 { font-size: 12px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
     .meta { color: #667085; font-size: 12px; text-align: right; }
     .kopf { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
@@ -683,8 +685,8 @@ export function strombriefHtml(projekt: Projekt, db: DryTrackDB): string {
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
-    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
     h1 { font-size: 16px; margin: 0 0 2px; } .meta { color: #667085; font-size: 12px; text-align: right; }
     table { width: 100%; border-collapse: collapse; margin-top: 6px; }
     th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #667085; border-bottom: 1px solid #e7e9ee; padding: 6px 8px; }
@@ -792,8 +794,8 @@ export function abschlussberichtHtml(projekt: Projekt, db: DryTrackDB): string {
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
-    header { border-bottom: 2px solid #4f46e5; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #4f46e5; }
+    header { border-bottom: 2px solid #0E7C86; padding-bottom: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
     h1 { font-size: 16px; margin: 0 0 2px; } h2 { font-size: 12px; margin: 22px 0 8px; text-transform: uppercase; letter-spacing: .05em; color: #667085; }
     h3 { font-size: 14px; margin: 0; color: #0b0d12; }
     .meta { color: #667085; font-size: 12px; text-align: right; }
@@ -814,7 +816,7 @@ export function abschlussberichtHtml(projekt: Projekt, db: DryTrackDB): string {
     th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #667085; border-bottom: 1px solid #e7e9ee; padding: 5px 8px; }
     td { padding: 6px 8px; border-bottom: 1px solid #f0f1f4; }
     .b-trocken { color: #059669; font-weight: 600; } .b-feucht, .b-kontaminiert, .b-austausch { color: #dc2626; font-weight: 600; } .b-grenzwertig { color: #d97706; font-weight: 600; }
-    .fazit { border: 1px solid #e7e9ee; border-left: 3px solid #4f46e5; border-radius: 8px; padding: 12px 14px; line-height: 1.5; }
+    .fazit { border: 1px solid #e7e9ee; border-left: 3px solid #0E7C86; border-radius: 8px; padding: 12px 14px; line-height: 1.5; }
     .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 14px; page-break-inside: avoid; }
     .sig-linie { border-bottom: 1px solid #0b0d12; margin-top: 34px; }
     .sig-label { font-size: 11px; color: #667085; margin-top: 4px; }
