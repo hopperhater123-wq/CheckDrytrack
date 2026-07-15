@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal, AnimatePresence } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
 import { fmtDatum, fmtZahl } from "../app/format";
 import { GESCHOSSE } from "../app/labels";
 import { Icon } from "../ui/Icon";
+import { komprimiereBild } from "../ui/foto";
+import { FotoAnnotator } from "../ui/FotoAnnotator";
 import type { Grundriss, Raum } from "../domain/types";
 
 // Grundriss/Skizze JE GESCHOSS (Backlog ⑤; Alt-System zeigte Skizzen pro Keller/EG/OG/DG).
@@ -74,6 +76,25 @@ function GeschossBlock({ projektId, geschoss, grundriss, raeume, markierungen, b
   markierungen: import("../domain/types").GrundrissMarkierung[];
   benutzerName: (uid: string) => string; raumName: (rid: string | null) => string; onMarkierung: () => void;
 }) {
+  const fotoInput = useRef<HTMLInputElement>(null);
+  const [malen, setMalen] = useState(false);
+  const [laedt, setLaedt] = useState(false);
+  const hatBild = !!grundriss && grundriss.datei_referenz.startsWith("data:");
+
+  // Skizze/Foto hochladen — ersetzt Platzhalter-Referenzen durch ein echtes Bild.
+  const hochladen = async (liste: FileList | null) => {
+    if (!liste || !liste.length) return;
+    setLaedt(true);
+    try {
+      const dataUrl = await komprimiereBild(liste[0]);
+      if (grundriss) store.setGrundrissBild(grundriss.id, dataUrl);
+      else store.setGrundriss(projektId, geschoss, "skizze_foto", dataUrl);
+    } finally {
+      setLaedt(false);
+      if (fotoInput.current) fotoInput.current.value = "";
+    }
+  };
+
   return (
     <div className="geschoss-block">
       <div className="geschoss-head">
@@ -83,22 +104,54 @@ function GeschossBlock({ projektId, geschoss, grundriss, raeume, markierungen, b
           : <span className="muted small">{raeume.length} {raeume.length === 1 ? "Raum" : "Räume"}</span>}
       </div>
 
+      <input ref={fotoInput} type="file" accept="image/*" capture="environment" hidden
+        onChange={(e) => void hochladen(e.target.files)} />
+
       {!grundriss ? (
         <div className="quickpick">
           <button className="btn btn-primary btn-sm" onClick={() => store.setGrundriss(projektId, geschoss, "magicplan", `magicplan://${projektId}/${geschoss}.pdf`)}>
             <Icon name="layers" size={15} /> MagicPlan
           </button>
-          <button className="btn btn-sm" onClick={() => store.setGrundriss(projektId, geschoss, "skizze_foto", `storage://${projektId}/${geschoss}-skizze.jpg`)}>Skizze / Foto</button>
+          <button className="btn btn-sm" disabled={laedt} onClick={() => fotoInput.current?.click()}>
+            <Icon name="camera" size={15} /> Skizze / Foto
+          </button>
         </div>
       ) : (
         <>
-          <div className="grundriss-canvas" style={{ minHeight: 120 }}>
-            <div className="grundriss-empty">
-              <Icon name="map" size={26} />
-              <span className="muted small">{grundriss.datei_referenz}</span>
-              <span className="muted small">importiert am {fmtDatum(grundriss.erstellt_am)}</span>
+          {hatBild ? (
+            <>
+              <div className="grundriss-bildwrap">
+                <img className="grundriss-bild" src={grundriss.datei_referenz} alt={`Skizze ${geschoss}`} />
+              </div>
+              <div className="btn-row" style={{ marginBottom: 10 }}>
+                <button className="btn btn-sm btn-primary" onClick={() => setMalen(true)}>
+                  <Icon name="pen" size={14} /> Markieren
+                </button>
+                <button className="btn btn-sm" disabled={laedt} onClick={() => fotoInput.current?.click()}>
+                  <Icon name="camera" size={14} /> Neues Bild
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="grundriss-canvas" style={{ minHeight: 120 }}>
+              <div className="grundriss-empty">
+                <Icon name="map" size={26} />
+                <span className="muted small">{grundriss.datei_referenz}</span>
+                <span className="muted small">importiert am {fmtDatum(grundriss.erstellt_am)}</span>
+                <button className="btn btn-sm" disabled={laedt} onClick={() => fotoInput.current?.click()}>
+                  <Icon name="camera" size={14} /> {laedt ? "Wird verarbeitet…" : "Skizze/Foto hochladen"}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {malen && hatBild && (
+            <FotoAnnotator
+              src={grundriss.datei_referenz} titel={`Skizze ${geschoss}`}
+              onSave={(dataUrl) => { store.setGrundrissBild(grundriss.id, dataUrl); setMalen(false); }}
+              onClose={() => setMalen(false)}
+            />
+          )}
 
           <div className="rhm-row">
             <label className="field" style={{ margin: 0, flex: 1 }}><span>Raumhöhe (RHM, m)</span>

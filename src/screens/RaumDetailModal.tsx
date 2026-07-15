@@ -4,6 +4,7 @@ import { AnimatePresence, Modal, motion } from "../ui/motion";
 import { store } from "../domain/store";
 import { useSession } from "../app/session";
 import { komprimiereBild } from "../ui/foto";
+import { FotoAnnotator } from "../ui/FotoAnnotator";
 import { Icon } from "../ui/Icon";
 import { GESCHOSSE, RAUMTYPEN } from "../app/labels";
 import { AufbauEditor } from "./MessprotokollTab";
@@ -102,6 +103,7 @@ function RaumFotos({ raumId }: { raumId: string }) {
   const [laedt, setLaedt] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [gross, setGross] = useState<string | null>(null);
+  const [malen, setMalen] = useState<RaumFoto | null>(null);
 
   const dateienWaehlen = async (liste: FileList | null) => {
     if (!liste || !liste.length) return;
@@ -147,6 +149,7 @@ function RaumFotos({ raumId }: { raumId: string }) {
                   <span className={`foto-tag${f.kategorie === "schadenstelle" ? " danger" : ""}`}>{f.kategorie === "schadenstelle" ? "Schaden" : "Übersicht"}</span>
                 </button>
                 <button className="foto-del" onClick={() => store.removeRaumFoto(f.id)} aria-label="Foto löschen"><Icon name="trash" size={14} /></button>
+                <button className="foto-edit" onClick={() => setMalen(f)} aria-label="Foto markieren" title="Markieren"><Icon name="pen" size={14} /></button>
               </motion.div>
             ))}
           </AnimatePresence>
@@ -161,6 +164,14 @@ function RaumFotos({ raumId }: { raumId: string }) {
           </Modal>
         )}
       </AnimatePresence>
+
+      {malen && (
+        <FotoAnnotator
+          src={malen.datei_referenz} titel={malen.kategorie === "schadenstelle" ? "Schadenstelle markieren" : "Foto markieren"}
+          onSave={(dataUrl) => { store.setRaumFotoBild(malen.id, dataUrl); setMalen(null); }}
+          onClose={() => setMalen(null)}
+        />
+      )}
     </div>
   );
 }

@@ -716,3 +716,33 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
 .matrix td.mz-trocken { background: var(--ok-soft); color: var(--ok); font-weight: 600; }
 .matrix td.mz-grenzwertig { background: var(--warn-soft); color: var(--warn); font-weight: 600; }
 .matrix td.mz-feucht, .matrix td.mz-kontaminiert, .matrix td.mz-austausch { background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+
+/* --- Foto-Annotator (Schadenskartierung wie im Alt-System) ------------------ */
+.foto-edit { position: absolute; top: 6px; left: 6px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; cursor: pointer; transition: background var(--dur) var(--ease); }
+.foto-edit:hover { background: var(--accent); }
+
+.grundriss-bildwrap { border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--hairline); margin-bottom: 10px; }
+.grundriss-bild { display: block; width: 100%; height: auto; }
+
+.anno-overlay { position: fixed; inset: 0; z-index: 70; background: #0b0d12; color: #fff;
+  display: flex; flex-direction: column; }
+.anno-top { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; padding-top: max(12px, env(safe-area-inset-top)); }
+.anno-titel { font-weight: 650; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.anno-hell { color: rgba(255,255,255,.85); font-size: 1.05rem; }
+.anno-hell:hover { background: rgba(255,255,255,.12); color: #fff; }
+.anno-hell:disabled { opacity: .35; cursor: default; }
+.anno-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px 10px; }
+.anno-seg .seg { color: rgba(255,255,255,.8); }
+.anno-farben { display: flex; gap: 8px; }
+.anno-farbe { width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); cursor: pointer; padding: 0; }
+.anno-farbe.aktiv { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.25); }
+.anno-textzeile { padding: 0 14px 10px; }
+.anno-textzeile input { width: 100%; background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+.anno-canvas-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0 8px; }
+.anno-canvas { max-width: 100%; max-height: 100%; touch-action: none; border-radius: 8px; background: #222; }
+.anno-fuss { display: flex; justify-content: space-between; gap: 10px;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); }
+.anno-seg.segmented { background: rgba(255,255,255,.12); border-color: transparent; }
+.anno-seg .seg.active { background: #fff; color: #0b0d12; }

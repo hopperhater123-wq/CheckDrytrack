@@ -556,6 +556,22 @@ class Store {
     });
   }
 
+  /** Skizzen-/Fotobild eines Grundrisses ersetzen (Upload oder Annotation). */
+  setGrundrissBild(grundriss_id: string, datei_referenz: string) {
+    this.commit((db) => {
+      const g = db.grundriss.find((x) => x.id === grundriss_id);
+      if (g) { g.datei_referenz = datei_referenz; g.quelle = "skizze_foto"; }
+    });
+  }
+
+  /** Raumfoto-Bild ersetzen (Annotation wird ins Bild eingebrannt). */
+  setRaumFotoBild(foto_id: string, datei_referenz: string) {
+    this.commit((db) => {
+      const f = db.raum_foto.find((x) => x.id === foto_id);
+      if (f) f.datei_referenz = datei_referenz;
+    });
+  }
+
   /** Dokument protokollieren (z. B. erzeugter Strombrief, 14 · Dokumente). */
   addDokument(params: { projekt_id: string; typ: import("./types").DokumentTyp; speicher_referenz: string; erstellt_von: string }) {
     this.commit((db) => {
