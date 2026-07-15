@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "./Icon";
 
-// Echter Kamera-Scan (FR-SCAN-001) über die native BarcodeDetector-API
-// (Android/Chrome; erkennt QR + gängige 1D-Barcodes). Wo nicht verfügbar
-// (z. B. iOS Safari) oder ohne Kamerafreigabe: sauberer Fallback auf Nummer-Eingabe.
+// Echter Kamera-Scan (FR-SCAN-001):
+//  1. Native BarcodeDetector-API (Android/Chrome) — schnell, ohne Zusatz-Code.
+//  2. Fallback ZXing (iPhone/Safari, ältere Browser) — bei Bedarf nachgeladen,
+//     gebündelt (kein CDN → offline-fähig, CSP-sicher).
+//  3. Ohne Kamera/Freigabe: sauberer Rückfall auf die Nummer-Eingabe.
 type BarcodeDetectorLike = { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> };
 
 const FORMATE = ["qr_code", "code_128", "code_39", "code_93", "ean_13", "ean_8", "upc_a", "upc_e", "itf", "codabar"];
@@ -24,42 +26,69 @@ export function codeAusScan(raw: string): string {
 export function CameraScanner({ onDetect, onClose }: { onDetect: (code: string) => void; onClose: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [fehler, setFehler] = useState<string | null>(null);
-  const supported = typeof window !== "undefined" && "BarcodeDetector" in window;
+  // onDetect in einem Ref halten, damit ein Re-Render des Eltern-Screens die Kamera nicht neu startet.
+  const onDetectRef = useRef(onDetect);
+  onDetectRef.current = onDetect;
 
   useEffect(() => {
-    if (!supported) { setFehler("Dieses Gerät unterstützt keinen Kamera-Scan. Bitte die Nummer eingeben."); return; }
-
-    let stream: MediaStream | null = null;
+    const hatNativeDetector = typeof window !== "undefined" && "BarcodeDetector" in window;
     let stop = false;
+    let stream: MediaStream | null = null;
     let raf = 0;
-    const Detector = (window as unknown as { BarcodeDetector: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
-    const detector = new Detector({ formats: FORMATE });
+    let zxing: { stop: () => void } | null = null;
 
-    const cleanup = () => { stop = true; if (raf) cancelAnimationFrame(raf); stream?.getTracks().forEach((t) => t.stop()); };
+    const cleanup = () => {
+      stop = true;
+      if (raf) cancelAnimationFrame(raf);
+      try { zxing?.stop(); } catch { /* ignorieren */ }
+      stream?.getTracks().forEach((t) => t.stop());
+    };
+    const treffer = (raw: string) => { if (stop) return; cleanup(); onDetectRef.current(codeAusScan(raw)); };
 
     (async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      if (hatNativeDetector) {
+        // Schneller nativer Weg (Android/Chrome).
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        } catch {
+          setFehler("Kamerazugriff nicht möglich. Bitte Berechtigung erlauben — oder die Nummer eingeben.");
+          return;
+        }
         const v = videoRef.current;
-        if (!v) return;
+        if (!v || stop) return;
         v.srcObject = stream;
         void v.play().catch(() => { /* Autoplay ohne Geste kann ablehnen — Erkennung läuft trotzdem */ });
+        const Detector = (window as unknown as { BarcodeDetector: new (o: { formats: string[] }) => BarcodeDetectorLike }).BarcodeDetector;
+        const detector = new Detector({ formats: FORMATE });
         const tick = async () => {
           if (stop) return;
           try {
             const codes = await detector.detect(v);
-            if (codes && codes.length) { cleanup(); onDetect(codeAusScan(codes[0].rawValue)); return; }
+            if (codes && codes.length) { treffer(codes[0].rawValue); return; }
           } catch { /* einzelner Frame nicht lesbar — weiter */ }
           if (!stop) raf = requestAnimationFrame(tick);
         };
         raf = requestAnimationFrame(tick);
-      } catch {
-        setFehler("Kamerazugriff nicht möglich. Bitte Berechtigung erlauben — oder die Nummer eingeben.");
+      } else {
+        // Fallback (iPhone/Safari): ZXing bei Bedarf nachladen; Kamera verwaltet ZXing selbst.
+        try {
+          const { BrowserMultiFormatReader } = await import("@zxing/browser");
+          if (stop) return;
+          const v = videoRef.current;
+          if (!v) return;
+          const reader = new BrowserMultiFormatReader();
+          zxing = await reader.decodeFromConstraints(
+            { video: { facingMode: "environment" } }, v,
+            (result) => { if (result) treffer(result.getText()); },
+          );
+        } catch {
+          setFehler("Kamera-Scan auf diesem Gerät nicht möglich. Bitte die Nummer eingeben.");
+        }
       }
     })();
 
     return cleanup;
-  }, [supported, onDetect]);
+  }, []);
 
   return (
     <div className="scanner-overlay">
