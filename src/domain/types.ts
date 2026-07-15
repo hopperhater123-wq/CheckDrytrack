@@ -258,6 +258,8 @@ export interface Messung {
   rel_luftfeuchte_prozent: number | null;
   // Luftgeschwindigkeit in m/s (Alt-System-Spalte, Anemometer bei Schacht-/Hohlraumtrocknung).
   stroemung_m_s: number | null;
+  // Messgerät mit Nummer (Alt-System-Maske "Messgeräte": Uni 2 / RTU 600 + Pflicht-Gerätenummer).
+  messgeraet: string | null;
   anlass: Messanlass;
   gemessen_von: string;
   gemessen_am: string;

@@ -103,6 +103,7 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
                 <span className={gkgFeucht ? "verbrauch-schaetz" : "verbrauch"}>{fmtZahl(m.absolute_feuchte_g_kg)} g/kg</span>
               )}
               {m.stroemung_m_s != null && <span>{fmtZahl(m.stroemung_m_s)} m/s</span>}
+              {m.messgeraet && <span className="muted">{m.messgeraet}</span>}
               <span className="muted">{fmtDatum(m.gemessen_am)}</span>
             </div>
           </div>
@@ -389,6 +390,24 @@ function MessungForm({ raum, userId, vorMesspunkt, onClose, onTrocken }: {
   const [temp, setTemp] = useState("");
   const [rh, setRh] = useState("");
   const [ms, setMs] = useState(""); // Luftgeschwindigkeit m/s (Anemometer, Alt-System-Spalte)
+  // Messgerät mit Nummer (Alt-System: Uni 2 / RTU 600 + Gerätenummer) — letztes Gerät vorbelegt.
+  const [geraet, setGeraet] = useState(() => localStorage.getItem("torrek.letztesMessgeraet") ?? "");
+
+  // Referenz: letzte Messung am gewählten Messpunkt (Alt-System zeigt den Vorbesuch daneben).
+  const vorherige = messpunktId
+    ? db.messung
+        .filter((m) => m.messpunkt_id === messpunktId)
+        .sort((a, b) => (a.gemessen_am < b.gemessen_am ? 1 : -1))[0]
+    : undefined;
+  const referenzText = vorherige
+    ? [
+        vorherige.anzeige_digit != null ? `${fmtZahl(vorherige.anzeige_digit)} Digits` : null,
+        vorherige.temperatur_c != null ? `${fmtZahl(vorherige.temperatur_c)} °C` : null,
+        vorherige.rel_luftfeuchte_prozent != null ? `${fmtZahl(vorherige.rel_luftfeuchte_prozent)} % rF` : null,
+        vorherige.absolute_feuchte_g_kg != null ? `${fmtZahl(vorherige.absolute_feuchte_g_kg)} g/kg` : null,
+        vorherige.stroemung_m_s != null ? `${fmtZahl(vorherige.stroemung_m_s)} m/s` : null,
+      ].filter(Boolean).join(" · ")
+    : null;
 
   // Hygrometer misst °C/rF → absolute Feuchte. Die Messstelle ist wählbar:
   // Raumluft, Bohrloch in der Wand (Kernfeuchte, 6-mm-Bohrung) oder Dämmschicht.
@@ -419,12 +438,14 @@ function MessungForm({ raum, userId, vorMesspunkt, onClose, onTrocken }: {
 
   const speichern = () => {
     if (!gueltig) return; // gueltig ⇒ anlass ist gesetzt (Messanlass), narrowing greift
+    const geraetWert = geraet.trim() || null;
+    if (geraetWert) localStorage.setItem("torrek.letztesMessgeraet", geraetWert);
     store.addMessung({
       raum_id: raum.id, messpunkt_id: messpunktId || null, material_id: materialId, messverfahren: verfahren, anlass,
       anzeige_digit: hygro || modell === "status_checkliste" ? null : num(digit),
       referenz_digit: modell === "vergleichsmessung" ? num(referenz) : null,
       status_checkliste: modell === "status_checkliste" ? checkliste : null,
-      temperatur_c: tempN, rel_luftfeuchte_prozent: rhN, stroemung_m_s: num(ms), gemessen_von: userId,
+      temperatur_c: tempN, rel_luftfeuchte_prozent: rhN, stroemung_m_s: num(ms), messgeraet: geraetWert, gemessen_von: userId,
     });
 
     // „Objekt trocken"-Moment: Freimessung mit Bewertung „trocken" feiern —
@@ -435,7 +456,7 @@ function MessungForm({ raum, userId, vorMesspunkt, onClose, onTrocken }: {
       referenz_digit: modell === "vergleichsmessung" ? num(referenz) : null,
       status_checkliste: modell === "status_checkliste" ? checkliste : null,
       absolute_feuchte_g_kg: absVorschau, temperatur_c: tempN, rel_luftfeuchte_prozent: rhN,
-      stroemung_m_s: num(ms),
+      stroemung_m_s: num(ms), messgeraet: geraet.trim() || null,
       anlass: anlass as Messanlass, gemessen_von: userId, gemessen_am: new Date().toISOString(),
     };
     const b = bewerteMessung(neue, material);
@@ -469,6 +490,11 @@ function MessungForm({ raum, userId, vorMesspunkt, onClose, onTrocken }: {
               ))}
             </select>
           </label>
+        )}
+        {referenzText && (
+          <div className="readout" style={{ marginTop: -4 }}>
+            Vorbesuch {fmtDatum(vorherige!.gemessen_am)}: <strong>{referenzText}</strong>
+          </div>
         )}
 
         <label className="field"><span>Messverfahren</span>
@@ -553,6 +579,16 @@ function MessungForm({ raum, userId, vorMesspunkt, onClose, onTrocken }: {
         <label className="field"><span>Luftgeschwindigkeit m/s (optional, Anemometer)</span>
           <input inputMode="decimal" value={ms} onChange={(e) => setMs(e.target.value)} placeholder="z. B. 4,2" />
         </label>
+
+        <label className="field"><span>Messgerät (optional, mit Gerätenummer)</span>
+          <input value={geraet} onChange={(e) => setGeraet(e.target.value)} placeholder="z. B. Uni 2 · Nr. 323" />
+        </label>
+        <div className="checkgrid" style={{ marginTop: -6 }}>
+          {["Uni 2", "RTU 600", "Tramex", "Anemometer"].map((g) => (
+            <button key={g} type="button" className={`checkchip${geraet.startsWith(g) ? " on" : ""}`}
+              onClick={() => setGeraet(`${g} · Nr. `)}>{g}</button>
+          ))}
+        </div>
         {absVorschau != null && (
           <div className={`readout ${absVorschau > GKG_RICHTWERT ? "" : "accent"}`}>
             Absolute Feuchte: <strong>{fmtZahl(absVorschau)} g/kg</strong> — {absVorschau > GKG_RICHTWERT ? "feucht, weiterer Trocknungsbedarf" : "trocken"} (Richtwert ≤ {GKG_RICHTWERT} g/kg)

@@ -37,6 +37,7 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
         <td>${wert}</td>
         <td>${gkg}</td>
         <td>${msWert}</td>
+        <td>${esc(m.messgeraet ?? "—")}</td>
         <td class="b-${b.bewertung}">${BEWERTUNG_LABEL[b.bewertung]}${b.praxisrichtwert ? " ¹" : ""}</td>
         <td>${new Date(m.gemessen_am).toLocaleDateString("de-DE")}</td>
       </tr>`;
@@ -45,7 +46,7 @@ export function messprotokollHtml(projekt: Projekt, db: DryTrackDB): string {
     return `<section class="raum">
       <h3>${esc(r.bezeichnung)}</h3>
       <div class="aufbau"><span class="lbl">Bodenaufbau</span><ul>${aufbau}</ul></div>
-      ${messungen.length ? `<table><thead><tr><th>Messpunkt</th><th>Material</th><th>Anlass</th><th>Wert</th><th>abs. Feuchte</th><th>m/s</th><th>Bewertung</th><th>Datum</th></tr></thead><tbody>${zeilen}</tbody></table>` : "<p class='muted'>Keine Messungen erfasst.</p>"}
+      ${messungen.length ? `<table><thead><tr><th>Messpunkt</th><th>Material</th><th>Anlass</th><th>Wert</th><th>abs. Feuchte</th><th>m/s</th><th>Gerät</th><th>Bewertung</th><th>Datum</th></tr></thead><tbody>${zeilen}</tbody></table>` : "<p class='muted'>Keine Messungen erfasst.</p>"}
     </section>`;
   }).join("");
 

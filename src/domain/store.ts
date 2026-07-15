@@ -346,7 +346,7 @@ class Store {
     anzeige_digit: number | null; referenz_digit: number | null;
     status_checkliste: MessStatusCheckliste | null;
     temperatur_c: number | null; rel_luftfeuchte_prozent: number | null;
-    stroemung_m_s: number | null;
+    stroemung_m_s: number | null; messgeraet: string | null;
     gemessen_von: string;
   }) {
     const abs = params.temperatur_c != null && params.rel_luftfeuchte_prozent != null
@@ -358,7 +358,7 @@ class Store {
         referenz_digit: params.referenz_digit, status_checkliste: params.status_checkliste,
         absolute_feuchte_g_kg: abs, temperatur_c: params.temperatur_c,
         rel_luftfeuchte_prozent: params.rel_luftfeuchte_prozent,
-        stroemung_m_s: params.stroemung_m_s, anlass: params.anlass,
+        stroemung_m_s: params.stroemung_m_s, messgeraet: params.messgeraet, anlass: params.anlass,
         gemessen_von: params.gemessen_von, gemessen_am: new Date().toISOString(),
       });
     });
