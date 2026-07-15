@@ -69,9 +69,7 @@ export function ScanFlow() {
         )}
       </div>
 
-      {inv && !geraet && (
-        <div className="banner danger">Kein Gerät mit Inventarnummer „{inv}" gefunden. Barcode defekt? Nummer prüfen.</div>
-      )}
+      {inv && !geraet && <NeuGeraet inv={inv} onAbbrechen={reset} />}
 
       {geraet && (
         <section className="card">
@@ -129,6 +127,61 @@ function QrDemo() {
         return <span key={i} className={gefuellt(r, c) ? "qr-on" : ""} />;
       })}
     </div>
+  );
+}
+
+// Unbekanntes Etikett → Gerät (und ggf. neuen Gerätetyp) direkt anlegen und der DB hinzufügen.
+// Danach existiert das Gerät (Status Lager) → der Aufbau-Block mit kWh erscheint automatisch.
+function NeuGeraet({ inv, onAbbrechen }: { inv: string; onAbbrechen: () => void }) {
+  const db = useDB();
+  const typen = db.geraetetyp;
+  const [typId, setTypId] = useState<string>(typen[0]?.id ?? "__neu");
+  const [neuName, setNeuName] = useState("");
+  const [neuKw, setNeuKw] = useState("");
+  const [fehler, setFehler] = useState<string | null>(null);
+  const istNeu = typId === "__neu";
+  const kannAnlegen = istNeu ? neuName.trim().length > 0 : !!typId;
+
+  const anlegen = () => {
+    setFehler(null);
+    let gtId = typId;
+    if (istNeu) {
+      const kw = parseFloat(neuKw.replace(",", "."));
+      gtId = store.addGeraetetyp(neuName, Number.isFinite(kw) ? kw : null).id;
+    }
+    const res = store.addGeraet({ inventarnummer: inv, geraetetyp_id: gtId });
+    if (!res.ok) setFehler(res.error ?? "Fehler"); // sonst: Karte verschwindet, Aufbau erscheint
+  };
+
+  return (
+    <section className="card">
+      <div className="banner">Kein Gerät mit „{inv}" in der Datenbank — jetzt anlegen und aufnehmen.</div>
+      <h3>Neues Gerät anlegen</h3>
+      <label className="field"><span>Inventarnummer (Barcode)</span>
+        <input value={inv} readOnly />
+      </label>
+      <label className="field"><span>Gerätetyp</span>
+        <select value={typId} onChange={(e) => setTypId(e.target.value)}>
+          {typen.map((t) => <option key={t.id} value={t.id}>{t.bezeichnung}</option>)}
+          <option value="__neu">+ Neuer Typ …</option>
+        </select>
+      </label>
+      {istNeu && (
+        <>
+          <label className="field"><span>Typ-Bezeichnung</span>
+            <input value={neuName} onChange={(e) => setNeuName(e.target.value)} placeholder="z. B. Kondenstrockner KT-40" />
+          </label>
+          <label className="field"><span>Leistung (kW, optional)</span>
+            <input inputMode="decimal" value={neuKw} onChange={(e) => setNeuKw(e.target.value)} placeholder="z. B. 0,8" />
+          </label>
+        </>
+      )}
+      {fehler && <p className="error">{fehler}</p>}
+      <div className="btn-row">
+        <button className="btn" onClick={onAbbrechen}>Abbrechen</button>
+        <button className="btn btn-primary" onClick={anlegen} disabled={!kannAnlegen}>Gerät anlegen</button>
+      </div>
+    </section>
   );
 }
 

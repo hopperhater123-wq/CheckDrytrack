@@ -3,7 +3,7 @@
 // Über das `storage`-Event synchronisieren offene Tabs live (Annäherung an FR-Realtime).
 
 import type {
-  DryTrackDB, Einsatz, EstrichBauart, FeedEintrag, FeedKategorie, Geraet, Messanlass,
+  DryTrackDB, Eigentum, Einsatz, EstrichBauart, FeedEintrag, FeedKategorie, Geraet, Geraetetyp, Messanlass,
   MessStatusCheckliste, Messverfahren, Projekt, ProjektStatus, Raum, SchichtTyp,
 } from "./types";
 import { absoluteFeuchteGKg } from "./mess";
@@ -190,6 +190,31 @@ class Store {
         : `Endzählerstand ${params.zaehlerstand_ende.toLocaleString("de-DE")} kWh.`;
       db.feed_eintrag.push(autoFeed(einsatz.projekt_id, einsatz.geraet_inventarnummer, "teilabbau", params.autor_id,
         `Gerät ${einsatz.geraet_inventarnummer} abgebaut. ${info}`));
+    });
+    return { ok: true };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Geräte-Stammdaten (Neuanlage beim Scannen unbekannter Etiketten, FR-SCAN-001)
+  // ---------------------------------------------------------------------------
+
+  /** Neuen (Freitext-)Gerätetyp anlegen — z. B. beim Erfassen eines unbekannten Geräts. */
+  addGeraetetyp(bezeichnung: string, leistungswert_kw: number | null = null): Geraetetyp {
+    const typ: Geraetetyp = { id: uid("gt"), bezeichnung: bezeichnung.trim(), ist_freitext: true, leistungswert_kw, luftleistung_m3h: null };
+    this.commit((db) => { db.geraetetyp.push(typ); });
+    return typ;
+  }
+
+  /** Neues Gerät (Stammdaten) anlegen — Inventarnummer = Barcode-Inhalt. Standard: eigenes Gerät, im Lager. */
+  addGeraet(params: { inventarnummer: string; geraetetyp_id: string; eigentum?: Eigentum }): { ok: boolean; error?: string } {
+    const inv = params.inventarnummer.trim().toUpperCase();
+    if (!inv) return { ok: false, error: "Inventarnummer fehlt." };
+    if (this.db.geraet.some((g) => g.inventarnummer === inv)) return { ok: false, error: "Gerät mit dieser Nummer existiert bereits." };
+    this.commit((db) => {
+      db.geraet.push({
+        inventarnummer: inv, geraetetyp_id: params.geraetetyp_id, status: "lager",
+        eigentum: params.eigentum ?? "eigen", e_check_datum: null, aktuelles_projekt_id: null,
+      });
     });
     return { ok: true };
   }
