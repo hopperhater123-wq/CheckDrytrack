@@ -118,7 +118,10 @@ function ObjektdatenCard({ projektId, canEdit, userId }: { projektId: string; ca
   const p = db.projekt.find((x) => x.id === projektId);
   if (!p) return null;
 
-  const deepLink = `${window.location.origin}${window.location.pathname}?p=${p.id}`;
+  // Deep-Link fürs Scannen: immer aufs App-Verzeichnis zeigen (index.html wegkürzen),
+  // damit die Adresse sauber bleibt und der Service-Worker sie als Navigation erkennt.
+  const basis = window.location.pathname.replace(/index\.html?$/i, "");
+  const deepLink = `${window.location.origin}${basis}?p=${p.id}`;
   const num = (s: string) => { const n = parseInt(s, 10); return Number.isFinite(n) ? n : null; };
 
   return (
