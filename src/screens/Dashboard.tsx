@@ -4,10 +4,11 @@ import { useNav } from "../app/nav";
 import { FEED_KATEGORIE_LABEL, FEED_URSPRUNG_LABEL, PROJEKT_STATUS_LABEL, PROJEKT_STATUS_REIHENFOLGE } from "../app/labels";
 import { relativZeit } from "../app/format";
 import { istLaufend } from "../domain/einsatz";
+import { bewerteMessung } from "../domain/mess";
 import { Icon, type IconName } from "../ui/Icon";
 import { motion, staggerContainer, fadeUpItem } from "../ui/motion";
 import { DryingLine } from "../ui/DryingLine";
-import type { FeedUrsprung } from "../domain/types";
+import type { DryTrackDB, FeedUrsprung, Projekt } from "../domain/types";
 
 // Farbrampe für den Geräteverteilungs-Donut: Feuchte-Skala nass (Teal) → trocken (Amber).
 const DONUT_FARBEN = ["#0E7C86", "#3F9AA0", "#6FB3A6", "#C6892A", "#E0A43B", "#8CA0A0"];
@@ -24,11 +25,17 @@ export function Dashboard() {
   const { user } = useSession();
   const nav = useNav();
 
-  const imEinsatz = db.geraet.filter((g) => g.status === "baustelle").length;
-  const imLager = db.geraet.filter((g) => g.status === "lager").length;
   const inWerkstatt = db.geraet.filter((g) => g.status === "werkstatt").length;
   const offene = db.projekt.filter((p) => !p.storniert && p.status !== "abgeschlossen");
   const laufende = db.einsatz.filter(istLaufend).length;
+
+  // Termine heute (ganzes Team) — die zentrale „Was steht heute an?"-Zahl.
+  const heuteStr = new Date().toISOString().slice(0, 10);
+  const termineHeute = db.termin.filter((t) => !t.erledigt && t.datum === heuteStr).length;
+
+  // Abschlussreif: aktive Objekte, deren jüngste Messwerte je Messpunkt alle „trocken" sind
+  // → Freimessung/Abbau planen (spart Miete + Strom auf schon trockenen Objekten).
+  const abschlussreif = offene.filter((p) => istAbschlussreif(db, p)).length;
 
   // E-Check-Triage: überfällig / ≤7 Tage / ≤30 Tage / in Ordnung
   const heute = Date.now();
@@ -81,9 +88,9 @@ export function Dashboard() {
 
         {/* KPIs */}
         <Kpi value={offene.length} label="Aktive Projekte" icon="folder" onClick={() => nav({ name: "projekte" })} />
-        <Kpi value={imEinsatz} label="Geräte im Einsatz" icon="wind" onClick={() => nav({ name: "geraete" })} />
-        <Kpi value={imLager} label="Frei im Lager" icon="layers" onClick={() => nav({ name: "geraete" })} />
-        <Kpi value={laufende} label="Laufende Einsätze" icon="clock" />
+        <Kpi value={termineHeute} label="Termine heute" icon="calendar" onClick={() => nav({ name: "termine" })} />
+        <Kpi value={abschlussreif} label="Abschlussreif" icon="droplet" span2
+          hint="Messwerte trocken → Freimessung / Abbau planen" onClick={() => nav({ name: "projekte" })} />
 
         {/* Aktive Projekte mit Fortschritt */}
         <motion.section variants={fadeUpItem} className="tile col-2">
@@ -249,17 +256,39 @@ function TermineKachel() {
   );
 }
 
-function Kpi({ value, label, icon, onClick }: { value: number; label: string; icon: IconName; onClick?: () => void }) {
+function Kpi({ value, label, icon, onClick, span2, hint }: { value: number; label: string; icon: IconName; onClick?: () => void; span2?: boolean; hint?: string }) {
   const Tag = onClick ? motion.button : motion.div;
   return (
-    <Tag className={`tile${onClick ? " click" : ""}`} variants={fadeUpItem} onClick={onClick} style={{ textAlign: "left" }}>
+    <Tag className={`tile${span2 ? " col-2" : ""}${onClick ? " click" : ""}`} variants={fadeUpItem} onClick={onClick} style={{ textAlign: "left" }}>
       <div className="kpi-head">
         <span className="iconbox"><Icon name={icon} size={16} /></span>
         <span className="kpi-label2">{label}</span>
       </div>
       <span className="kpi-value">{value}</span>
+      {hint && <div className="muted small" style={{ marginTop: 6 }}>{hint}</div>}
     </Tag>
   );
+}
+
+/**
+ * Abschlussreif: zu jedem Messpunkt des Objekts ist die jüngste Messung „trocken"
+ * (und es existiert mindestens eine Messung). Nutzt dieselbe Bewertungslogik wie
+ * das Messprotokoll (mess.ts, FR-MESS-001..003).
+ */
+function istAbschlussreif(db: DryTrackDB, p: Projekt): boolean {
+  const raumIds = new Set(db.raum.filter((r) => r.projekt_id === p.id).map((r) => r.id));
+  const messungen = db.messung.filter((m) => raumIds.has(m.raum_id));
+  if (messungen.length === 0) return false;
+  const juengste = new Map<string, (typeof messungen)[number]>();
+  for (const m of messungen) {
+    const key = m.messpunkt_id ?? `${m.raum_id}:${m.material_id}`;
+    const prev = juengste.get(key);
+    if (!prev || prev.gemessen_am < m.gemessen_am) juengste.set(key, m);
+  }
+  return [...juengste.values()].every((m) => {
+    const material = db.materialdatenbank.find((x) => x.id === m.material_id);
+    return bewerteMessung(m, material).bewertung === "trocken";
+  });
 }
 
 function Bucket({ farbe, label, wert, tone, onClick }: { farbe: string; label: string; wert: string; tone?: "danger" | "warn" | "ok"; onClick: () => void }) {
