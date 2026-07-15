@@ -323,7 +323,8 @@ input::placeholder { color: var(--muted); }
 .muster-mini.muster-noimg { display: flex; align-items: center; justify-content: center; }
 .muster-main { min-width: 0; flex: 1; }
 .muster-titel { font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.muster-status { flex: none; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 0.8rem; }
+.muster-status { flex: none; width: auto; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 0.8rem; }
+.muster-main .small { white-space: normal; overflow-wrap: anywhere; }
 .bemusterung-add { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .ef-berichte { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
 .kz-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }

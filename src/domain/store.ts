@@ -440,13 +440,13 @@ class Store {
     return id;
   }
 
-  /** Bemusterung (Ersatzmaterial) zu einem Projekt erfassen — Beschreibung, Lieferant, Musterfoto, Menge. */
-  addBemusterung(params: { projekt_id: string; material_beschreibung: string; lieferant: string | null; musterfoto_referenz: string | null; menge?: string | null }) {
+  /** Bemusterung (Ersatzmaterial) zu einem Projekt erfassen — Art, Beschreibung, Lieferant, Musterfoto, Menge. */
+  addBemusterung(params: { projekt_id: string; material_beschreibung: string; lieferant: string | null; musterfoto_referenz: string | null; menge?: string | null; art?: import("./types").BemusterungArt }) {
     this.commit((db) => {
       db.bemusterung.push({
         id: uid("bm"), projekt_id: params.projekt_id, material_beschreibung: params.material_beschreibung,
         musterfoto_referenz: params.musterfoto_referenz, lieferant: params.lieferant,
-        bestellstatus: "ausgewaehlt", menge: params.menge ?? null, bestelldatum: null,
+        art: params.art ?? "sonstiges", bestellstatus: "ausgewaehlt", menge: params.menge ?? null, bestelldatum: null,
       });
     });
   }

@@ -295,6 +295,12 @@ export interface GrundrissMarkierung {
 // ausgewählt (Kunde hat gewählt) → bestellt → geliefert.
 export type Bestellstatus = "ausgewaehlt" | "bestellt" | "geliefert";
 
+// Art des bemusterten Materials. Einleger (Cera-Vogue-System) verschließen die zur
+// Trocknung gebohrten Löcher — Menge ≈ Anzahl der Bohrlöcher, gezählt in Stück.
+export type BemusterungArt =
+  | "einleger_keramik" | "einleger_edelstahl" | "sondereinleger"
+  | "ersatzfliese" | "parkett" | "sonstiges";
+
 export interface Bemusterung {
   id: string;
   projekt_id: string;
@@ -302,8 +308,9 @@ export interface Bemusterung {
   musterfoto_referenz: string | null;
   lieferant: string | null;
   // Ersatzmaterial-Bestellung (additiv, 013 Geschäftsprozess Schritt „Bemusterung → Bestellung → Einbau").
+  art: BemusterungArt;
   bestellstatus: Bestellstatus;
-  menge: string | null; // frei, z. B. „18 m²"
+  menge: string | null; // frei, z. B. „14 Stück" (Einleger) oder „24 m²" (Bodenbelag)
   bestelldatum: string | null; // gesetzt beim Wechsel auf „bestellt"
 }
 

@@ -1,5 +1,5 @@
 import type {
-  Bestellstatus, DokumentTyp, EstrichBauart, FeedKategorie, FeedUrsprung, GeraetStatus, KontaminationArt,
+  BemusterungArt, Bestellstatus, DokumentTyp, EstrichBauart, FeedKategorie, FeedUrsprung, GeraetStatus, KontaminationArt,
   Messanlass, Messverfahren, ProjektStatus, SchichtTyp,
 } from "../domain/types";
 
@@ -7,6 +7,15 @@ export const BESTELLSTATUS_LABEL: Record<Bestellstatus, string> = {
   ausgewaehlt: "Zu bestellen",
   bestellt: "Bestellt",
   geliefert: "Geliefert",
+};
+
+export const BEMUSTERUNG_ART_LABEL: Record<BemusterungArt, string> = {
+  einleger_keramik: "Einleger · Keramik",
+  einleger_edelstahl: "Einleger · Edelstahl",
+  sondereinleger: "Sondereinleger",
+  ersatzfliese: "Ersatzfliese",
+  parkett: "Parkett / Bodenbelag",
+  sonstiges: "Sonstiges",
 };
 
 export const PROJEKT_STATUS_LABEL: Record<ProjektStatus, string> = {

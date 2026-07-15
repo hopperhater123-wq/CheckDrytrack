@@ -5,11 +5,11 @@ import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
 import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, printHtml } from "../domain/report";
-import { ABNAHME_STATUS_LABEL, BESTELLSTATUS_LABEL } from "../app/labels";
+import { ABNAHME_STATUS_LABEL, BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
 import { Icon } from "../ui/Icon";
 import { SignaturPad } from "../ui/SignaturPad";
-import type { AbnahmeStatus, Bestellstatus } from "../domain/types";
+import type { AbnahmeStatus, BemusterungArt, Bestellstatus } from "../domain/types";
 
 // Besuchsberichte mit Stundennachweis (Alt-System-Analyse 13.07.2026, Backlog ①).
 export function BerichteTab({ projektId, userId }: { projektId: string; userId: string }) {
@@ -485,15 +485,23 @@ function KundenzufriedenheitForm({ projektId, userId, onClose }: { projektId: st
 // ---------------------------------------------------------------------------
 
 // Bemusterung: Ersatzmaterial mit Musterfoto erfassen (nutzt Tabelle bemusterung).
+const EINLEGER_ARTEN: BemusterungArt[] = ["einleger_keramik", "einleger_edelstahl", "sondereinleger"];
+const istEinleger = (a: BemusterungArt) => EINLEGER_ARTEN.includes(a);
+
 function BemusterungListe({ projektId }: { projektId: string }) {
   const db = useDB();
   const muster = db.bemusterung.filter((m) => m.projekt_id === projektId);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [art, setArt] = useState<BemusterungArt>("einleger_keramik");
   const [beschreibung, setBeschreibung] = useState("");
   const [lieferant, setLieferant] = useState("");
   const [menge, setMenge] = useState("");
   const [foto, setFoto] = useState<string | null>(null);
   const [laedt, setLaedt] = useState(false);
+
+  // Bohrlöcher im Projekt = Messpunkte mit erfasster Bohrtiefe → Stück-Vorschlag für Einleger.
+  const raumIds = new Set(db.raum.filter((r) => r.projekt_id === projektId).map((r) => r.id));
+  const bohrloecher = db.messpunkt.filter((mp) => raumIds.has(mp.raum_id) && mp.tiefe_cm != null).length;
 
   const fotoWaehlen = async (liste: FileList | null) => {
     if (!liste?.length) return;
@@ -502,10 +510,16 @@ function BemusterungListe({ projektId }: { projektId: string }) {
     finally { setLaedt(false); if (inputRef.current) inputRef.current.value = ""; }
   };
 
+  // Art wählen: bei Einlegern die Menge aus den Bohrlöchern vorschlagen (nur wenn Menge leer).
+  const waehleArt = (a: BemusterungArt) => {
+    setArt(a);
+    if (istEinleger(a) && !menge.trim() && bohrloecher > 0) setMenge(`${bohrloecher} Stück`);
+  };
+
   const hinzufuegen = () => {
     if (!beschreibung.trim()) return;
-    store.addBemusterung({ projekt_id: projektId, material_beschreibung: beschreibung.trim(), lieferant: lieferant.trim() || null, musterfoto_referenz: foto, menge: menge.trim() || null });
-    setBeschreibung(""); setLieferant(""); setMenge(""); setFoto(null);
+    store.addBemusterung({ projekt_id: projektId, art, material_beschreibung: beschreibung.trim(), lieferant: lieferant.trim() || null, musterfoto_referenz: foto, menge: menge.trim() || null });
+    setArt("einleger_keramik"); setBeschreibung(""); setLieferant(""); setMenge(""); setFoto(null);
   };
 
   return (
@@ -520,7 +534,7 @@ function BemusterungListe({ projektId }: { projektId: string }) {
                   : <span className="muster-mini muster-noimg"><Icon name="layers" size={16} /></span>}
                 <div className="muster-main">
                   <div className="muster-titel">{m.material_beschreibung}</div>
-                  <div className="muted small">{[m.menge, m.lieferant].filter(Boolean).join(" · ") || "—"}</div>
+                  <div className="muted small">{[BEMUSTERUNG_ART_LABEL[m.art], m.menge, m.lieferant].filter(Boolean).join(" · ")}</div>
                 </div>
                 <select className="muster-status" value={m.bestellstatus} aria-label="Bestellstatus"
                   onChange={(e) => store.setBemusterungStatus(m.id, e.target.value as Bestellstatus)}>
@@ -532,8 +546,16 @@ function BemusterungListe({ projektId }: { projektId: string }) {
           </div>}
 
       <div className="bemusterung-add">
-        <input placeholder="Material (z. B. Feinsteinzeug 60×60, anthrazit)" value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} />
-        <input placeholder="Menge (z. B. 18 m²)" value={menge} onChange={(e) => setMenge(e.target.value)} />
+        <select value={art} onChange={(e) => waehleArt(e.target.value as BemusterungArt)} aria-label="Art des Materials">
+          {(Object.keys(BEMUSTERUNG_ART_LABEL) as BemusterungArt[]).map((a) => <option key={a} value={a}>{BEMUSTERUNG_ART_LABEL[a]}</option>)}
+        </select>
+        <input placeholder={istEinleger(art) ? "Einleger (z. B. Cera Vogue, Keramik anthrazit)" : "Material (z. B. Feinsteinzeug 60×60, anthrazit)"} value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} />
+        <input placeholder={istEinleger(art) ? "Menge (z. B. 14 Stück)" : "Menge (z. B. 18 m²)"} value={menge} onChange={(e) => setMenge(e.target.value)} />
+        {istEinleger(art) && bohrloecher > 0 && (
+          <button type="button" className="linkbtn" style={{ alignSelf: "flex-start" }} onClick={() => setMenge(`${bohrloecher} Stück`)}>
+            Aus Bohrlöchern übernehmen: {bohrloecher} Stück
+          </button>
+        )}
         <input placeholder="Lieferant (optional)" value={lieferant} onChange={(e) => setLieferant(e.target.value)} />
         <input ref={inputRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => void fotoWaehlen(e.target.files)} />
         <div className="btn-row">
