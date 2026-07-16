@@ -17,6 +17,7 @@ import { BestellungenScreen } from "./screens/BestellungenScreen";
 import { ROLLEN_LABEL } from "./domain/roles";
 import { Icon, type IconName } from "./ui/Icon";
 import { Intro } from "./ui/Intro";
+import { FluidField } from "./ui/FluidField";
 import { MotionConfig, EASE, DUR, AnimatePresence } from "./ui/motion";
 
 export function App() {
@@ -72,6 +73,8 @@ function Shell() {
 
   return (
     <NavCtx.Provider value={setRoute}>
+      {/* Feuchteschleier: ambiente Fläche hinter der App; Karten liegen als Glas darüber. */}
+      <FluidField />
       <div className="app">
         {/* Sidebar — nur Desktop (Office) */}
         <aside className="sidebar">
@@ -116,7 +119,10 @@ function Shell() {
           </header>
 
           <main className="content">
-            <Screen route={route} />
+            {/* key = Route: jeder Screenwechsel bekommt den Blur-Rise-Übergang. */}
+            <div className="route-view" key={JSON.stringify(route)}>
+              <Screen route={route} />
+            </div>
           </main>
 
           {/* Bottom-Tabs — nur mobil */}

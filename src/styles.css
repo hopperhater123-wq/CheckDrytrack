@@ -84,8 +84,9 @@ body {
 /* Headlines & Labels: kondensierte Industrie-Signage */
 h1, h2, h3, .eyebrow, .brand, .login-brand, .kpi-value, .geschoss-name { font-family: var(--font-display); }
 h1, h2, h3 { text-wrap: balance; letter-spacing: 0.005em; font-weight: 700; }
-h1 { font-size: 2rem; margin: 0 0 4px; line-height: 1.02; }
-h2 { font-size: 1.18rem; margin: 0; }
+/* Plakat-Typo: H1 als kondensierte Industrie-Signage (Referenz-Upgrade) */
+h1 { font-size: clamp(2.4rem, 2rem + 2.2vw, 3.4rem); margin: 0 0 4px; line-height: 0.92; text-transform: uppercase; letter-spacing: 0.012em; }
+h2 { font-size: 1.22rem; margin: 0; }
 h3 { font-size: 1rem; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.045em; color: var(--muted); }
 p { line-height: 1.55; }
 button { font-family: inherit; }
@@ -97,7 +98,8 @@ button { font-family: inherit; }
   font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
 }
 
-.eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.72rem; font-weight: 700; color: var(--muted); }
+/* Eyebrows als Mono-Readout — Messgeräte-Beschriftung statt Deko-Label */
+.eyebrow { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.68rem; font-weight: 500; color: var(--muted); }
 .muted { color: var(--muted); }
 .small { font-size: 0.78rem; }
 
@@ -122,7 +124,31 @@ button { font-family: inherit; }
 .linkbtn { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.82rem; font-weight: 600; padding: 0; }
 
 .content { flex: 1; padding: 18px; padding-bottom: 104px; }
-.screen { display: flex; flex-direction: column; gap: 16px; animation: fade-up var(--dur) var(--ease) both; }
+
+/* ---- Feuchteschleier + Routen-Übergänge (Referenz-Upgrade) ---- */
+.fluid-field { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; }
+.app, .login-inner { position: relative; z-index: 1; }
+/* Screenwechsel: Blur-Rise — die neue Ansicht kondensiert aus dem Schleier. */
+.route-view { animation: route-in 0.36s var(--ease) both; }
+@keyframes route-in {
+  from { opacity: 0; transform: translateY(16px); filter: blur(9px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+.screen { display: flex; flex-direction: column; gap: 16px; }
+/* Inhalte staffeln sich ein — Karte für Karte, wie eine Messreihe. */
+.screen > * { animation: fade-up 0.45s var(--ease) backwards; }
+.screen > *:nth-child(2) { animation-delay: 0.04s; }
+.screen > *:nth-child(3) { animation-delay: 0.08s; }
+.screen > *:nth-child(4) { animation-delay: 0.12s; }
+.screen > *:nth-child(5) { animation-delay: 0.16s; }
+.screen > *:nth-child(6) { animation-delay: 0.20s; }
+.screen > *:nth-child(n+7) { animation-delay: 0.24s; }
+/* Titel-Reveal: Letter-Spacing zieht sich zusammen — Signage rastet ein. */
+.screen > h1, .screen-head h1, .detail-head h1 { animation: title-in 0.55s var(--ease) both; }
+@keyframes title-in {
+  from { opacity: 0; transform: translateY(0.3em); letter-spacing: 0.08em; }
+  to { opacity: 1; transform: none; letter-spacing: 0.012em; }
+}
 .screen-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .screen-head h1 { margin: 0; }
 
@@ -187,7 +213,7 @@ button { font-family: inherit; }
 /* Hero tile */
 .hero { display: flex; flex-direction: column; gap: 16px; }
 .hero-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.hero h1 { font-size: 2.3rem; }
+.hero h1 { font-size: clamp(2.3rem, 2rem + 1.6vw, 3rem); }
 
 /* ---- Signatur: Die Trocknungslinie (Feuchte-Instrument) ---- */
 .dryline { display: flex; flex-direction: column; gap: 7px; }
@@ -448,19 +474,24 @@ input::placeholder { color: var(--muted); }
 .modal-actions .btn { flex: 1; justify-content: center; }
 @media (min-width: 560px) { .modal-backdrop { align-items: center; } .modal { border-radius: 22px; animation: rise 0.28s var(--ease); } }
 
-/* Login */
-.login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 22px; background: var(--bg); position: relative; overflow: hidden; }
-/* Trocknungslinie als Lichtband im Hintergrund: nass (links) → trocken (rechts) */
-.login::before { content: ""; position: absolute; left: -10%; right: -10%; top: 50%; height: 340px; transform: translateY(-50%);
-  background: radial-gradient(60% 90% at 15% 50%, color-mix(in srgb, var(--wet) 24%, transparent), transparent 70%),
-              radial-gradient(60% 90% at 85% 50%, color-mix(in srgb, var(--dry) 22%, transparent), transparent 70%);
-  filter: blur(30px); }
-.login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 30px; max-width: 430px; width: 100%;
-  box-shadow: var(--shadow-md); position: relative; overflow: hidden; animation: rise 0.4s var(--ease) both; }
+/* Login — Hero über dem Feuchteschleier: Plakat-Typo, Karte in Glas */
+.login { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 22px; background: var(--bg); position: relative; overflow: hidden; }
+.login-inner { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 22px; }
+.login-hero { animation: rise 0.6s var(--ease) both; }
+.login-eyebrow { margin: 0 0 2px 3px; color: var(--accent); }
+.login-title { font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  font-size: clamp(4.8rem, 24vw, 8.5rem); line-height: 0.8; margin: 4px 0 12px; letter-spacing: 0.005em;
+  background: linear-gradient(105deg, var(--text) 30%, var(--accent) 50%, var(--text) 72%);
+  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: title-in 0.7s var(--ease) both, sheen 7s var(--ease) 1.2s infinite; }
+.login-claim { color: var(--muted); font-size: 1.02rem; margin: 0 0 0 3px; }
+.login-claim em { color: var(--dry); }
+@keyframes sheen { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+.login-card { background: color-mix(in srgb, var(--surface) 74%, transparent);
+  backdrop-filter: blur(20px) saturate(1.35); -webkit-backdrop-filter: blur(20px) saturate(1.35);
+  border: 1px solid var(--border); border-radius: 22px; padding: 26px; width: 100%;
+  box-shadow: var(--shadow-md); position: relative; overflow: hidden; animation: rise 0.55s var(--ease) 0.12s both; }
 .login-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--drygrad); }
-.login-brand { font-size: 1.9rem; font-weight: 700; display: flex; align-items: center; gap: 12px; letter-spacing: 0.02em; text-transform: uppercase; }
-.login-brand .logo { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center;
-  background: var(--drygrad); color: #fff; box-shadow: var(--shadow-glow); }
 .login-sub { color: var(--muted); margin: 8px 0 18px; }
 .login-hint { font-size: 0.82rem; color: var(--muted); background: var(--surface-2); padding: 12px; border-radius: var(--radius-sm); }
 .login-users { display: flex; flex-direction: column; gap: 9px; margin-top: 18px; }
@@ -563,7 +594,9 @@ input::placeholder { color: var(--muted); }
   .topbar, .tabbar { display: none; }
   .sidebar { display: flex; flex-direction: column; width: 250px; flex: none;
     position: sticky; top: 0; height: 100vh; height: 100dvh;
-    padding: 22px 14px 18px; background: var(--surface); border-right: 1px solid var(--hairline); }
+    padding: 22px 14px 18px; border-right: 1px solid var(--hairline);
+    background: color-mix(in srgb, var(--surface) 78%, transparent);
+    backdrop-filter: blur(20px) saturate(1.35); -webkit-backdrop-filter: blur(20px) saturate(1.35); }
   .sidebar .brand { padding: 0 8px 10px; }
   .content { padding: 30px 36px 48px; max-width: 1200px; width: 100%; margin: 0 auto; }
 }

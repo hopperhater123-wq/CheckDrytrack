@@ -2,10 +2,11 @@ import { useState } from "react";
 import type { Benutzer } from "../domain/types";
 import { ROLLEN_LABEL } from "../domain/roles";
 import { ms365Aktiv, ms365Anmelden } from "../domain/auth";
-import { Icon } from "../ui/Icon";
+import { FluidField } from "../ui/FluidField";
 
 // Anmeldung: Single-Sign-On über Microsoft 365 (FR-SEC-001) wenn konfiguriert,
 // sonst Demo-Login (Rolle wählen). Der Demo-Zugang bleibt als Fallback erhalten.
+// Optik: Hero-Moment über dem Feuchteschleier — Plakat-Typo, Karte in Glas.
 export function Login({ users, onLogin, ms365Fehler }: { users: Benutzer[]; onLogin: (u: Benutzer) => void; ms365Fehler?: string | null }) {
   const mit365 = ms365Aktiv();
   const [laedt, setLaedt] = useState(false);
@@ -20,9 +21,15 @@ export function Login({ users, onLogin, ms365Fehler }: { users: Benutzer[]; onLo
 
   return (
     <div className="login">
-      <div className="login-card">
-        <div className="login-brand"><span className="logo"><Icon name="droplet" size={20} strokeWidth={2} /></span> Torrek</div>
-        <p className="login-sub">Digitale Arbeitsplattform für Gebäudetrocknung</p>
+      <FluidField variante="hero" />
+      <div className="login-inner">
+        <header className="login-hero">
+          <p className="eyebrow login-eyebrow">Feldinstrument · Gebäudetrocknung</p>
+          <h1 className="login-title">Torrek</h1>
+          <p className="login-claim">Nass ist ein Zustand. <em>Trocken ist ein Ergebnis.</em></p>
+        </header>
+        <div className="login-card">
+          <p className="eyebrow">Anmeldung</p>
 
         {mit365 ? (
           <>
@@ -58,6 +65,7 @@ export function Login({ users, onLogin, ms365Fehler }: { users: Benutzer[]; onLo
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   );
