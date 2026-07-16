@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#FBF9F5">
+<meta name="apple-mobile-web-app-title" content="Torrek Scan">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>Torrek Scan</title>
 <style>
   :root{--papier:#FBF9F5;--tinte:#1C1A17;--grau:#6B6559;--linie:#E2DCD0;
@@ -207,13 +211,18 @@
 <div class="wrap"><div class="bar" id="bar"></div><div id="app"></div></div>
 <input type="file" id="cam" accept="image/*" capture="environment">
 
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- Lokal gebündelt statt CDN: die App startet und scannt auch beim ersten Mal offline. -->
+<script src="vendor/zxing-0.21.3.min.js"></script>
+<script src="vendor/xlsx-0.18.5.full.min.js"></script>
 <script>
 /* ================= Konfiguration ================= */
 const FN  = "https://zkuawtrwtmxhayshuxzv.supabase.co/functions/v1/torrek-scan";
 const KEY = "torrek-scan.cfg";
 const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Service Worker: App-Shell + Libs cachen → offline lauffähig und installierbar.
+if("serviceWorker" in navigator)
+  addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 
 (function intro(){
   const bc=document.querySelector(".bc"), el=document.getElementById("intro");
