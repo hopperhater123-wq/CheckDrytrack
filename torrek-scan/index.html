@@ -45,16 +45,19 @@
   .btn.go{background:var(--gruen);color:#fff}
   .btn.ghost{background:none;border:1.5px solid var(--linie);color:var(--grau);padding:14px}
   .btn:disabled{opacity:.4}
-  .stage{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4;margin:12px 0}
+  .stage{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4;margin:12px 0;
+    perspective:900px;perspective-origin:50% 38%}
   video{width:100%;height:100%;object-fit:cover;display:block}
-  .reticle{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .reticle{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    pointer-events:none;transform-style:preserve-3d}
   .reticle div{width:82%;height:24%;border:2px solid rgba(255,255,255,.65);border-radius:8px;
-    box-shadow:0 0 0 2000px rgba(0,0,0,.28)}
+    box-shadow:0 0 0 2000px rgba(0,0,0,.28);transform:rotateX(9deg)}
   .chip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--linie);
     border-radius:99px;padding:8px 14px;font-size:15px;font-weight:800;
     font-family:ui-monospace,Menlo,monospace;margin-bottom:14px}
   .dot{width:8px;height:8px;border-radius:99px;background:var(--gruen)}
-  .readout{background:var(--nacht);border-radius:16px;padding:18px;margin-bottom:10px;border:2px solid var(--sonne)}
+  .readout{background:var(--nacht);border-radius:16px;padding:18px;margin-bottom:10px;border:2px solid var(--sonne);
+    perspective:640px;transform-style:preserve-3d}
   .readout .cap{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sonne);
     font-weight:800;margin-bottom:10px}
   .num{font-family:ui-monospace,Menlo,monospace;font-size:46px;font-weight:700;color:#F2EEE6;
@@ -110,13 +113,16 @@
 
   /* Intro: läuft, während die Kamera aufwacht — kostet also keine Zeit */
   #intro{position:fixed;inset:0;background:var(--nacht);z-index:60;display:flex;
-    flex-direction:column;align-items:center;justify-content:center;gap:22px}
+    flex-direction:column;align-items:center;justify-content:center;gap:22px;
+    perspective:820px;perspective-origin:50% 42%}
   #intro.weg{animation:introWeg .5s var(--weich) forwards}
   @keyframes introWeg{to{opacity:0;transform:scale(1.05);visibility:hidden}}
-  .marke{font-size:26px;font-weight:800;letter-spacing:-.03em;color:var(--papier);
-    opacity:0;animation:markeAuf .5s var(--weich) .6s forwards}
-  .marke span{color:var(--sonne)}
-  @keyframes markeAuf{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .marke{font-size:27px;font-weight:800;letter-spacing:-.03em;color:var(--papier);
+    transform-style:preserve-3d;opacity:0;animation:markeAuf .6s var(--weich) .6s forwards;
+    text-shadow:0 1px 0 #0b0a08,0 2px 0 #0b0a08,0 6px 15px rgba(0,0,0,.55)}
+  .marke span{color:var(--sonne);text-shadow:0 1px 0 #3a2a0c,0 0 18px rgba(232,163,61,.45)}
+  @keyframes markeAuf{from{opacity:0;transform:translateY(6px) translateZ(-70px) rotateX(-58deg)}
+    to{opacity:1;transform:none}}
   .bc{position:relative;display:flex;align-items:flex-end;gap:3px;height:56px}
   .bc i{display:block;width:3px;background:var(--papier);border-radius:1px;transform:scaleY(0);
     transform-origin:bottom;animation:bar .4s var(--federn) forwards}
@@ -150,16 +156,19 @@
   .stage{box-shadow:0 18px 40px -22px rgba(0,0,0,.7);animation:stageRein .5s var(--weich) both}
   @keyframes stageRein{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
   .reticle div{transition:transform .3s var(--federn),border-color .2s}
-  .stage.hit .reticle div{transform:scale(.94);border-color:var(--gruen)}
+  .stage.hit .reticle div{transform:rotateX(9deg) scale(.94);border-color:var(--gruen)}
   .scanline{position:absolute;left:12%;right:12%;height:2px;background:var(--koralle);
-    box-shadow:0 0 12px var(--koralle);pointer-events:none;animation:sweep 2.6s ease-in-out infinite}
+    box-shadow:0 0 12px var(--koralle),0 0 34px rgba(226,87,76,.55);pointer-events:none;
+    transform:translateZ(48px);animation:sweep 2.6s ease-in-out infinite}
   @keyframes sweep{0%,100%{top:40%}50%{top:60%}}
 
   .chip{animation:chipRein .42s var(--federn) both}
   @keyframes chipRein{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
-  .readout{box-shadow:0 14px 34px -20px rgba(20,18,15,.9);animation:readRein .42s var(--weich) .04s both}
+  .readout{box-shadow:0 16px 34px -18px rgba(20,18,15,.95),inset 0 1px 0 rgba(255,255,255,.05),
+    inset 0 -10px 26px rgba(0,0,0,.45);animation:readRein .5s var(--weich) .04s both}
   @keyframes readRein{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
-  .num{font-variant-numeric:tabular-nums}
+  /* Die Ziffern heben sich aus der vertieften Gerätefläche — Tiefe ohne Kippen (Lesbarkeit bleibt). */
+  .num{font-variant-numeric:tabular-nums;transform:translateZ(26px)}
   .num d{display:inline-block;animation:ziffer .18s var(--federn) both}
   @keyframes ziffer{from{opacity:0;transform:translateY(-8px) scale(.7)}to{opacity:1;transform:none}}
 
