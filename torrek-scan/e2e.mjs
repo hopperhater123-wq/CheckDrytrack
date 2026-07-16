@@ -195,6 +195,21 @@ try {
     check('Offline: Erfassung lokal gespeichert (1 Gerät)', (await crumb(page)) === '1 Gerät');
     await ctx.close();
   }
+
+  // ============ Szenario D — Darstellung (Hell/Dunkel) ============
+  {
+    const ctx = await browser.newContext({ viewport: { width: 420, height: 900 }, colorScheme: 'light' });
+    const page = await ctx.newPage();
+    await page.goto(base, { waitUntil: 'load' });
+    await page.waitForTimeout(2600);
+    check('Start hell (data-theme=light)', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'light');
+    await page.fill('#p', '2026 000111');
+    await page.click('.seg button:has-text("Dunkel")');
+    await page.waitForTimeout(300);
+    check('Umschalten auf Dunkel wirkt', (await page.evaluate(() => document.documentElement.dataset.theme)) === 'dark');
+    check('Theme-Wechsel behält getippte Felder', (await page.inputValue('#p')) === '2026 000111');
+    await ctx.close();
+  }
 } catch (e) {
   check('Testlauf ohne unerwartete Ausnahme', false);
   console.error('\nAusnahme:', e && e.message);

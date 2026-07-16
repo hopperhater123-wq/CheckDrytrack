@@ -11,8 +11,18 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <title>Torrek Scan</title>
 <style>
-  :root{--papier:#FBF9F5;--tinte:#1C1A17;--grau:#6B6559;--linie:#E2DCD0;
-    --sonne:#E8A33D;--gruen:#5FA777;--koralle:#E2574C;--nacht:#14120F}
+  :root{--papier:#FBF9F5;--tinte:#1C1A17;--grau:#6B6559;--linie:#E2DCD0;--feld:#FFFFFF;
+    --sonne:#E8A33D;--gruen:#5FA777;--koralle:#E2574C;--nacht:#14120F;--petrol:#0F7C86;--petrolhell:#3BB6BF}
+  /* Dunkelmodus: nur die Flächen-/Text-Token drehen; die Akzente (Bernstein/Grün/
+     Koralle/Petrol) tragen in beiden Modi dieselbe Bedeutung und bleiben. */
+  :root[data-theme="dark"]{--papier:#15130F;--tinte:#F1EDE5;--grau:#9E968A;--linie:#322D25;--feld:#211E19}
+  :root[data-theme="dark"] .banner.red{background:rgba(226,87,76,.14);border-color:rgba(226,87,76,.42);color:#F2B3AC}
+  :root[data-theme="dark"] .banner.green{background:rgba(95,167,119,.15);border-color:rgba(95,167,119,.42);color:#A9D9BC}
+  :root[data-theme="dark"] .banner.amber{background:rgba(232,163,61,.15);border-color:rgba(232,163,61,.42);color:#F0C88A}
+  :root[data-theme="dark"] .row.bad{background:rgba(226,87,76,.12)}
+  :root[data-theme="dark"] .net.off{background:rgba(226,87,76,.2);color:#F2B3AC}
+  :root[data-theme="dark"] .st.s{background:rgba(95,167,119,.2);color:#A9D9BC}
+  :root[data-theme="dark"] .st.e{background:rgba(226,87,76,.2);color:#F2B3AC}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{background:var(--papier);color:var(--tinte);min-height:100dvh;overscroll-behavior:none;
     font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -32,11 +42,11 @@
   label{display:block;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
     color:var(--grau);margin:0 0 6px}
   input[type=text]{width:100%;padding:13px 14px;border:1.5px solid var(--linie);border-radius:11px;
-    font-size:17px;font-family:inherit;background:#fff;margin-bottom:16px}
-  input:focus{outline:none;border-color:var(--sonne)}
+    font-size:17px;font-family:inherit;background:var(--feld);margin-bottom:16px}
+  input:focus{outline:none;border-color:var(--petrol)}
   button{cursor:pointer;font-family:inherit}
   .seg{display:flex;gap:8px;margin-bottom:22px}
-  .seg button{flex:1;padding:14px 6px;border:1.5px solid var(--linie);background:#fff;border-radius:11px;
+  .seg button{flex:1;padding:14px 6px;border:1.5px solid var(--linie);background:var(--feld);border-radius:11px;
     font-size:15px;font-weight:700;color:var(--grau)}
   .seg button[aria-pressed=true]{background:var(--tinte);border-color:var(--tinte);color:var(--papier)}
   .btn{width:100%;padding:17px;border:none;border-radius:13px;font-size:16.5px;font-weight:800;
@@ -52,27 +62,27 @@
     pointer-events:none;transform-style:preserve-3d}
   .reticle div{width:82%;height:24%;border:2px solid rgba(255,255,255,.65);border-radius:8px;
     box-shadow:0 0 0 2000px rgba(0,0,0,.28);transform:rotateX(9deg)}
-  .chip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--linie);
+  .chip{display:inline-flex;align-items:center;gap:8px;background:var(--feld);border:1.5px solid var(--linie);
     border-radius:99px;padding:8px 14px;font-size:15px;font-weight:800;
     font-family:ui-monospace,Menlo,monospace;margin-bottom:14px}
   .dot{width:8px;height:8px;border-radius:99px;background:var(--gruen)}
-  .readout{background:var(--nacht);border-radius:16px;padding:18px;margin-bottom:10px;border:2px solid var(--sonne);
+  .readout{background:var(--nacht);border-radius:16px;padding:18px;margin-bottom:10px;border:2px solid var(--petrolhell);
     perspective:640px;transform-style:preserve-3d}
-  .readout .cap{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sonne);
+  .readout .cap{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--petrolhell);
     font-weight:800;margin-bottom:10px}
   .num{font-family:ui-monospace,Menlo,monospace;font-size:46px;font-weight:700;color:#F2EEE6;
     text-align:center;min-height:56px;word-break:break-all}
-  .num .cur{color:var(--sonne);animation:bl 1s steps(2) infinite}
+  .num .cur{color:var(--petrolhell);animation:bl 1s steps(2) infinite}
   @keyframes bl{50%{opacity:0}}
   @media (prefers-reduced-motion:reduce){.cur{animation:none}}
   .unit{text-align:center;font-size:11px;color:#8C857A;letter-spacing:.2em;font-weight:800;margin-top:2px}
   .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
   .pad button{padding:18px 0;font-size:24px;font-weight:700;font-family:ui-monospace,Menlo,monospace;
-    background:#fff;border:1.5px solid var(--linie);border-radius:12px;color:var(--tinte)}
+    background:var(--feld);border:1.5px solid var(--linie);border-radius:12px;color:var(--tinte)}
   .pad button:active{background:var(--linie)}
   .pad button.fn{font-size:16px;font-family:inherit;font-weight:800;color:var(--grau)}
   .photo{display:flex;align-items:center;gap:12px;border:1.5px dashed var(--linie);border-radius:12px;
-    padding:12px;margin-bottom:10px;background:#fff}
+    padding:12px;margin-bottom:10px;background:var(--feld)}
   .photo img{width:54px;height:54px;object-fit:cover;border-radius:8px;flex:none;background:var(--linie)}
   .photo.done{border-style:solid;border-color:var(--gruen)}
   .photo .t{font-size:13.5px;font-weight:700}.photo .s{font-size:12px;color:var(--grau);margin-top:2px}
@@ -100,13 +110,13 @@
   .meta{font-size:12.5px;color:var(--grau);line-height:1.8;margin:16px 0}
   .meta b{color:var(--tinte)}
   .typen{display:flex;flex-direction:column;gap:8px}
-  .typen button{padding:17px 16px;border:1.5px solid var(--linie);background:#fff;border-radius:12px;
+  .typen button{padding:17px 16px;border:1.5px solid var(--linie);background:var(--feld);border-radius:12px;
     font-size:16px;font-weight:700;color:var(--tinte);text-align:left}
   .typen button:active{background:var(--linie)}
   .typen button.unk{color:var(--grau);font-weight:600;border-style:dashed}
   .empty{font-size:13.5px;color:#B4AC9E;text-align:center;padding:26px 0;line-height:1.6}
   .foot{font-size:11px;color:#B4AC9E;text-align:center;margin-top:16px;line-height:1.6}
-  button:focus-visible,input:focus-visible{outline:3px solid var(--sonne);outline-offset:2px}
+  button:focus-visible,input:focus-visible{outline:3px solid var(--petrol);outline-offset:2px}
 
   /* ================= Motion ================= */
   :root{--federn:cubic-bezier(.34,1.3,.5,1);--weich:cubic-bezier(.22,.9,.3,1)}
@@ -120,7 +130,7 @@
   .marke{font-size:27px;font-weight:800;letter-spacing:-.03em;color:var(--papier);
     transform-style:preserve-3d;opacity:0;animation:markeAuf .6s var(--weich) .6s forwards;
     text-shadow:0 1px 0 #0b0a08,0 2px 0 #0b0a08,0 6px 15px rgba(0,0,0,.55)}
-  .marke span{color:var(--sonne);text-shadow:0 1px 0 #3a2a0c,0 0 18px rgba(232,163,61,.45)}
+  .marke span{color:var(--petrolhell);text-shadow:0 1px 0 #06343a,0 0 20px rgba(59,182,191,.55)}
   @keyframes markeAuf{from{opacity:0;transform:translateY(6px) translateZ(-70px) rotateX(-58deg)}
     to{opacity:1;transform:none}}
   .bc{position:relative;display:flex;align-items:flex-end;gap:3px;height:56px}
@@ -144,7 +154,7 @@
   .net.q{animation:puls 1.6s ease-in-out infinite}
   @keyframes puls{50%{opacity:.55}}
   input[type=text]{transition:border-color .2s var(--weich),box-shadow .2s var(--weich)}
-  input[type=text]:focus{box-shadow:0 0 0 4px rgba(232,163,61,.14)}
+  input[type=text]:focus{box-shadow:0 0 0 4px rgba(15,124,134,.16)}
   .seg button{transition:transform .22s var(--federn),background .22s var(--weich),color .22s,border-color .22s}
   .seg button[aria-pressed=true]{transform:scale(1.02)}
   .seg button:active{transform:scale(.97)}
@@ -232,6 +242,20 @@ const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Service Worker: App-Shell + Libs cachen → offline lauffähig und installierbar.
 if("serviceWorker" in navigator)
   addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+
+/* ================= Darstellung (Hell/Dunkel) =================
+   Voreinstellung „auto" folgt dem System; „light"/"dark" erzwingen. */
+const THEMEKEY="torrek-scan.theme";
+const themePref=()=>{try{return localStorage.getItem(THEMEKEY)||"auto"}catch(e){return "auto"}};
+function applyTheme(){
+  const pref=themePref();
+  const dunkel = pref==="dark" || (pref==="auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme = dunkel?"dark":"light";
+  const m=document.querySelector('meta[name=theme-color]'); if(m) m.content = dunkel?"#15130F":"#FBF9F5";
+}
+function setTheme(p){ try{localStorage.setItem(THEMEKEY,p)}catch(e){} sichereSetupFelder(); applyTheme(); render(); }
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{ if(themePref()==="auto") applyTheme(); });
+applyTheme();
 
 (function intro(){
   const bc=document.querySelector(".bc"), el=document.getElementById("intro");
@@ -444,6 +468,11 @@ function render(){
       <div class="seg">
         <button aria-pressed="${!ab}" onclick="setModus('aufbau')">Aufbau</button>
         <button aria-pressed="${ab}" onclick="setModus('abbau')">Abbau</button></div>
+      <label>Darstellung</label>
+      <div class="seg">
+        <button aria-pressed="${themePref()==='auto'}" onclick="setTheme('auto')">Auto</button>
+        <button aria-pressed="${themePref()==='light'}" onclick="setTheme('light')">Hell</button>
+        <button aria-pressed="${themePref()==='dark'}" onclick="setTheme('dark')">Dunkel</button></div>
       <button class="btn primary" onclick="los()">Loslegen</button>
       ${offenN?`<p class="foot">${offenN} ${nomen(offenN,"Erfassung wartet","Erfassungen warten")} noch aufs Senden.</p>`:""}`;
     return;
@@ -471,7 +500,7 @@ function render(){
       <span class="crumb">Neues Gerät</span>${pill}`;
     // Leerzustand: ist die Typenliste (noch) nicht geladen — typischer Offline-Fall —
     // führen wir statt einer leeren Auswahl klar zum Weiter-ohne-Typ.
-    app.innerHTML=`<span class="chip"><span class="dot" style="background:var(--sonne)"></span>${esc(S.pending.code)}</span>
+    app.innerHTML=`<span class="chip"><span class="dot" style="background:var(--petrol)"></span>${esc(S.pending.code)}</span>
       <h1 style="font-size:21px">Was ist das für ein Gerät?</h1>
       <p class="sub" style="margin-bottom:16px">${hatTypen
         ? "Steht noch nicht im Bestand. Einmal antippen — beim nächsten Mal fragt die App nicht mehr."
@@ -563,13 +592,11 @@ function render(){
 }
 
 /* ================= Aktionen ================= */
-function setModus(m){
-  // Vor dem Re-Render die bereits getippten Felder sichern — sonst löscht
-  // der Moduswechsel Code/Projekt/Mieter (Felder stehen unter dem Umschalter).
-  const c=$("c"),p=$("p"),mm=$("m");
-  if(c)S.cfg.code=c.value; if(p)S.cfg.projekt=p.value; if(mm)S.cfg.mieter=mm.value;
-  S.cfg.modus=m;render();
-}
+// Vor jedem Re-Render des Setups die bereits getippten Felder sichern —
+// sonst löscht ein Umschalten (Modus/Darstellung) Code/Projekt/Mieter.
+function sichereSetupFelder(){const c=$("c"),p=$("p"),mm=$("m");
+  if(c)S.cfg.code=c.value; if(p)S.cfg.projekt=p.value; if(mm)S.cfg.mieter=mm.value;}
+function setModus(m){sichereSetupFelder();S.cfg.modus=m;render();}
 function go(s){stopCam();S.screen=s;render()}
 function zurueck(s){S.zurueck=true;go(s)}
 // FR-SCAN-001/002: Setup einmal ausfüllen; ohne Code/Projekt kein Start.

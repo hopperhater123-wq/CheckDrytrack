@@ -103,7 +103,14 @@ Danach deployt jeder Push automatisch; URL: `https://hopperhater123-wq.github.io
 
 ## Design
 
-Gestaltungsprinzip „Feldinstrument": Papier `#FBF9F5` / Tinte `#1C1A17`, Bernstein `#E8A33D`
-als Akzent, dunkles Ablese-Display mit Monospace-Ziffern, animiertes Barcode-Intro. Die
-Ampelfarben Rot/Gelb/Grün sind — wie im Hauptprojekt — für Bewertungen/Status reserviert.
-`prefers-reduced-motion` wird vollständig respektiert.
+Gestaltungsprinzip „Feldinstrument": Papier `#FBF9F5` / Tinte `#1C1A17`, **Petrol** `#0F7C86`
+als bedeutungsfreier Marken-/Interaktions-Akzent (Fokus, Display-Rahmen, „Scan"-Wortmarke),
+dunkles Ablese-Display mit Monospace-Ziffern, animiertes Barcode-Intro, dezente CSS-3D-Tiefe.
+
+**Farb-Bedeutung strikt getrennt:** Bernstein `#E8A33D` = **Aufbau**-Status, Grün `#5FA777`
+= **Abbau**/Erfolg, Koralle `#E2574C` = Warnung/Laser. Diese Ampel-/Statusfarben sind für
+Bewertung/Status reserviert; für Deko dient allein Petrol.
+
+**Hell-/Dunkelmodus** (Auto/Hell/Dunkel, im Setup umschaltbar, in `localStorage` gemerkt,
+Voreinstellung folgt `prefers-color-scheme`). Nur die Flächen-/Text-Token drehen; die Akzente
+tragen in beiden Modi dieselbe Bedeutung. `prefers-reduced-motion` wird vollständig respektiert.
