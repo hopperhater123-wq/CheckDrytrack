@@ -72,11 +72,27 @@ Die App ist **komplett path-relativ** (alle Pfade relativ, Service-Worker-Scope 
 unter `/torrek-scan/` (SW-Scope korrekt, Offline-Reload ok). `.nojekyll` verhindert Jekyll-
 Verarbeitung, falls über GitHub Pages ausgeliefert.
 
-**Wichtig:** GitHub Pages liefert pro Repo nur **eine** Quelle aus — hier aktuell `hosting/`
-(DryTrack). Für einen *getrennten* Deploy stehen offen: eigenes Repo mit eigener Pages-Site,
-ein externer Static-Host (Netlify/Cloudflare Pages, auf diesen Unterordner gezeigt), oder ein
-Unterpfad unter der bestehenden Seite (koppelt beide Deploys — nur wenn Trennung nicht nötig).
-Die Entscheidung liegt bewusst beim Team; DryTracks Deploy bleibt unangetastet.
+**Wichtig:** GitHub Pages liefert pro Repo nur **eine** Quelle aus — im Monorepo `checkdrytrack`
+ist das `hosting/` (DryTrack). Gewählter Weg: **eigenes Repo mit eigener Pages-Site**, damit
+DryTracks Deploy unangetastet bleibt.
+
+### Eigenes Repo (gewählter Weg)
+
+Der Pages-Workflow liegt bereits unter `.github/workflows/pages.yml` (inert, solange dieser
+Ordner Teil von `checkdrytrack` ist — Actions lesen nur Workflows im Repo-Wurzelverzeichnis).
+So wird `torrek-scan` zu seinem eigenen Repo (Ordnerinhalt = Repo-Wurzel):
+
+```bash
+# 1) Öffentliches Repo anlegen: github.com/new  →  Name: torrek-scan  (ohne README)
+# 2) Diesen Ordner als eigenes Repo pushen:
+cp -r torrek-scan /tmp/torrek-scan && cd /tmp/torrek-scan
+git init -b main && git add . && git commit -m "Torrek Scan v1"
+git remote add origin https://github.com/hopperhater123-wq/torrek-scan.git
+git push -u origin main
+# 3) Repo → Settings → Pages → Source: „GitHub Actions"
+```
+
+Danach deployt jeder Push automatisch; URL: `https://hopperhater123-wq.github.io/torrek-scan/`.
 
 ## Design
 
