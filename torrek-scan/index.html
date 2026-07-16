@@ -457,15 +457,22 @@ function render(){
   }
 
   if(S.screen==="typ"){
+    const hatTypen=S.typen.length>0;
     bar.innerHTML=`<button class="back" onclick="S.pending=null;zurueck('scan')">‹</button>
       <span class="crumb">Neues Gerät</span>${pill}`;
+    // Leerzustand: ist die Typenliste (noch) nicht geladen — typischer Offline-Fall —
+    // führen wir statt einer leeren Auswahl klar zum Weiter-ohne-Typ.
     app.innerHTML=`<span class="chip"><span class="dot" style="background:var(--sonne)"></span>${esc(S.pending.code)}</span>
       <h1 style="font-size:21px">Was ist das für ein Gerät?</h1>
-      <p class="sub" style="margin-bottom:16px">Steht noch nicht im Bestand. Einmal antippen —
-        beim nächsten Mal fragt die App nicht mehr.</p>
+      <p class="sub" style="margin-bottom:16px">${hatTypen
+        ? "Steht noch nicht im Bestand. Einmal antippen — beim nächsten Mal fragt die App nicht mehr."
+        : "Steht noch nicht im Bestand."}</p>
+      ${hatTypen?"":`<div class="banner amber"><b>Geräteliste nicht geladen</b>
+        Wahrscheinlich offline. Du kannst ohne Typ weiter — das Büro ergänzt ihn später.</div>`}
       <div class="typen">
         ${S.typen.map((t,i)=>`<button style="--i:${i}" onclick="waehleTyp('${t.id}')">${esc(t.bezeichnung)}</button>`).join("")}
-        <button class="unk" style="--i:${S.typen.length}" onclick="waehleTyp('')">Weiß ich nicht — später</button>
+        <button class="unk" style="--i:${S.typen.length}" onclick="waehleTyp('')">${
+          hatTypen?"Weiß ich nicht — später":"Ohne Typ weiter"}</button>
       </div>`;
     return;
   }
