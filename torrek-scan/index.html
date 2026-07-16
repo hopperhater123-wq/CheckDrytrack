@@ -285,8 +285,11 @@ async function ladeStammdaten(){
     await DB.cput("typen",S.typen); await DB.cput("bekannt",S.bekannt);
   }catch(e){}
 }
+// FR-SCAN-020/021: nach dem Typ nur beim ersten unbekannten Barcode fragen.
 const brauchtTyp=code=>!S.bekannt[code];
 
+// FR-SCAN-040..043: Offline-Queue — pending zuerst lokal, best-effort senden,
+// bei 401 (falscher Code) abbrechen, bei „online" automatisch nachholen.
 async function syncen(){
   if(S.sync||!navigator.onLine) return;
   S.sync=true; render();
@@ -324,6 +327,8 @@ async function startCam(){
   }catch(e){ $("camerr").innerHTML=`<div class="banner red"><b>Kamera geht nicht (${esc(e.name)})</b>
     Aus WhatsApp/Mail geöffnet? Link in Safari oder Chrome öffnen. Sonst unten eintippen.</div>`; }
 }
+// FR-SCAN-010/012/013: nur CODE-128-Ziffern übernehmen, keine Doppel,
+// im Abbau nur Geräte, die zu diesem Projekt gehören.
 function onScan(code){
   if(S.pending||!/^\d{6,14}$/.test(code)) return;
   if(meine().some(r=>r.code===code)){toast("Schon erfasst: "+code);return}
@@ -375,6 +380,7 @@ function wb(){
   const b=XLSX.utils.book_new();XLSX.utils.book_append_sheet(b,ws,"Geräteliste");return b;
 }
 const fname=()=>`Geraeteliste_${S.cfg.projekt.replace(/\s+/g,"")}_${S.cfg.modus==="abbau"?"Abbau":"Aufbau"}.xlsx`;
+// FR-SCAN-050/052: Excel als Zettel fürs Büro — teilen, sonst Download.
 async function senden(){
   const ab=S.cfg.modus==="abbau", rows=meine();
   const sum=rows.reduce((x,r)=>x+(Number(r.diff)||0),0);
@@ -535,6 +541,7 @@ function render(){
 function setModus(m){S.cfg.modus=m;render()}
 function go(s){stopCam();S.screen=s;render()}
 function zurueck(s){S.zurueck=true;go(s)}
+// FR-SCAN-001/002: Setup einmal ausfüllen; ohne Code/Projekt kein Start.
 async function los(){
   S.cfg.code=$("c").value.trim(); S.cfg.projekt=$("p").value.trim(); S.cfg.mieter=$("m").value.trim();
   if(!S.cfg.code||!S.cfg.projekt){toast("Code und Projektnummer fehlen");return}
@@ -564,6 +571,8 @@ function waehleTyp(id){
   if(id) S.bekannt[S.pending.code]=id;      // lokal sofort, Server beim Sync
   go("wert");
 }
+// FR-SCAN-030/031/032: ganze kWh speichern, im Abbau Differenz zum
+// Startstand bilden und bei negativer Differenz warnen.
 async function uebernehmen(){
   const v=parseInt(S.buf,10); if(isNaN(v))return;
   const auf=refWert(S.pending.code);
