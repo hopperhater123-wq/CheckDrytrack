@@ -65,6 +65,19 @@ Sync-Status und den Offline-Leerzustand ab (18 Checks).
 node torrek-scan/e2e.mjs
 ```
 
+## Deploy
+
+Die App ist **komplett path-relativ** (alle Pfade relativ, Service-Worker-Scope und
+`start_url` relativ) und läuft daher an jedem Ort — Site-Root **oder** Unterpfad. Verifiziert
+unter `/torrek-scan/` (SW-Scope korrekt, Offline-Reload ok). `.nojekyll` verhindert Jekyll-
+Verarbeitung, falls über GitHub Pages ausgeliefert.
+
+**Wichtig:** GitHub Pages liefert pro Repo nur **eine** Quelle aus — hier aktuell `hosting/`
+(DryTrack). Für einen *getrennten* Deploy stehen offen: eigenes Repo mit eigener Pages-Site,
+ein externer Static-Host (Netlify/Cloudflare Pages, auf diesen Unterordner gezeigt), oder ein
+Unterpfad unter der bestehenden Seite (koppelt beide Deploys — nur wenn Trennung nicht nötig).
+Die Entscheidung liegt bewusst beim Team; DryTracks Deploy bleibt unangetastet.
+
 ## Design
 
 Gestaltungsprinzip „Feldinstrument": Papier `#FBF9F5` / Tinte `#1C1A17`, Bernstein `#E8A33D`
