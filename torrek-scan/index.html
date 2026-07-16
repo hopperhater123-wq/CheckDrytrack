@@ -4,236 +4,404 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#FBF9F5">
+<meta name="theme-color" content="#090B0D">
 <meta name="apple-mobile-web-app-title" content="Torrek Scan">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>Torrek Scan</title>
 <style>
-  :root{--papier:#FBF9F5;--tinte:#1C1A17;--grau:#6B6559;--linie:#E2DCD0;--feld:#FFFFFF;
-    --sonne:#E8A33D;--gruen:#5FA777;--koralle:#E2574C;--nacht:#14120F;--petrol:#0F7C86;--petrolhell:#3BB6BF}
-  /* Dunkelmodus: nur die Flächen-/Text-Token drehen; die Akzente (Bernstein/Grün/
-     Koralle/Petrol) tragen in beiden Modi dieselbe Bedeutung und bleiben. */
-  :root[data-theme="dark"]{--papier:#15130F;--tinte:#F1EDE5;--grau:#9E968A;--linie:#322D25;--feld:#211E19}
-  :root[data-theme="dark"] .banner.red{background:rgba(226,87,76,.14);border-color:rgba(226,87,76,.42);color:#F2B3AC}
-  :root[data-theme="dark"] .banner.green{background:rgba(95,167,119,.15);border-color:rgba(95,167,119,.42);color:#A9D9BC}
-  :root[data-theme="dark"] .banner.amber{background:rgba(232,163,61,.15);border-color:rgba(232,163,61,.42);color:#F0C88A}
-  :root[data-theme="dark"] .row.bad{background:rgba(226,87,76,.12)}
-  :root[data-theme="dark"] .net.off{background:rgba(226,87,76,.2);color:#F2B3AC}
-  :root[data-theme="dark"] .st.s{background:rgba(95,167,119,.2);color:#A9D9BC}
-  :root[data-theme="dark"] .st.e{background:rgba(226,87,76,.2);color:#F2B3AC}
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  body{background:var(--papier);color:var(--tinte);min-height:100dvh;overscroll-behavior:none;
-    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
-  .wrap{max-width:520px;margin:0 auto;padding:env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 20px)}
-  .bar{display:flex;align-items:center;gap:9px;padding:14px 2px 12px;border-bottom:1px solid var(--linie);
-    position:sticky;top:0;background:var(--papier);z-index:5}
-  .crumb{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--grau);font-weight:800}
-  .back{border:none;background:none;font-size:22px;color:var(--grau);padding:2px 6px 2px 0}
-  .pill{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-    padding:4px 9px;border-radius:99px;background:var(--sonne);color:#3A2A0C}
-  .pill.ab{background:var(--gruen);color:#0E2417}
-  .net{font-size:10px;font-weight:800;padding:4px 8px;border-radius:99px;background:var(--linie);color:var(--grau)}
-  .net.off{background:#FCEBE9;color:#8E2C24}
-  .net.q{background:var(--sonne);color:#3A2A0C}
-  h1{font-size:25px;font-weight:800;letter-spacing:-.02em;margin:20px 0 6px}
-  .sub{font-size:13.5px;color:var(--grau);line-height:1.5;margin-bottom:20px}
-  label{display:block;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--grau);margin:0 0 6px}
-  input[type=text]{width:100%;padding:13px 14px;border:1.5px solid var(--linie);border-radius:11px;
-    font-size:17px;font-family:inherit;background:var(--feld);color:var(--tinte);
-    caret-color:var(--petrol);margin-bottom:16px}
-  input[type=text]::placeholder{color:var(--grau);opacity:.7}
-  input:focus{outline:none;border-color:var(--petrol)}
-  button{cursor:pointer;font-family:inherit}
-  .seg{display:flex;gap:8px;margin-bottom:22px}
-  .seg button{flex:1;padding:14px 6px;border:1.5px solid var(--linie);background:var(--feld);border-radius:11px;
-    font-size:15px;font-weight:700;color:var(--grau)}
-  .seg button[aria-pressed=true]{background:var(--tinte);border-color:var(--tinte);color:var(--papier)}
-  .btn{width:100%;padding:17px;border:none;border-radius:13px;font-size:16.5px;font-weight:800;
-    letter-spacing:-.01em;margin-top:9px;display:block;text-align:center}
-  .btn.primary{background:var(--tinte);color:var(--papier)}
-  .btn.go{background:var(--gruen);color:#fff}
-  .btn.ghost{background:none;border:1.5px solid var(--linie);color:var(--grau);padding:14px}
-  .btn:disabled{opacity:.4}
-  .stage{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:3/4;margin:12px 0;
-    perspective:900px;perspective-origin:50% 38%}
-  video{width:100%;height:100%;object-fit:cover;display:block}
-  .reticle{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    pointer-events:none;transform-style:preserve-3d}
-  .reticle div{width:82%;height:24%;border:2px solid rgba(255,255,255,.65);border-radius:8px;
-    box-shadow:0 0 0 2000px rgba(0,0,0,.28);transform:rotateX(9deg)}
-  .chip{display:inline-flex;align-items:center;gap:8px;background:var(--feld);border:1.5px solid var(--linie);
-    border-radius:99px;padding:8px 14px;font-size:15px;font-weight:800;
-    font-family:ui-monospace,Menlo,monospace;margin-bottom:14px}
-  .dot{width:8px;height:8px;border-radius:99px;background:var(--gruen)}
-  .readout{background:var(--nacht);border-radius:16px;padding:18px;margin-bottom:10px;border:2px solid var(--petrolhell);
-    perspective:640px;transform-style:preserve-3d}
-  .readout .cap{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--petrolhell);
-    font-weight:800;margin-bottom:10px}
-  .num{font-family:ui-monospace,Menlo,monospace;font-size:46px;font-weight:700;color:#F2EEE6;
-    text-align:center;min-height:56px;word-break:break-all}
-  .num .cur{color:var(--petrolhell);animation:bl 1s steps(2) infinite}
-  @keyframes bl{50%{opacity:0}}
-  @media (prefers-reduced-motion:reduce){.cur{animation:none}}
-  .unit{text-align:center;font-size:11px;color:#8C857A;letter-spacing:.2em;font-weight:800;margin-top:2px}
-  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
-  .pad button{padding:18px 0;font-size:24px;font-weight:700;font-family:ui-monospace,Menlo,monospace;
-    background:var(--feld);border:1.5px solid var(--linie);border-radius:12px;color:var(--tinte)}
-  .pad button:active{background:var(--linie)}
-  .pad button.fn{font-size:16px;font-family:inherit;font-weight:800;color:var(--grau)}
-  .photo{display:flex;align-items:center;gap:12px;border:1.5px dashed var(--linie);border-radius:12px;
-    padding:12px;margin-bottom:10px;background:var(--feld)}
-  .photo img{width:54px;height:54px;object-fit:cover;border-radius:8px;flex:none;background:var(--linie)}
-  .photo.done{border-style:solid;border-color:var(--gruen)}
-  .photo .t{font-size:13.5px;font-weight:700}.photo .s{font-size:12px;color:var(--grau);margin-top:2px}
-  input[type=file]{display:none}
-  .row{display:flex;align-items:center;gap:11px;padding:13px 2px;border-bottom:1px solid var(--linie)}
-  .row .idx{font-size:11px;color:#B4AC9E;font-weight:800;width:20px;flex:none}
-  .row .id{font-family:ui-monospace,Menlo,monospace;font-size:13.5px;font-weight:700;flex:1;word-break:break-all}
-  .row .st{font-size:9px;font-weight:800;padding:2px 6px;border-radius:99px;flex:none}
-  .st.p{background:var(--sonne);color:#3A2A0C}.st.s{background:#E6F0E9;color:#2C5D42}
-  .st.e{background:#FCEBE9;color:#8E2C24}
-  .row .val{font-family:ui-monospace,Menlo,monospace;font-size:14.5px;text-align:right;font-variant-numeric:tabular-nums}
-  .row .val small{color:var(--grau);font-size:11px;display:block;font-family:inherit}
-  .row.bad{background:#FDF0EE;border-radius:8px;padding:13px 8px;margin:0 -6px}
-  .banner{border-radius:12px;padding:13px 14px;font-size:13.5px;line-height:1.5;margin:14px 0}
-  .banner.red{background:#FCEBE9;border:1.5px solid #F3C4BF;color:#8E2C24}
-  .banner.green{background:#EDF6F0;border:1.5px solid #C3E0CE;color:#2C5D42}
-  .banner.amber{background:#FDF4E7;border:1.5px solid #F0DAB4;color:#7A5312}
-  .banner b{display:block;margin-bottom:3px}
-  .total{background:var(--tinte);color:var(--papier);border-radius:16px;padding:20px;margin:16px 0}
-  .total .cap{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#9A9186;font-weight:800}
-  .total .big{font-family:ui-monospace,Menlo,monospace;font-size:42px;font-weight:700;margin-top:8px;
-    font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-  .total .big span{font-size:15px;color:#9A9186;margin-left:6px}
-  .total .note{font-size:12px;color:#9A9186;margin-top:8px;line-height:1.45}
-  .meta{font-size:12.5px;color:var(--grau);line-height:1.8;margin:16px 0}
-  .meta b{color:var(--tinte)}
-  .typen{display:flex;flex-direction:column;gap:8px}
-  .typen button{padding:17px 16px;border:1.5px solid var(--linie);background:var(--feld);border-radius:12px;
-    font-size:16px;font-weight:700;color:var(--tinte);text-align:left}
-  .typen button:active{background:var(--linie)}
-  .typen button.unk{color:var(--grau);font-weight:600;border-style:dashed}
-  .empty{font-size:13.5px;color:#B4AC9E;text-align:center;padding:26px 0;line-height:1.6}
-  .foot{font-size:11px;color:#B4AC9E;text-align:center;margin-top:16px;line-height:1.6}
-  .arow{padding:14px 12px;border:1.5px solid var(--linie);border-radius:12px;background:var(--feld);
-    margin-bottom:10px;cursor:pointer;transition:transform .14s var(--weich),border-color .2s}
-  .arow:active{transform:scale(.99);border-color:var(--petrol)}
-  .arow .top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-  .arow .aid{font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:800}
-  .arow .top .pill{margin-left:auto}
-  .arow .ameta{font-size:12.5px;color:var(--grau)}
-  .row .id small{display:block;color:var(--grau);font-family:inherit;font-size:11px;font-weight:600;margin-top:1px}
-  button:focus-visible,input:focus-visible{outline:3px solid var(--petrol);outline-offset:2px}
+/* ═══════════════════════════════════════════════════════════
+   TORREK SCAN — Field System · Inszenierung
+   Acid/Cyan auf Tinte, Raster, Mono. Dazu jetzt: Vorhang-Intro,
+   choreografierte Screenwechsel (nur beim Wechsel, nie beim
+   Tippen), Masken-Titel, Parallax-Wasserzeichen.
+   Alles transform/opacity/clip-path. Eine Hand, Handschuh, Keller.
+   ═══════════════════════════════════════════════════════════ */
 
-  /* ================= Motion ================= */
-  :root{--federn:cubic-bezier(.34,1.3,.5,1);--weich:cubic-bezier(.22,.9,.3,1)}
+:root{
+  --ink:#090B0D; --panel:#11161A; --panel2:#171E23;
+  --line:rgba(232,244,239,.14); --line2:rgba(232,244,239,.28);
+  --paper:#F3F6F1; --muted:#8D9994; --dim:#53605B;
+  --acid:#BCFF55; --cyan:#71E4DF; --orange:#FF7148; --rot:#E2574C;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --sans:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --federn:cubic-bezier(.34,1.3,.5,1);
+  --weich:cubic-bezier(.2,.8,.2,1);
+  --buehne:cubic-bezier(.7,0,.16,1);       /* Vorhang: schwer anlaufend, satt endend */
+}
+:root[data-theme="light"]{
+  --ink:#EFF1EC; --panel:#FFFFFF; --panel2:#FFFFFF;
+  --line:rgba(9,11,13,.13); --line2:rgba(9,11,13,.26);
+  --paper:#0D1013; --muted:#5F6B66; --dim:#98A29D;
+  --acid:#5E9B12; --cyan:#0E7C86;
+}
 
-  /* Intro: läuft, während die Kamera aufwacht — kostet also keine Zeit */
-  #intro{position:fixed;inset:0;background:var(--nacht);z-index:60;display:flex;
-    flex-direction:column;align-items:center;justify-content:center;gap:22px;
-    perspective:820px;perspective-origin:50% 42%}
-  #intro.weg{animation:introWeg .5s var(--weich) forwards}
-  @keyframes introWeg{to{opacity:0;transform:scale(1.05);visibility:hidden}}
-  .marke{font-size:27px;font-weight:800;letter-spacing:-.03em;color:var(--papier);
-    transform-style:preserve-3d;opacity:0;animation:markeAuf .6s var(--weich) .6s forwards;
-    text-shadow:0 1px 0 #0b0a08,0 2px 0 #0b0a08,0 6px 15px rgba(0,0,0,.55)}
-  .marke span{color:var(--petrolhell);text-shadow:0 1px 0 #06343a,0 0 20px rgba(59,182,191,.55)}
-  @keyframes markeAuf{from{opacity:0;transform:translateY(6px) translateZ(-70px) rotateX(-58deg)}
-    to{opacity:1;transform:none}}
-  .bc{position:relative;display:flex;align-items:flex-end;gap:3px;height:56px}
-  .bc i{display:block;width:3px;background:var(--papier);border-radius:1px;transform:scaleY(0);
-    transform-origin:bottom;animation:bar .4s var(--federn) forwards}
-  .bc i.b{width:6px}
-  .laserlinie{position:absolute;left:-14px;right:-14px;height:2px;background:var(--koralle);
-    box-shadow:0 0 14px var(--koralle);opacity:0;animation:lz 1.1s var(--weich) .55s}
-  @keyframes bar{to{transform:scaleY(1)}}
-  @keyframes lz{0%{opacity:0;top:-8px}25%{opacity:1}75%{opacity:1}100%{opacity:0;top:60px}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{background:var(--ink)}
+body{
+  min-height:100dvh;min-width:320px;overflow-x:hidden;color:var(--paper);
+  font-family:var(--sans);-webkit-font-smoothing:antialiased;overscroll-behavior:none;
+  background:
+    radial-gradient(70rem 40rem at 74% -15%,rgba(113,228,223,.12),transparent 52%),
+    radial-gradient(45rem 30rem at 0 100%,rgba(188,255,85,.08),transparent 60%),
+    var(--ink);
+  background-attachment:fixed;
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.28;
+  mix-blend-mode:screen;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E")}
+:root[data-theme="light"] body::before{mix-blend-mode:multiply;opacity:.14}
 
-  /* Screenwechsel */
-  #app>*{animation:rein .34s var(--weich) both}
-  @keyframes rein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  #app.zurueck>*{animation:reinR .34s var(--weich) both}
-  @keyframes reinR{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+/* ── Parallax-Ebenen: wandern gegenläufig zum Scroll ─────── */
+#glow{position:fixed;inset:-20% -10%;z-index:0;pointer-events:none;will-change:transform;
+  background:radial-gradient(34rem 24rem at 82% 30%,rgba(113,228,223,.1),transparent 62%),
+    radial-gradient(28rem 20rem at 6% 86%,rgba(188,255,85,.07),transparent 60%)}
+#wz{position:fixed;top:9%;right:-14px;z-index:0;pointer-events:none;will-change:transform;
+  writing-mode:vertical-rl;font-weight:850;font-size:clamp(90px,26vw,150px);
+  letter-spacing:.06em;line-height:1;color:transparent;
+  -webkit-text-stroke:1px rgba(188,255,85,.09);user-select:none}
+:root[data-theme="light"] #wz{-webkit-text-stroke:1px rgba(9,11,13,.07)}
 
-  .back{transition:transform .2s var(--federn)}
-  .back:active{transform:translateX(-3px) scale(.9)}
-  .pill,.net{transition:background .3s var(--weich),color .3s var(--weich)}
-  .net.q{animation:puls 1.6s ease-in-out infinite}
-  @keyframes puls{50%{opacity:.55}}
-  input[type=text]{transition:border-color .2s var(--weich),box-shadow .2s var(--weich)}
-  input[type=text]:focus{box-shadow:0 0 0 4px rgba(15,124,134,.16)}
-  .seg button{transition:transform .22s var(--federn),background .22s var(--weich),color .22s,border-color .22s}
-  .seg button[aria-pressed=true]{transform:scale(1.02)}
-  .seg button:active{transform:scale(.97)}
-  .btn{transition:transform .16s var(--weich),box-shadow .22s var(--weich),opacity .2s}
-  .btn.primary{box-shadow:0 6px 18px -8px rgba(28,26,23,.6)}
-  .btn.go{box-shadow:0 8px 22px -9px rgba(95,167,119,.85)}
-  .btn:active:not(:disabled){transform:scale(.975) translateY(1px);box-shadow:0 2px 8px -5px rgba(0,0,0,.5)}
+.wrap{position:relative;z-index:1;max-width:520px;margin:0 auto;
+  padding:env(safe-area-inset-top) 20px calc(env(safe-area-inset-bottom) + 30px)}
+/* Die App tritt hinter dem Vorhang hervor */
+.buehne .wrap{animation:buehneAuf .8s var(--weich) .3s both}
+@keyframes buehneAuf{from{opacity:.4;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
 
-  .stage{box-shadow:0 18px 40px -22px rgba(0,0,0,.7);animation:stageRein .5s var(--weich) both}
-  @keyframes stageRein{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
-  .reticle div{transition:transform .3s var(--federn),border-color .2s}
-  .stage.hit .reticle div{transform:rotateX(9deg) scale(.94);border-color:var(--gruen)}
-  .scanline{position:absolute;left:12%;right:12%;height:2px;background:var(--koralle);
-    box-shadow:0 0 12px var(--koralle),0 0 34px rgba(226,87,76,.55);pointer-events:none;
-    transform:translateZ(48px);animation:sweep 2.6s ease-in-out infinite}
-  @keyframes sweep{0%,100%{top:40%}50%{top:60%}}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
 
-  .chip{animation:chipRein .42s var(--federn) both}
-  @keyframes chipRein{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
-  .readout{box-shadow:0 16px 34px -18px rgba(20,18,15,.95),inset 0 1px 0 rgba(255,255,255,.05),
-    inset 0 -10px 26px rgba(0,0,0,.45);animation:readRein .5s var(--weich) .04s both}
-  @keyframes readRein{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
-  /* Die Ziffern heben sich aus der vertieften Gerätefläche — Tiefe ohne Kippen (Lesbarkeit bleibt). */
-  .num{font-variant-numeric:tabular-nums;transform:translateZ(26px)}
-  .num d{display:inline-block;animation:ziffer .18s var(--federn) both}
-  @keyframes ziffer{from{opacity:0;transform:translateY(-8px) scale(.7)}to{opacity:1;transform:none}}
+/* ── Kopfzeile ───────────────────────────────────────────── */
+.bar{display:flex;align-items:center;gap:11px;padding:17px 2px 15px;position:sticky;top:0;z-index:5;
+  background:linear-gradient(180deg,var(--ink) 66%,transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line)}
+.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);font-weight:500;display:inline-flex;align-items:center;gap:9px}
+.crumb::before{content:"";width:16px;height:15px;flex:none;
+  background:linear-gradient(90deg,var(--acid) 0 2px,transparent 2px 4px,var(--acid) 4px 7px,
+    transparent 7px 10px,var(--acid) 10px 13px,transparent 13px 16px);
+  clip-path:polygon(0 52%,2px 52%,2px 100%,0 100%, 4px 23%,7px 23%,7px 100%,4px 100%,
+    10px 0,13px 0,13px 100%,10px 100%)}
+.back{border:1px solid var(--line);background:rgba(255,255,255,.035);color:var(--paper);
+  font-size:16px;width:33px;height:33px;flex:none;display:grid;place-items:center;
+  transition:transform .2s var(--federn),border-color .2s,color .2s}
+.back:active{transform:translateX(-2px) scale(.92);border-color:var(--orange);color:var(--orange)}
+.pill{margin-left:auto;font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;padding:5px 8px;background:var(--acid);color:#101A07}
+.pill.ab{background:var(--cyan);color:#052A29}
+.net{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;
+  padding:5px 8px;border:1px solid var(--line);color:var(--muted);
+  display:inline-flex;align-items:center;gap:6px}
+.net::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--acid);
+  box-shadow:0 0 12px rgba(188,255,85,.9)}
+.net.off{color:var(--orange);border-color:rgba(255,113,72,.4)}
+.net.off::before{background:var(--orange);box-shadow:0 0 12px rgba(255,113,72,.9)}
+.net.q{color:var(--cyan);border-color:rgba(113,228,223,.4)}
+.net.q::before{background:var(--cyan);box-shadow:0 0 12px rgba(113,228,223,.9);
+  animation:ping2 1.6s ease-out infinite}
+@keyframes ping2{50%{opacity:.25}}
 
-  .pad button{border-radius:14px;transition:transform .1s var(--weich),background .12s;
-    animation:padRein .3s var(--weich) both;animation-delay:calc(var(--i,0)*16ms)}
-  @keyframes padRein{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
-  .pad button:active{transform:scale(.9);background:var(--linie)}
+/* ── Typo ────────────────────────────────────────────────── */
+h1{font-size:clamp(40px,12vw,58px);line-height:.86;letter-spacing:-.075em;font-weight:850;
+  text-transform:uppercase;margin:30px 0 0}
+h1 em{display:block;color:var(--acid);font-style:normal}
+.sub{color:#C7D0CA;font-size:14.5px;line-height:1.6;margin:20px 0 28px;max-width:34ch}
+:root[data-theme="light"] .sub{color:#4A544F}
+label{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 9px;font-weight:500}
 
-  .photo{transition:border-color .3s var(--weich),transform .16s var(--weich)}
-  .photo:active{transform:scale(.985)}
-  .photo.done img{animation:fotoRein .45s var(--federn) both}
-  @keyframes fotoRein{from{transform:scale(.6) rotate(-6deg)}to{transform:none}}
+input[type=text]{width:100%;padding:12px 0 11px;border:0;border-bottom:1px solid rgba(188,255,85,.5);
+  background:transparent;color:var(--paper);font-family:var(--mono);font-size:17px;
+  letter-spacing:.03em;margin-bottom:22px;
+  transition:border-color .22s var(--weich),box-shadow .22s var(--weich)}
+input[type=text]::placeholder{color:var(--dim)}
+input[type=text]:focus{outline:none;border-bottom-color:var(--acid);
+  box-shadow:0 12px 26px -22px var(--acid)}
 
-  .typen button{transition:transform .14s var(--weich),border-color .2s,box-shadow .25s var(--weich);
-    animation:rein .34s var(--weich) both;animation-delay:calc(var(--i,0)*38ms)}
-  .typen button:active{transform:scale(.98);border-color:var(--sonne);
-    box-shadow:0 6px 18px -10px rgba(232,163,61,.9)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;margin-bottom:26px;
+  border:1px solid var(--line)}
+.seg button{padding:14px 4px;border:0;border-right:1px solid var(--line);background:transparent;
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);transition:background .2s var(--weich),color .2s,transform .18s var(--federn)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--paper);color:var(--ink);font-weight:700}
+.seg button:active{transform:scale(.96)}
 
-  .row{animation:zeile .3s var(--weich) both;animation-delay:calc(var(--i,0)*26ms)}
-  @keyframes zeile{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
-  .row .st{transition:background .3s var(--weich),color .3s}
-  .banner{animation:rein .34s var(--weich) both}
-  .total{box-shadow:0 20px 44px -24px rgba(28,26,23,.9);animation:totalRein .55s var(--federn) both}
-  @keyframes totalRein{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.btn{width:100%;min-height:58px;padding:18px;border:0;font-size:16px;font-weight:850;
+  letter-spacing:-.02em;margin-top:11px;display:block;text-align:center;
+  transition:transform .16s var(--weich),background .2s,color .2s,box-shadow .26s var(--weich)}
+.btn.go{background:var(--acid);color:#0B1503;box-shadow:0 16px 40px -18px rgba(188,255,85,.9)}
+.btn.primary{background:var(--paper);color:var(--ink);box-shadow:0 14px 34px -18px rgba(0,0,0,.9)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--paper);
+  font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;
+  text-transform:uppercase;min-height:50px;padding:15px}
+.btn.ghost:active{border-color:var(--acid);color:var(--acid)}
+.btn:active:not(:disabled){transform:scale(.978) translateY(1px)}
+.btn:disabled{opacity:.3}
 
-  /* Treffer — der einzige Moment, der wirklich Rückmeldung braucht */
-  #blitz{position:fixed;inset:0;background:var(--gruen);opacity:0;pointer-events:none;z-index:50}
-  #blitz.an{animation:blitz .34s var(--weich)}
-  @keyframes blitz{0%{opacity:.34}100%{opacity:0}}
-  #toast{position:fixed;left:50%;bottom:26px;background:#1C1A17;color:#FBF9F5;padding:12px 18px;
-    border-radius:99px;font-size:14px;font-weight:700;z-index:70;max-width:88%;text-align:center;
-    transform:translateX(-50%) translateY(90px);opacity:0;display:block;
-    box-shadow:0 12px 30px -12px rgba(0,0,0,.7);
-    transition:transform .42s var(--federn),opacity .3s var(--weich)}
-  #toast.an{transform:translateX(-50%) translateY(0);opacity:1}
+/* ── Kamera ──────────────────────────────────────────────── */
+.stage{position:relative;overflow:hidden;aspect-ratio:3/4;margin:16px 0;isolation:isolate;
+  background:radial-gradient(circle at 45% 40%,#2B4B49,#080A0C 68%);
+  border:1px solid rgba(188,255,85,.36);
+  box-shadow:0 34px 90px -40px rgba(0,0,0,.95)}
+video{width:100%;height:100%;object-fit:cover;display:block;opacity:.92}
+.stage::before{content:"";position:absolute;z-index:1;width:400px;height:400px;
+  right:-130px;top:-100px;border:1px solid rgba(113,228,223,.28);border-radius:50%;pointer-events:none}
+.stage::after{content:"";position:absolute;z-index:1;width:250px;height:250px;
+  right:-55px;top:-25px;border:1px solid rgba(188,255,85,.4);border-radius:50%;pointer-events:none}
+.reticle{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:2}
+.reticle div{position:relative;width:78%;aspect-ratio:2.4/1;
+  border:1px solid rgba(243,246,241,.7);box-shadow:0 0 0 100vmax rgba(0,0,0,.4);
+  transition:transform .3s var(--federn),border-color .2s;
+  animation:atmen 3.4s ease-in-out infinite}
+@keyframes atmen{50%{transform:scale(1.014)}}
+.reticle div::before,.reticle div::after{content:"";position:absolute;width:34px;height:34px;
+  border-color:var(--acid);transition:border-color .2s}
+.reticle div::before{top:-2px;left:-2px;border-left:4px solid;border-top:4px solid}
+.reticle div::after{right:-2px;bottom:-2px;border-right:4px solid;border-bottom:4px solid}
+.stage.hit .reticle div{animation:none;transform:scale(.94);border-color:var(--acid)}
+.stage.hit .reticle div::before,.stage.hit .reticle div::after{border-color:var(--paper)}
+.scanline{position:absolute;z-index:3;left:11%;right:11%;top:44%;height:2px;background:var(--acid);
+  box-shadow:0 0 22px 4px rgba(188,255,85,.64);pointer-events:none;
+  animation:laser 2.4s ease-in-out infinite}
+@keyframes laser{50%{transform:translateY(70px)}}
+.scancap{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);text-align:center;margin:0 0 16px}
 
-  /* Wer Bewegung abstellt, bekommt keine. Kein Halbweg. */
-  @media (prefers-reduced-motion:reduce){
-    *,*::before,*::after{animation:none!important;transition:none!important}
-    #intro{display:none}
-  }
+.chip{display:inline-flex;align-items:center;gap:9px;padding:9px 14px;margin-bottom:18px;
+  border:1px solid var(--line);background:rgba(255,255,255,.035);color:var(--paper);
+  font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.06em}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--acid);
+  box-shadow:0 0 12px rgba(188,255,85,.8)}
+
+/* ── Messdisplay ─────────────────────────────────────────── */
+.readout{position:relative;overflow:hidden;padding:26px 22px;margin-bottom:14px;
+  border:1px solid rgba(188,255,85,.4);isolation:isolate;
+  background:linear-gradient(145deg,rgba(113,228,223,.14),transparent 40%),
+    linear-gradient(180deg,#101619,#080A0C);
+  box-shadow:0 30px 70px -34px rgba(0,0,0,1),0 0 60px -22px rgba(188,255,85,.5)}
+.readout::before{content:"";position:absolute;z-index:-1;width:130%;height:46%;top:8%;left:-15%;
+  border-top:1px solid rgba(188,255,85,.85);border-bottom:1px solid rgba(188,255,85,.85);
+  opacity:.4;transform:skewY(-14deg);box-shadow:0 0 70px rgba(188,255,85,.13);
+  animation:sweep 5s ease-in-out infinite}
+@keyframes sweep{50%{transform:translateY(70px) skewY(-14deg);opacity:.14}}
+.readout .cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--acid);margin-bottom:14px}
+.num{font-family:var(--mono);font-size:60px;font-weight:700;color:var(--paper);text-align:center;
+  min-height:70px;word-break:break-all;letter-spacing:-.06em;font-variant-numeric:tabular-nums;
+  text-shadow:0 0 30px rgba(188,255,85,.5)}
+:root[data-theme="light"] .num{color:#F3F6F1}
+.num d{display:inline-block;animation:ziffer .18s var(--federn) both}
+@keyframes ziffer{from{opacity:0;transform:translateY(-9px) scale(.7)}to{opacity:1;transform:none}}
+.num .cur{color:var(--acid);animation:bl 1.1s steps(2) infinite}
+@keyframes bl{50%{opacity:0}}
+.unit{font-family:var(--mono);text-align:center;font-size:9px;color:#8D9994;
+  letter-spacing:.34em;margin-top:8px}
+
+.pad{display:grid;grid-template-columns:repeat(3,1fr);margin:18px 0;border:1px solid var(--line)}
+.pad button{padding:22px 0;font-family:var(--mono);font-size:24px;font-weight:600;
+  color:var(--paper);background:transparent;border:0;
+  border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+  transition:background .12s,color .12s,transform .1s var(--weich)}
+.pad button:nth-child(3n){border-right:0}
+.pad button:nth-child(n+10){border-bottom:0}
+.pad button:active{background:var(--acid);color:#0B1503;transform:scale(.94)}
+.pad button.fn{font-size:13px;letter-spacing:.1em;color:var(--muted)}
+
+.photo{display:flex;align-items:center;gap:14px;padding:13px;margin-bottom:12px;
+  border:1px dashed var(--line2);background:rgba(255,255,255,.02);
+  transition:border-color .3s var(--weich),transform .16s var(--weich)}
+.photo:active{transform:scale(.985)}
+.photo img{width:54px;height:54px;object-fit:cover;flex:none;background:var(--panel2);
+  border:1px solid var(--line)}
+.photo.done{border-style:solid;border-color:rgba(188,255,85,.6)}
+.photo.done img{animation:fotoRein .45s var(--federn) both}
+@keyframes fotoRein{from{transform:scale(.6) rotate(-6deg)}to{transform:none}}
+.photo .t{font-size:13.5px;font-weight:700}
+.photo .s{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px;
+  letter-spacing:.06em;text-transform:uppercase}
+input[type=file]{display:none}
+
+.typen{display:flex;flex-direction:column;border:1px solid var(--line)}
+.typen button{padding:19px 17px;border:0;border-bottom:1px solid var(--line);
+  background:transparent;font-size:15.5px;font-weight:700;color:var(--paper);text-align:left;
+  letter-spacing:-.02em;transition:background .16s,color .16s,transform .14s var(--weich)}
+.typen button:last-child{border-bottom:0}
+.typen button:active{background:var(--acid);color:#0B1503;transform:scale(.99)}
+.typen button.unk{font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;font-weight:500;color:var(--muted)}
+
+.row{display:flex;align-items:center;gap:12px;padding:15px 2px;border-bottom:1px solid var(--line)}
+.row .idx{font-family:var(--mono);font-size:9px;color:var(--dim);width:22px;flex:none}
+.row .id{font-family:var(--mono);font-size:12.5px;color:var(--paper);flex:1;
+  word-break:break-all;letter-spacing:.04em}
+.row .id small{display:block;font-family:var(--mono);font-size:9px;color:var(--muted);
+  margin-top:4px;letter-spacing:.05em;text-transform:uppercase}
+.row .st{font-family:var(--mono);font-size:8px;padding:3px 5px;flex:none;letter-spacing:.06em}
+.st.p{background:var(--orange);color:#2A0F06}
+.st.s{background:var(--acid);color:#101A07}
+.st.e{background:var(--rot);color:#2A0806}
+.row .val{font-family:var(--mono);font-size:14.5px;text-align:right;font-weight:600;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.row .val small{display:block;font-size:8.5px;color:var(--muted);letter-spacing:.08em;
+  text-transform:uppercase;margin-top:3px}
+.row.bad{background:rgba(255,113,72,.1);padding:15px 8px;margin:0 -6px;
+  border-bottom-color:rgba(255,113,72,.3)}
+
+.banner{padding:14px 16px;font-size:13.5px;line-height:1.55;margin:16px 0;
+  border:1px solid;border-left-width:4px}
+.banner.red{background:rgba(255,113,72,.1);border-color:rgba(255,113,72,.45);color:#FFB49B}
+.banner.green{background:rgba(188,255,85,.08);border-color:rgba(188,255,85,.45);color:#D6FF9B}
+.banner.amber{background:rgba(113,228,223,.08);border-color:rgba(113,228,223,.45);color:#A6EFEB}
+:root[data-theme="light"] .banner.red{background:#FDEDE8;color:#8E2C24}
+:root[data-theme="light"] .banner.green{background:#F1F8E4;color:#3B5910}
+:root[data-theme="light"] .banner.amber{background:#E7F6F5;color:#0A5A61}
+.banner b{display:block;margin-bottom:4px;font-weight:800}
+
+.total{position:relative;overflow:hidden;padding:26px 22px;margin:18px 0;color:var(--paper);
+  border:1px solid rgba(188,255,85,.4);isolation:isolate;
+  background:linear-gradient(145deg,rgba(113,228,223,.16),transparent 40%),
+    linear-gradient(180deg,#101619,#080A0C);
+  box-shadow:0 30px 70px -34px rgba(0,0,0,1),0 0 60px -22px rgba(188,255,85,.5)}
+.total::before{content:"";position:absolute;z-index:-1;width:130%;height:46%;top:6%;left:-15%;
+  border-top:1px solid rgba(188,255,85,.85);border-bottom:1px solid rgba(188,255,85,.85);
+  opacity:.35;transform:skewY(-14deg);animation:sweep 5s ease-in-out infinite}
+.total .cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--acid)}
+.total .big{font-family:var(--mono);font-size:58px;font-weight:700;margin-top:12px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.07em;color:#F3F6F1;
+  text-shadow:0 0 30px rgba(188,255,85,.5)}
+.total .big span{font-size:12px;color:#8D9994;margin-left:9px;letter-spacing:.1em;
+  text-transform:uppercase}
+.total .note{font-size:12.5px;color:#8D9994;margin-top:12px;line-height:1.5}
+
+.arow{padding:17px;margin-bottom:9px;cursor:pointer;border:1px solid var(--line);
+  background:rgba(255,255,255,.022);
+  transition:transform .14s var(--weich),border-color .2s,background .2s}
+.arow:active{transform:scale(.99);border-color:var(--acid);background:rgba(188,255,85,.06)}
+.arow .top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.arow .aid{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.04em}
+.arow .top .pill{margin-left:auto}
+.arow .ameta{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.05em;
+  text-transform:uppercase}
+
+.meta{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:2.1;margin:20px 0;
+  letter-spacing:.05em;text-transform:uppercase}
+.meta b{color:var(--paper);font-weight:600}
+.empty{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;
+  padding:36px 0;line-height:1.8;letter-spacing:.05em}
+.foot{font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;margin-top:20px;
+  line-height:1.8;letter-spacing:.08em;text-transform:uppercase}
+
+/* ═══ INSZENIERUNG ═══════════════════════════════════════════
+   Screen-Choreografie läuft NUR bei .wechsel (Screenwechsel).
+   Re-Renders derselben Ansicht — jede Tipptaste ruft render() —
+   bleiben völlig ruhig. Das behebt nebenbei das bisherige stille
+   Neu-Animieren bei jedem Tastendruck. */
+
+#app.wechsel>*{animation:rein .55s var(--weich) both}
+#app.wechsel.zurueck>*{animation-name:reinR}
+@keyframes rein{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes reinR{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+#app.wechsel>*:nth-child(2){animation-delay:.05s}
+#app.wechsel>*:nth-child(3){animation-delay:.1s}
+#app.wechsel>*:nth-child(4){animation-delay:.15s}
+#app.wechsel>*:nth-child(5){animation-delay:.2s}
+#app.wechsel>*:nth-child(6){animation-delay:.25s}
+#app.wechsel>*:nth-child(7){animation-delay:.3s}
+#app.wechsel>*:nth-child(8){animation-delay:.34s}
+#app.wechsel>*:nth-child(9){animation-delay:.38s}
+#app.wechsel>*:nth-child(10){animation-delay:.42s}
+#app.wechsel>*:nth-child(11){animation-delay:.45s}
+#app.wechsel>*:nth-child(12){animation-delay:.48s}
+#app.wechsel>*:nth-child(13){animation-delay:.51s}
+#app.wechsel>*:nth-child(14){animation-delay:.54s}
+#app.wechsel>*:nth-child(n+15){animation-delay:.56s}
+
+/* Titel: Maskenzug — die Zeile steigt aus einer unsichtbaren Kante */
+#app.wechsel h1{animation:zeileAuf .7s var(--buehne) .06s both}
+@keyframes zeileAuf{from{opacity:0;clip-path:inset(0 0 100% 0);transform:translateY(26px)}
+  to{opacity:1;clip-path:inset(-8% 0 0 0);transform:none}}
+
+/* Signaturen: Bühne, Display, Summe, Plakette */
+#app.wechsel .stage{animation:stageRein .6s var(--weich) both}
+@keyframes stageRein{from{opacity:0;transform:scale(.965)}to{opacity:1;transform:none}}
+#app.wechsel .readout{animation:readRein .55s var(--weich) .08s both}
+@keyframes readRein{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+#app.wechsel .total{animation:totalRein .6s var(--federn) .08s both}
+@keyframes totalRein{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+#app.wechsel .chip{animation:chipRein .42s var(--federn) both}
+@keyframes chipRein{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+#app.wechsel .pad button{animation:padRein .3s var(--weich) both;
+  animation-delay:calc(.12s + var(--i,0)*16ms)}
+@keyframes padRein{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+#app.wechsel .typen button{animation:rein .34s var(--weich) both;
+  animation-delay:calc(.08s + var(--i,0)*38ms)}
+
+/* ── Intro: Vorhang ──────────────────────────────────────── */
+#intro{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:26px}
+#intro::before,#intro::after{content:"";position:absolute;left:0;right:0;height:50.3%;z-index:-1;
+  background:radial-gradient(46rem 30rem at 50% 100%,rgba(113,228,223,.1),transparent 62%),
+    linear-gradient(180deg,#0B0E10,#060809)}
+#intro::before{top:0;border-bottom:1px solid rgba(188,255,85,.55);
+  box-shadow:0 1px 26px rgba(188,255,85,.22)}
+#intro::after{bottom:0;background:radial-gradient(46rem 30rem at 50% 0%,rgba(188,255,85,.07),transparent 60%),
+    linear-gradient(0deg,#0B0E10,#060809);
+  border-top:1px solid rgba(188,255,85,.55);box-shadow:0 -1px 26px rgba(188,255,85,.22)}
+/* Öffnen: Inhalt zieht sich zurück, dann fahren die Hälften auseinander */
+#intro.weg .bc,#intro.weg .marke,#intro.weg .untermarke{animation:inhaltWeg .22s var(--weich) forwards}
+@keyframes inhaltWeg{to{opacity:0;transform:translateY(-8px) scale(.97)}}
+#intro.weg::before{animation:vorhangOben .72s var(--buehne) .16s forwards}
+#intro.weg::after{animation:vorhangUnten .72s var(--buehne) .16s forwards}
+#intro.weg{pointer-events:none;animation:introFort .1s linear .95s forwards}
+@keyframes vorhangOben{to{transform:translateY(-101%)}}
+@keyframes vorhangUnten{to{transform:translateY(101%)}}
+@keyframes introFort{to{visibility:hidden}}
+/* Feste helle Farben: der Intro-Grund ist in BEIDEN Modi dunkel. */
+.marke{font-size:34px;font-weight:850;letter-spacing:-.075em;text-transform:uppercase;
+  color:#F3F6F1;opacity:0;animation:markeAuf .75s var(--buehne) .58s forwards}
+.marke span{color:#BCFF55;text-shadow:0 0 30px rgba(188,255,85,.6)}
+@keyframes markeAuf{from{opacity:0;clip-path:inset(0 0 100% 0);transform:translateY(20px)}
+  to{opacity:1;clip-path:inset(-10% 0 0 0);transform:none}}
+.untermarke{font-family:var(--mono);font-size:9px;letter-spacing:.4em;text-transform:uppercase;
+  color:#53605B;opacity:0;animation:unterAuf .5s var(--weich) .92s forwards}
+@keyframes unterAuf{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.bc{position:relative;display:flex;align-items:flex-end;gap:3px;height:58px}
+.bc i{display:block;width:3px;background:#F3F6F1;transform:scaleY(0);transform-origin:bottom;
+  animation:bar .4s var(--federn) forwards}
+.bc i.b{width:6px;background:#BCFF55;box-shadow:0 0 14px rgba(188,255,85,.5)}
+.laserlinie{position:absolute;left:-18px;right:-18px;height:2px;background:#BCFF55;
+  box-shadow:0 0 22px 4px rgba(188,255,85,.64);opacity:0;animation:lz 1.1s var(--weich) .55s}
+@keyframes bar{to{transform:scaleY(1)}}
+@keyframes lz{0%{opacity:0;top:-8px}25%{opacity:1}75%{opacity:1}100%{opacity:0;top:62px}}
+
+/* ── Treffer + Toast ─────────────────────────────────────── */
+#blitz{position:fixed;inset:0;pointer-events:none;z-index:50;opacity:0;
+  background:radial-gradient(circle at 50% 42%,rgba(188,255,85,.55),rgba(188,255,85,.1) 60%,transparent 78%)}
+#blitz.an{animation:blitz .38s var(--weich)}
+@keyframes blitz{0%{opacity:1}100%{opacity:0}}
+#toast{position:fixed;left:50%;bottom:26px;padding:13px 18px;z-index:70;max-width:88%;
+  text-align:center;display:block;font-family:var(--mono);font-size:11px;letter-spacing:.04em;
+  color:#090B0D;background:#BCFF55;box-shadow:0 16px 44px rgba(0,0,0,.5);
+  transform:translate(-50%,120px);opacity:0;
+  transition:transform .38s var(--federn),opacity .28s var(--weich)}
+#toast.an{transform:translate(-50%,0);opacity:1}
+
+/* Wer Bewegung abstellt, bekommt keine. Kein Halbweg. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  #intro{display:none}
+  #wz,#glow{transform:none!important}
+}
 </style>
 </head>
 <body>
-<div id="intro"><div class="bc"><div class="laserlinie"></div></div><div class="marke">Torrek <span>Scan</span></div></div>
+<div id="glow" aria-hidden="true"></div><div id="wz" aria-hidden="true">TORREK</div>
+<div id="intro"><div class="bc"><div class="laserlinie"></div></div><div class="marke">Torrek <span>Scan</span></div><div class="untermarke">Field System</div></div>
 <div id="blitz"></div>
 <div id="toast"></div>
 
@@ -262,7 +430,7 @@ function applyTheme(){
   const pref=themePref();
   const dunkel = pref==="dark" || (pref==="auto" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = dunkel?"dark":"light";
-  const m=document.querySelector('meta[name=theme-color]'); if(m) m.content = dunkel?"#15130F":"#FBF9F5";
+  const m=document.querySelector('meta[name=theme-color]'); if(m) m.content = dunkel?"#090B0D":"#EFF1EC";
 }
 function setTheme(p){ try{localStorage.setItem(THEMEKEY,p)}catch(e){} sichereSetupFelder(); applyTheme(); render(); }
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{ if(themePref()==="auto") applyTheme(); });
@@ -278,7 +446,11 @@ applyTheme();
     b.style.animationDelay=(i*22)+"ms";
     bc.appendChild(b);
   });
-  setTimeout(()=>{ el.classList.add("weg"); setTimeout(()=>el.remove(),520); },1700);
+  setTimeout(()=>{
+    document.documentElement.classList.add("buehne");   // App tritt hinter dem Vorhang hervor
+    el.classList.add("weg");
+    setTimeout(()=>el.remove(),980);
+  },1850);
 })();
 
 /* ================= Offline-Speicher =================
@@ -531,10 +703,13 @@ function render(){
     :offenN?`<span class="net q">${S.sync?"sendet…":offenN+" offen"}</span>`:`<span class="net">gesichert</span>`;
   const pill=`<span class="pill ${ab?"ab":""}">${ab?"Abbau":"Aufbau"}</span>`;
   app.classList.toggle("zurueck",S.zurueck); S.zurueck=false;
+  // Inszenierung NUR beim Screenwechsel — jede Tipptaste ruft render(),
+  // und die soll nichts erneut anfahren.
+  app.classList.toggle("wechsel", S.__screen!==S.screen); S.__screen=S.screen;
 
   if(S.screen==="setup"){
     bar.innerHTML=`<span class="crumb">Torrek Scan</span>${netz}`;
-    app.innerHTML=`<h1>Neue Liste</h1>
+    app.innerHTML=`<h1>Neue<em>Liste.</em></h1>
       <p class="sub">Einmal ausfüllen, gilt für alle Geräte.</p>
       <label>Zugangscode</label><input type="text" id="c" value="${esc(S.cfg.code)}" placeholder="vom Büro">
       <label>Projektnummer</label><input type="text" id="p" value="${esc(S.cfg.projekt)}" placeholder="2026 033996">
@@ -645,6 +820,7 @@ function render(){
     app.innerHTML=`
       <div class="stage"><video id="v" playsinline muted autoplay></video>
         <div class="scanline"></div><div class="reticle"><div></div></div></div>
+      <p class="scancap">Code 128 · 12-stellige Etikettennummer</p>
       <div id="camerr"></div>
       <p class="sub" style="text-align:center;margin:2px 0 8px">
         <b style="color:var(--tinte);font-size:19px">${rows.length}</b> erfasst${
@@ -888,6 +1064,22 @@ function tippen(){
   S.rows=(await DB.all()).sort((a,b)=>a.ts-b.ts);
   await ladeStammdaten();
   render(); syncen();
+})();
+/* Parallax: Wasserzeichen und Glut wandern gegenläufig zum Scroll.
+   Nur transform, passiver Listener, ein rAF pro Frame. */
+(function(){
+  if(ruhig) return;
+  const wz=document.getElementById("wz"), gl=document.getElementById("glow");
+  if(!wz||!gl) return;
+  let steht=false;
+  addEventListener("scroll",()=>{
+    if(steht) return; steht=true;
+    requestAnimationFrame(()=>{ steht=false;
+      const y=scrollY;
+      wz.style.transform="translateY("+(-y*.07)+"px)";
+      gl.style.transform="translateY("+(y*.05)+"px)";
+    });
+  },{passive:true});
 })();
 window.addEventListener("beforeunload",stopCam);
 </script>
