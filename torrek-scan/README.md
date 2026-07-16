@@ -28,6 +28,10 @@ Bibliotheken (ZXing, SheetJS) werden per CDN geladen. Backend ist eine Supabase 
 | Datei | Zweck |
 |---|---|
 | `index.html` | komplette App (UI, Offline-Speicher, Scan, Sync, Export) |
+| `vendor/` | lokal gebündelte Libs (ZXing, SheetJS) — statt CDN, für echtes Offline |
+| `sw.js` | Service Worker (cacht App-Shell + Libs; Edge Function bleibt unberührt) |
+| `manifest.webmanifest`, `icon.svg` | PWA-Manifest + Icon (installierbar) |
+| `e2e.mjs` | hermetischer E2E-Golden-Path (Playwright) |
 | `README.md` | dieses Dokument |
 
 ## Screens
@@ -38,8 +42,28 @@ Bibliotheken (ZXing, SheetJS) werden per CDN geladen. Backend ist eine Supabase 
 ## Lokal ansehen
 
 Statisch ausliefern, z. B. `python3 -m http.server` im Ordner, dann `index.html` im Browser
-öffnen. Kamera braucht `https` bzw. `localhost`. Ohne Backend läuft die UI vollständig
-(Erfassung landet lokal); Scan/Sync/Export benötigen Netz.
+öffnen. Kamera und Service Worker brauchen `https` bzw. `localhost`. Dank lokal gebündelter
+Libs startet und scannt die App auch **beim ersten Mal offline**; nur Sync/Backend braucht Netz.
+
+## Offline & Installierbar
+
+- **Kein CDN mehr:** ZXing und SheetJS liegen unter `vendor/` — nichts wird beim Start
+  nachgeladen. Beim Abgleich der Versionen die Dateinamen (`…-<version>.min.js`) mitziehen.
+- **Service Worker** cacht die App-Shell und die Libs. Die **Edge Function wird nie gecacht**
+  — Sync geht immer ans echte Netz, offline puffert die App selbst (IndexedDB).
+- **Installierbar** über `manifest.webmanifest` (Display „standalone").
+
+## Tests
+
+Hermetischer E2E-Golden-Path (Playwright, echtes Chromium): startet einen eigenen statischen
+Server und **mockt bzw. blockiert die Edge Function** — es geht nie ein echter Request an
+Supabase raus. Deckt Setup, Aufbau, Abbau-Differenz, Grammatik (1 Gerät / 2 Geräte),
+Sync-Status und den Offline-Leerzustand ab (18 Checks).
+
+```bash
+# aus dem Repo-Wurzelverzeichnis (nutzt playwright-core aus dem Wurzel-node_modules)
+node torrek-scan/e2e.mjs
+```
 
 ## Design
 

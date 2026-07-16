@@ -554,7 +554,13 @@ function render(){
 }
 
 /* ================= Aktionen ================= */
-function setModus(m){S.cfg.modus=m;render()}
+function setModus(m){
+  // Vor dem Re-Render die bereits getippten Felder sichern — sonst löscht
+  // der Moduswechsel Code/Projekt/Mieter (Felder stehen unter dem Umschalter).
+  const c=$("c"),p=$("p"),mm=$("m");
+  if(c)S.cfg.code=c.value; if(p)S.cfg.projekt=p.value; if(mm)S.cfg.mieter=mm.value;
+  S.cfg.modus=m;render();
+}
 function go(s){stopCam();S.screen=s;render()}
 function zurueck(s){S.zurueck=true;go(s)}
 // FR-SCAN-001/002: Setup einmal ausfüllen; ohne Code/Projekt kein Start.
