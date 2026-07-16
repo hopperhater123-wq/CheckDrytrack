@@ -1,5 +1,12 @@
 # Torrek Scan
 
+> ⛔ **Abgrenzung — verbindlich.** Torrek Scan ist ein **eigenständiges Projekt**. Die
+> bestehende **DryTrack/Torrek-Anwendung** — Code im Monorepo (`src/`, `hosting/`, `e2e/`,
+> `CLAUDE.md`, `UEBERBLICK.md` …) **und** die Notion-Doku „DryTrack — Docs" — wird durch
+> dieses Projekt **niemals verändert, kopiert-verändert oder entfernt**. Sämtliche
+> Torrek-Scan-Arbeit lebt ausschließlich in `torrek-scan/` und in der Notion-Seite
+> „Torrek-Scan.Doc". Wer hier mitarbeitet (Mensch oder KI): DryTrack ist tabu.
+
 Eigenständige, **offline-first** Erfassungs-App für **Bautrocknungs-Geräte**: Der Monteur
 scannt vor Ort per Handy-Kamera die Geräte-Barcodes, tippt den **Zählerstand (kWh)** ein und
 hängt optional ein **Foto vom Zähler** an. Beim Abbau rechnet die App automatisch die
