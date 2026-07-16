@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     if (b.aktion === "projekt") {
       const pn = norm(b.projektnummer);
       const { data: alle } = await db.from("scan_erfassung")
-        .select("code, modus, kwh, erfasst_am, typ_id")
+        .select("code, modus, kwh, erfasst_am, typ_id, standort")
         .eq("projektnummer", pn).order("erfasst_am");
       const auf = (alle ?? []).filter((r) => r.modus === "aufbau");
       const ab = new Set((alle ?? []).filter((r) => r.modus === "abbau").map((r) => r.code));
@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
           geraet_inventarnummer: r.code,
           zaehlerstand_start: Number(r.kwh),
           aufbau_datum: r.erfasst_am,
+          standort: r.standort ?? null,
         })),
       });
     }
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
       const pn = norm(b.projektnummer);
       if (!pn) return json({ fehler: "Projektnummer fehlt" }, 400);
       const { data: alle } = await db.from("scan_erfassung")
-        .select("local_id, code, modus, kwh, mieter, typ_id, foto_ref, erfasst_am")
+        .select("local_id, code, modus, kwh, mieter, typ_id, foto_ref, erfasst_am, standort")
         .eq("projektnummer", pn).order("erfasst_am");
       const rows = alle ?? [];
       // Typ-Bezeichnungen (read-only aus geraetetyp)
@@ -102,6 +103,7 @@ Deno.serve(async (req) => {
         typ_id: r.typ_id,
         typ: r.typ_id ? (typName[r.typ_id] ?? null) : null,
         erfasst_am: r.erfasst_am,
+        standort: r.standort ?? null,
         differenz: r.modus === "abbau" && aufKwh[r.code] != null
           ? +(Number(r.kwh) - aufKwh[r.code]).toFixed(2) : null,
         hat_foto: !!r.foto_ref,
@@ -144,6 +146,7 @@ Deno.serve(async (req) => {
     const { error } = await db.from("scan_erfassung").upsert({
       local_id, projektnummer: pn, mieter: norm(b.mieter) || null,
       code, typ_id: norm(b.typ_id) || null, modus, kwh, foto_ref: foto,
+      standort: norm(b.standort) || null,
     }, { onConflict: "local_id" });
     if (error) throw new Error(error.message);
 
