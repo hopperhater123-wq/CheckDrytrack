@@ -59,6 +59,13 @@ export function GeraetDetail({ inv }: { inv: string }) {
                 <span>{einsatzTage(e)} Tage</span>
                 {verbrauch && <span className={verbrauch.geschaetzt ? "verbrauch-schaetz" : "verbrauch"}>{fmtZahl(verbrauch.verbrauch)} kWh{verbrauch.geschaetzt ? " (gesch.)" : ""}</span>}
               </div>
+              {(e.foto_start || e.foto_ende) && (
+                <div className="einsatz-fotos">
+                  {e.foto_start && <img src={e.foto_start} alt="Zählerfoto Aufbau" title="Zählerfoto Aufbau" />}
+                  {e.foto_ende && <img src={e.foto_ende} alt="Zählerfoto Abbau" title="Zählerfoto Abbau" />}
+                </div>
+              )}
+              {e.notiz && <p className="einsatz-notiz">{e.notiz}</p>}
             </button>
           );
         })}

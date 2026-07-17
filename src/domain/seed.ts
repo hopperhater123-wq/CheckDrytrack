@@ -61,14 +61,14 @@ export function seedDB(): DryTrackDB {
       { id: "r-4", projekt_id: "p-3", bezeichnung: "Badezimmer OG", daemmstoff_status: "bestaetigt", daemmstoff_material_id: "mat-eps", raumtyp: "Bad", geschoss: "DG", wohneinheit: "OG", trocknung_konstruktion: null, trocknung_raum: null, trocknung_schacht: null, faekalschaden: null, freies_wasser: null, sichtbarer_schimmel: null, betroffene_flaeche_m2: null },
     ],
     einsatz: [
-      { id: "e-1", projekt_id: "p-1", geraet_inventarnummer: "KT-1001", raum_id: "r-1", aufbau_datum: tage(8), abbau_datum: null, zaehlerstand_start: 1240.5, zaehlerstand_ende: null, verbrauch_geschaetzt: false },
-      { id: "e-2", projekt_id: "p-1", geraet_inventarnummer: "KT-1002", raum_id: "r-2", aufbau_datum: tage(8), abbau_datum: null, zaehlerstand_start: 980.0, zaehlerstand_ende: null, verbrauch_geschaetzt: false },
-      { id: "e-3", projekt_id: "p-1", geraet_inventarnummer: "TU-4001", raum_id: "r-1", aufbau_datum: tage(6), abbau_datum: null, zaehlerstand_start: 55.2, zaehlerstand_ende: null, verbrauch_geschaetzt: false },
-      { id: "e-4", projekt_id: "p-2", geraet_inventarnummer: "AD-2001", raum_id: "r-3", aufbau_datum: tage(2), abbau_datum: null, zaehlerstand_start: 300.0, zaehlerstand_ende: null, verbrauch_geschaetzt: false },
+      { id: "e-1", projekt_id: "p-1", geraet_inventarnummer: "KT-1001", raum_id: "r-1", aufbau_datum: tage(8), abbau_datum: null, zaehlerstand_start: 1240.5, zaehlerstand_ende: null, verbrauch_geschaetzt: false, foto_start: null, foto_ende: null, notiz: null },
+      { id: "e-2", projekt_id: "p-1", geraet_inventarnummer: "KT-1002", raum_id: "r-2", aufbau_datum: tage(8), abbau_datum: null, zaehlerstand_start: 980.0, zaehlerstand_ende: null, verbrauch_geschaetzt: false, foto_start: null, foto_ende: null, notiz: null },
+      { id: "e-3", projekt_id: "p-1", geraet_inventarnummer: "TU-4001", raum_id: "r-1", aufbau_datum: tage(6), abbau_datum: null, zaehlerstand_start: 55.2, zaehlerstand_ende: null, verbrauch_geschaetzt: false, foto_start: null, foto_ende: null, notiz: null },
+      { id: "e-4", projekt_id: "p-2", geraet_inventarnummer: "AD-2001", raum_id: "r-3", aufbau_datum: tage(2), abbau_datum: null, zaehlerstand_start: 300.0, zaehlerstand_ende: null, verbrauch_geschaetzt: false, foto_start: null, foto_ende: null, notiz: null },
       // Abgeschlossener Einsatz mit gemessenem Verbrauch
-      { id: "e-5", projekt_id: "p-3", geraet_inventarnummer: "KT-1003", raum_id: "r-4", aufbau_datum: tage(38), abbau_datum: tage(24), zaehlerstand_start: 400.0, zaehlerstand_ende: 702.5, verbrauch_geschaetzt: false },
+      { id: "e-5", projekt_id: "p-3", geraet_inventarnummer: "KT-1003", raum_id: "r-4", aufbau_datum: tage(38), abbau_datum: tage(24), zaehlerstand_start: 400.0, zaehlerstand_ende: 702.5, verbrauch_geschaetzt: false, foto_start: null, foto_ende: null, notiz: null },
       // Abgeschlossen mit Fallback-Schätzung (defekter Zähler)
-      { id: "e-6", projekt_id: "p-3", geraet_inventarnummer: "VE-3001", raum_id: "r-4", aufbau_datum: tage(38), abbau_datum: tage(24), zaehlerstand_start: 0, zaehlerstand_ende: null, verbrauch_geschaetzt: true },
+      { id: "e-6", projekt_id: "p-3", geraet_inventarnummer: "VE-3001", raum_id: "r-4", aufbau_datum: tage(38), abbau_datum: tage(24), zaehlerstand_start: 0, zaehlerstand_ende: null, verbrauch_geschaetzt: true, foto_start: null, foto_ende: null, notiz: null },
     ],
     feed_eintrag: [
       { id: "f-1", projekt_id: "p-1", geraet_inventarnummer: "KT-1001", ursprung: "scan", kategorie: null, inhalt: "Gerät KT-1001 in Küche aufgebaut, Startzählerstand 1240,5 kWh.", autor_id: "u-monteur", erstellt_am: tage(8) },

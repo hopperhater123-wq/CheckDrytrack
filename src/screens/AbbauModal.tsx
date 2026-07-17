@@ -5,6 +5,7 @@ import { useSession } from "../app/session";
 import { store } from "../domain/store";
 import { einsatzTage } from "../domain/einsatz";
 import { fmtZahl } from "../app/format";
+import { FotoErfassung } from "../ui/FotoErfassung";
 import type { Einsatz } from "../domain/types";
 
 // Geräte-Abbau (FR-EINSATZ-002/003): Endzählerstand ODER Fallback-Schätzung bei defektem Zähler.
@@ -13,6 +14,8 @@ export function AbbauModal({ einsatz, onClose }: { einsatz: Einsatz; onClose: ()
   const { user } = useSession();
   const [defekt, setDefekt] = useState(false);
   const [endstand, setEndstand] = useState("");
+  const [foto, setFoto] = useState<string | null>(null);
+  const [notiz, setNotiz] = useState("");
   const [fehler, setFehler] = useState<string | null>(null);
 
   const geraet = db.geraet.find((g) => g.inventarnummer === einsatz.geraet_inventarnummer);
@@ -30,6 +33,8 @@ export function AbbauModal({ einsatz, onClose }: { einsatz: Einsatz; onClose: ()
       einsatz_id: einsatz.id,
       zaehlerstand_ende: defekt ? null : endNum,
       autor_id: user.id,
+      foto_ende: foto,
+      notiz,
     });
     if (!res.ok) { setFehler(res.error ?? "Fehler"); return; }
     onClose();
@@ -59,6 +64,11 @@ export function AbbauModal({ einsatz, onClose }: { einsatz: Einsatz; onClose: ()
         <div className="readout accent">
           Verbrauch: <strong>{fmtZahl(defekt ? schaetzung : gemessen ?? 0)} kWh</strong>{defekt ? " (geschätzt)" : ""}
         </div>
+
+        <FotoErfassung label="Zählerfoto Endstand (Beweis, optional)" wert={foto} onChange={setFoto} />
+        <label className="field"><span>Notiz (optional)</span>
+          <input value={notiz} onChange={(e) => setNotiz(e.target.value)} placeholder="z. B. Auffälligkeit beim Abbau" />
+        </label>
 
         {fehler && <p className="error">{fehler}</p>}
         <div className="modal-actions">

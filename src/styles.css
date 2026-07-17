@@ -394,6 +394,19 @@ input::placeholder { color: var(--muted); }
 .verbrauch { color: var(--accent); font-weight: 600; }
 .verbrauch-schaetz { color: var(--warn); font-weight: 600; }
 
+/* Zählerfoto (Beweis beim Auf-/Abbau — Errungenschaft aus „Torrek Scan") */
+.zfoto-btn { justify-content: center; }
+.zfoto-vorschau { position: relative; width: 132px; }
+.zfoto-vorschau img { display: block; width: 132px; height: 96px; object-fit: cover;
+  border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.zfoto-del { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px;
+  display: grid; place-items: center; border: none; border-radius: 50%;
+  background: rgba(0,0,0,0.6); color: #fff; cursor: pointer; }
+.zfoto-del:hover { background: var(--danger); }
+.einsatz-fotos { display: flex; gap: 8px; }
+.einsatz-fotos img { width: 64px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+.einsatz-notiz { margin: 0; font-size: 0.8rem; color: var(--muted); white-space: pre-line; }
+
 /* Feed */
 .composer { display: flex; gap: 8px; margin-bottom: 16px; }
 .composer select { width: auto; }

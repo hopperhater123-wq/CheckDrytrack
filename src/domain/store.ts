@@ -140,6 +140,8 @@ class Store {
     raum_id: string | null;
     zaehlerstand_start: number;
     autor_id: string;
+    foto_start?: string | null; // Zählerfoto als Beweis (aus „Torrek Scan" übernommen)
+    notiz?: string | null;
   }): { ok: boolean; error?: string } {
     const g = this.db.geraet.find((x) => x.inventarnummer === params.inventarnummer);
     if (!g) return { ok: false, error: `Gerät ${params.inventarnummer} nicht gefunden.` };
@@ -152,6 +154,7 @@ class Store {
         id: uid("e"), projekt_id: params.projekt_id, geraet_inventarnummer: params.inventarnummer,
         raum_id: params.raum_id, aufbau_datum: new Date().toISOString(), abbau_datum: null,
         zaehlerstand_start: params.zaehlerstand_start, zaehlerstand_ende: null, verbrauch_geschaetzt: false,
+        foto_start: params.foto_start ?? null, foto_ende: null, notiz: params.notiz?.trim() || null,
       };
       db.einsatz.push(einsatz);
       const dev = db.geraet.find((x) => x.inventarnummer === params.inventarnummer)!;
@@ -168,6 +171,8 @@ class Store {
     einsatz_id: string;
     zaehlerstand_ende: number | null; // null => Fallback-Schätzung (defekter/unlesbarer Zähler)
     autor_id: string;
+    foto_ende?: string | null; // Zählerfoto beim Abbau (Beweis, aus „Torrek Scan")
+    notiz?: string | null;
   }): { ok: boolean; error?: string } {
     const e = this.db.einsatz.find((x) => x.id === params.einsatz_id);
     if (!e) return { ok: false, error: "Einsatz nicht gefunden." };
@@ -181,6 +186,10 @@ class Store {
       einsatz.abbau_datum = new Date().toISOString();
       einsatz.zaehlerstand_ende = params.zaehlerstand_ende;
       einsatz.verbrauch_geschaetzt = params.zaehlerstand_ende === null;
+      if (params.foto_ende) einsatz.foto_ende = params.foto_ende;
+      // Abbau-Notiz an eine evtl. vorhandene Aufbau-Notiz anhängen statt sie zu überschreiben.
+      const abbauNotiz = params.notiz?.trim();
+      if (abbauNotiz) einsatz.notiz = einsatz.notiz ? `${einsatz.notiz}\n${abbauNotiz}` : abbauNotiz;
 
       const dev = db.geraet.find((x) => x.inventarnummer === einsatz.geraet_inventarnummer);
       if (dev) { dev.status = "lager"; dev.aktuelles_projekt_id = null; }

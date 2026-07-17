@@ -182,6 +182,10 @@ export interface Einsatz {
   zaehlerstand_start: number;
   zaehlerstand_ende: number | null;
   verbrauch_geschaetzt: boolean; // true = Fallback-Schätzung (FR-EINSATZ-003)
+  // Errungenschaften aus „Torrek Scan": Beweisfoto vom Zähler (Auf-/Abbau) + Notiz.
+  foto_start: string | null; // Zählerfoto beim Aufbau (komprimierte JPEG-Data-URL)
+  foto_ende: string | null;  // Zählerfoto beim Abbau
+  notiz: string | null;      // freie Notiz zum Einsatz
 }
 
 export interface FeedEintrag {

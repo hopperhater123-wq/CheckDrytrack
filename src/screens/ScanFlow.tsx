@@ -9,6 +9,7 @@ import { fmtZahl } from "../app/format";
 import { AbbauModal } from "./AbbauModal";
 import { Icon } from "../ui/Icon";
 import { CameraScanner } from "../ui/CameraScanner";
+import { FotoErfassung } from "../ui/FotoErfassung";
 import type { Einsatz } from "../domain/types";
 
 // Scanner-Flow (08 Scanner / 10 Einsätze). Kamera-Scan in Produktion;
@@ -191,6 +192,8 @@ function AufbauForm({ inv, userId, onDone }: { inv: string; userId: string; onDo
   const [projektId, setProjektId] = useState(offene[0]?.id ?? "");
   const [raumId, setRaumId] = useState("");
   const [start, setStart] = useState("");
+  const [foto, setFoto] = useState<string | null>(null);
+  const [notiz, setNotiz] = useState("");
   const [fehler, setFehler] = useState<string | null>(null);
 
   const raeume = db.raum.filter((r) => r.projekt_id === projektId);
@@ -199,7 +202,7 @@ function AufbauForm({ inv, userId, onDone }: { inv: string; userId: string; onDo
 
   const aufbauen = () => {
     setFehler(null);
-    const res = store.aufbau({ inventarnummer: inv, projekt_id: projektId, raum_id: raumId || null, zaehlerstand_start: startNum, autor_id: userId });
+    const res = store.aufbau({ inventarnummer: inv, projekt_id: projektId, raum_id: raumId || null, zaehlerstand_start: startNum, autor_id: userId, foto_start: foto, notiz });
     if (!res.ok) { setFehler(res.error ?? "Fehler"); return; }
     onDone(projektId);
   };
@@ -222,6 +225,10 @@ function AufbauForm({ inv, userId, onDone }: { inv: string; userId: string; onDo
       </label>
       <label className="field"><span>Startzählerstand (kWh)</span>
         <input inputMode="decimal" value={start} onChange={(e) => setStart(e.target.value)} placeholder="z. B. 1240,5" />
+      </label>
+      <FotoErfassung label="Zählerfoto (Beweis, optional)" wert={foto} onChange={setFoto} />
+      <label className="field"><span>Notiz (optional)</span>
+        <input value={notiz} onChange={(e) => setNotiz(e.target.value)} placeholder="z. B. Standort im Raum, Auffälligkeit" />
       </label>
       {fehler && <p className="error">{fehler}</p>}
       <button className="btn btn-primary block" onClick={aufbauen} disabled={!gueltig}>Aufbau bestätigen</button>
