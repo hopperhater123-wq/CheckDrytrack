@@ -1,11 +1,60 @@
-import { useState } from "react";
-import { Modal, AnimatePresence, motion, staggerContainer, fadeUpItem } from "../ui/motion";
+import { useRef, useState } from "react";
+import { Modal, AnimatePresence, motion, staggerContainer, fadeUpItem, useScroll, useTransform, type MotionValue } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
 import { store } from "../domain/store";
 import { PROJEKT_STATUS_LABEL } from "../app/labels";
 import { istLaufend } from "../domain/einsatz";
+import type { DryTrackDB, Projekt } from "../domain/types";
+
+// Sticky-Stapel (Referenz-Technik ②, nur Desktop): aktive Trocknungen als große
+// Karten, die beim Scrollen aufeinander stapeln — frühere Karten bleiben sticky
+// stehen und schrumpfen leicht, während die nächste darüber gleitet.
+function AktiverStapel({ projekte, db }: { projekte: Projekt[]; db: DryTrackDB }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  if (projekte.length < 2) return null; // ein Stapel braucht mindestens zwei Karten
+  return (
+    <div className="stapel" ref={ref}>
+      <p className="eyebrow" style={{ marginBottom: 2 }}>Aktive Trocknungen</p>
+      {projekte.map((p, i) => (
+        <StapelKarte key={p.id} p={p} db={db} index={i} total={projekte.length} progress={scrollYProgress} />
+      ))}
+    </div>
+  );
+}
+
+function StapelKarte({ p, db, index, total, progress }: {
+  p: Projekt; db: DryTrackDB; index: number; total: number; progress: MotionValue<number>;
+}) {
+  const nav = useNav();
+  const geraete = db.einsatz.filter((e) => e.projekt_id === p.id && istLaufend(e)).length;
+  const raeume = db.raum.filter((r) => r.projekt_id === p.id).length;
+  // Frühere Karten schrumpfen, je weiter der Stapel gescrollt ist (Referenz-Formel).
+  const zielScale = 1 - (total - 1 - index) * 0.04;
+  const scale = useTransform(progress, [index / total, 1], [1, zielScale]);
+  return (
+    <div className="stapel-slot">
+      <motion.button
+        className="stapel-karte" style={{ scale, top: 96 + index * 26 }}
+        onClick={() => nav({ name: "projekt", id: p.id })}
+      >
+        <div className="stapel-kopf">
+          <span className="stapel-nr">{p.projektnummer}</span>
+          <span className={`chip status-${p.status}`}>{PROJEKT_STATUS_LABEL[p.status]}</span>
+        </div>
+        <h2 className="stapel-titel">{p.bezeichnung}</h2>
+        <p className="muted">{p.adresse}</p>
+        <div className="stapel-fakten">
+          <span><strong>{geraete}</strong> {geraete === 1 ? "Gerät läuft" : "Geräte laufen"}</span>
+          <span><strong>{raeume}</strong> {raeume === 1 ? "Raum" : "Räume"}</span>
+          <span className="muted">seit {new Date(p.angelegt_am).toLocaleDateString("de-DE")}</span>
+        </div>
+      </motion.button>
+    </div>
+  );
+}
 
 export function ProjekteListe({ neuInitial = false }: { neuInitial?: boolean }) {
   const db = useDB();
@@ -32,6 +81,14 @@ export function ProjekteListe({ neuInitial = false }: { neuInitial?: boolean }) 
 
       <input className="search" placeholder="Projektnummer, Kunde oder Adresse…" value={suche} onChange={(e) => setSuche(e.target.value)} />
       <label className="toggle"><input type="checkbox" checked={zeigeArchiv} onChange={(e) => setZeigeArchiv(e.target.checked)} /> Abgeschlossene/stornierte anzeigen</label>
+
+      {!suche && !zeigeArchiv && (
+        <AktiverStapel
+          db={db}
+          projekte={db.projekt.filter((p) => !p.storniert && p.status !== "abgeschlossen"
+            && db.einsatz.some((e) => e.projekt_id === p.id && istLaufend(e)))}
+        />
+      )}
 
       {projekte.length === 0 && <p className="muted">Keine Projekte gefunden.</p>}
       <motion.div className="liste" variants={staggerContainer} initial="hidden" animate="show"

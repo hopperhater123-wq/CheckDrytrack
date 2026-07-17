@@ -1,6 +1,6 @@
 // PDF-Export via Druckdialog. Der Report wird in ein isoliertes iframe geschrieben
 // und dort gedruckt (sandbox-sicher) — der Browser bietet „Als PDF speichern" an.
-import type { Abnahmeprotokoll, Besuchsbericht, DryTrackDB, Ersatzfliesenbericht, Kundenzufriedenheit, Notdiensteinsatzbericht, Projekt, Stundenlohnbericht } from "./types";
+import type { Abnahmeprotokoll, Besuchsbericht, DryTrackDB, Einsatz, Ersatzfliesenbericht, Kundenzufriedenheit, Notdiensteinsatzbericht, Projekt, Stundenlohnbericht } from "./types";
 import { bewerteMessung, BEWERTUNG_LABEL } from "./mess";
 import { arbeitszeitMin, minutenZuText } from "./zeit";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "./einsatz";
@@ -734,8 +734,28 @@ export function strombriefHtml(projekt: Projekt, db: DryTrackDB): string {
       <tbody>${zeilen || "<tr><td colspan='7' class='sub'>Keine Einsätze erfasst.</td></tr>"}</tbody>
       <tfoot><tr><td colspan="6">Gesamtverbrauch (abgeschlossene Einsätze)</td><td class="num">${summe.toLocaleString("de-DE", { maximumFractionDigits: 1 })} kWh</td></tr></tfoot>
     </table>
+    ${zaehlerfotoAnhang(einsaetze)}
     <footer>${gabSchaetzung ? "¹ Näherungswert (Tage × Geräteleistung), Zähler defekt/unlesbar — ohne Gewähr (FR-EINSATZ-003). " : ""}Laufende Einsätze sind noch nicht abgerechnet. Torrek · Strombrief zum ${new Date().toLocaleDateString("de-DE")}.</footer>
   </body></html>`;
+}
+
+/** Foto-Anhang zum Strombrief: die beim Auf-/Abbau erfassten Zählerfotos als Beleg.
+ *  Data-URLs aus dem Einsatz — druckt/exportiert ohne Netz. Ohne Fotos: kein Anhang. */
+function zaehlerfotoAnhang(einsaetze: Einsatz[]): string {
+  const mitFoto = einsaetze.filter((e) => e.foto_start || e.foto_ende);
+  if (!mitFoto.length) return "";
+  const kachel = (e: Einsatz, foto: string, art: "Aufbau" | "Abbau", datum: string | null) => `
+    <figure style="margin:0;break-inside:avoid">
+      <img src="${foto}" alt="Zählerfoto ${art} ${esc(e.geraet_inventarnummer)}" style="width:100%;border:1px solid #e7e9ee;border-radius:6px" />
+      <figcaption class="sub" style="margin-top:3px">${esc(e.geraet_inventarnummer)} · ${art}${datum ? " · " + new Date(datum).toLocaleDateString("de-DE") : ""}</figcaption>
+    </figure>`;
+  const kacheln = mitFoto.flatMap((e) => [
+    e.foto_start ? kachel(e, e.foto_start, "Aufbau", e.aufbau_datum) : "",
+    e.foto_ende ? kachel(e, e.foto_ende, "Abbau", e.abbau_datum) : "",
+  ]).filter(Boolean).join("");
+  return `
+    <h2 style="font-size:13px;margin:24px 0 8px;text-transform:uppercase;letter-spacing:.04em;color:#667085">Zählerfotos (Beleg)</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${kacheln}</div>`;
 }
 
 /**

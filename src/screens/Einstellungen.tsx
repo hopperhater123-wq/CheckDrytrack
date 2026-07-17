@@ -6,6 +6,7 @@ import { ROLLEN_LABEL } from "../domain/roles";
 import { Icon } from "../ui/Icon";
 import { setSoundAn, soundAn, spiele } from "../ui/sound";
 import { setzeTheme, themeWahl, type ThemeWahl } from "../ui/theme";
+import { getSupabaseClient } from "../domain/remote";
 
 // beforeinstallprompt ist Chromium-only und untypisiert.
 interface InstallPromptEvent extends Event {
@@ -93,6 +94,63 @@ function SoundCard() {
   );
 }
 
+// Büro-Steuerung für das Nebenprodukt „Torrek Scan": die Foto-Erinnerung/-Pflicht
+// (scan_einstellung.foto_pflicht) direkt am Server umstellen. Online-only —
+// die Einstellung lebt bewusst NUR im Scan-Silo, nicht im Torrek-Sync.
+function TorrekScanCard({ sichtbar }: { sichtbar: boolean }) {
+  const [wert, setWert] = useState<string | null>(null);
+  const [status, setStatus] = useState<"laedt" | "ok" | "offline">("laedt");
+
+  useEffect(() => {
+    const sb = getSupabaseClient();
+    if (!sb || !navigator.onLine) { setStatus("offline"); return; }
+    sb.from("scan_einstellung").select("wert").eq("schluessel", "foto_pflicht").maybeSingle()
+      .then(({ data, error }) => {
+        if (error) { setStatus("offline"); return; }
+        setWert(data?.wert ?? "aus"); setStatus("ok");
+      });
+  }, []);
+
+  const setze = async (neu: string) => {
+    const sb = getSupabaseClient();
+    if (!sb) return;
+    const alt = wert;
+    setWert(neu); // optimistisch
+    const { error } = await sb.from("scan_einstellung")
+      .upsert({ schluessel: "foto_pflicht", wert: neu }, { onConflict: "schluessel" });
+    if (error) { setWert(alt); setStatus("offline"); }
+  };
+
+  if (!sichtbar) return null;
+  const OPTIONEN: [string, string, string][] = [
+    ["aus", "Aus", "kein Hinweis"],
+    ["hinweis", "Hinweis", "App erinnert ans Zählerfoto"],
+    ["pflicht", "Pflicht", "ohne Foto kein Speichern"],
+  ];
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Torrek Scan (Feld-App)</h2>
+        {status === "ok" && <span className="chip chip-live">verbunden</span>}
+      </div>
+      {status === "offline" ? (
+        <p className="muted small">Server gerade nicht erreichbar — die Einstellung braucht eine Online-Verbindung.</p>
+      ) : status === "laedt" ? (
+        <p className="muted small">Lade Einstellung …</p>
+      ) : (
+        <>
+          <p className="muted small">Zählerfoto beim Erfassen (gilt für alle Monteure der Feld-App):</p>
+          <div className="segmented" style={{ display: "flex" }}>
+            {OPTIONEN.map(([w, label]) => (
+              <button key={w} type="button" className={wert === w ? "seg active" : "seg"} onClick={() => void setze(w)}>{label}</button>
+            ))}
+          </div>
+          <p className="muted small" style={{ marginBottom: 0 }}>{OPTIONEN.find(([w]) => w === wert)?.[2]}</p>
+        </>
+      )}
+    </section>
+  );
+}
+
 export function Einstellungen() {
   const db = useDB();
   const { user, can } = useSession();
@@ -149,6 +207,8 @@ export function Einstellungen() {
           <div><dt>Freigabegrenze</dt><dd>{freigabegrenze ? `${Number(freigabegrenze).toLocaleString("de-DE")} €` : "—"} (FR-PROJ-011)</dd></div>
         </dl>
       </section>
+
+      <TorrekScanCard sichtbar={can.geraeteStammdatenVerwalten} />
 
       <section className="card">
         <div className="card-head"><h2>Daten</h2></div>

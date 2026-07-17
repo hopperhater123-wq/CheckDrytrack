@@ -1,10 +1,11 @@
 // Zentrale Motion-Bausteine — eine Quelle für Timing, Easing und wiederkehrende
 // Muster (Dialoge, Stagger-Listen). Kurz (150–250 ms), easeOut-artig, dezent.
 // Reduced-Motion wird global über <MotionConfig reducedMotion="user"> respektiert.
-import { motion, AnimatePresence, MotionConfig, type Variants } from "motion/react";
+import { motion, AnimatePresence, MotionConfig, useScroll, useTransform, type Variants, type MotionValue } from "motion/react";
 import type { ReactNode } from "react";
 
-export { motion, AnimatePresence, MotionConfig };
+export { motion, AnimatePresence, MotionConfig, useScroll, useTransform };
+export type { MotionValue };
 
 // Deckt sich mit der CSS-Variable --ease (cubic-bezier(0.16, 1, 0.3, 1)).
 export const EASE = [0.16, 1, 0.3, 1] as const;
