@@ -10,6 +10,18 @@ type BarcodeDetectorLike = { detect: (src: CanvasImageSource) => Promise<{ rawVa
 
 const FORMATE = ["qr_code", "code_128", "code_39", "code_93", "ean_13", "ean_8", "upc_a", "upc_e", "itf", "codabar"];
 
+/** EAN-13-Prüfziffer entfernen (Etiketten-Realität): Der Etikettendrucker codiert
+ *  die 12 gedruckten Ziffern als EAN-13 — die Striche tragen eine 13. Ziffer
+ *  (Prüfziffer), der Klartext auf dem Etikett nicht. Nur eine per Modulo-10
+ *  GÜLTIGE Prüfziffer wird abgeschnitten; sonst bleibt der Code unangetastet.
+ *  So ergeben Scan, Etikett und Abtippen dieselbe Inventarnummer. */
+export function ohnePruefziffer(code: string): string {
+  if (!/^\d{13}$/.test(code)) return code;
+  let summe = 0;
+  for (let i = 0; i < 12; i++) summe += Number(code[i]) * (i % 2 ? 3 : 1);
+  return (10 - (summe % 10)) % 10 === Number(code[12]) ? code.slice(0, 12) : code;
+}
+
 /** Rohwert bereinigen: bei Deep-Link-URL die Inventarnummer/Projekt-Referenz ziehen, sonst 1:1. */
 export function codeAusScan(raw: string): string {
   const s = raw.trim();
@@ -17,10 +29,10 @@ export function codeAusScan(raw: string): string {
     if (/^https?:\/\//i.test(s)) {
       const u = new URL(s);
       const inv = u.searchParams.get("inv");
-      if (inv) return inv;
+      if (inv) return ohnePruefziffer(inv);
     }
   } catch { /* kein URL */ }
-  return s;
+  return ohnePruefziffer(s);
 }
 
 export function CameraScanner({ onDetect, onClose }: { onDetect: (code: string) => void; onClose: () => void }) {
