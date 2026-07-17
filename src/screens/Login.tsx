@@ -3,11 +3,12 @@ import type { Benutzer } from "../domain/types";
 import { ROLLEN_LABEL } from "../domain/roles";
 import { ms365Aktiv, ms365Anmelden } from "../domain/auth";
 import { FluidField } from "../ui/FluidField";
+import { AnimatedText } from "../ui/AnimatedText";
 
 // Anmeldung: Single-Sign-On über Microsoft 365 (FR-SEC-001) wenn konfiguriert,
 // sonst Demo-Login (Rolle wählen). Der Demo-Zugang bleibt als Fallback erhalten.
 // Optik: Hero-Moment über dem Feuchteschleier — Plakat-Typo, Karte in Glas.
-export function Login({ users, onLogin, ms365Fehler }: { users: Benutzer[]; onLogin: (u: Benutzer) => void; ms365Fehler?: string | null }) {
+export function Login({ users, onLogin, ms365Fehler, introAktiv = false }: { users: Benutzer[]; onLogin: (u: Benutzer) => void; ms365Fehler?: string | null; introAktiv?: boolean }) {
   const mit365 = ms365Aktiv();
   const [laedt, setLaedt] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -26,7 +27,15 @@ export function Login({ users, onLogin, ms365Fehler }: { users: Benutzer[]; onLo
         <header className="login-hero">
           <p className="eyebrow login-eyebrow">Feldinstrument · Gebäudetrocknung</p>
           <h1 className="login-title">Torrek</h1>
-          <p className="login-claim">Nass ist ein Zustand. <em>Trocken ist ein Ergebnis.</em></p>
+          <AnimatedText
+            className="login-claim"
+            delay={0.15}
+            start={!introAktiv}
+            segments={[
+              { text: "Nass ist ein Zustand. " },
+              { text: "Trocken ist ein Ergebnis.", className: "claim-dry" },
+            ]}
+          />
         </header>
         <div className="login-card">
           <p className="eyebrow">Anmeldung</p>

@@ -29,7 +29,7 @@ export function App() {
     <MotionConfig transition={{ duration: DUR, ease: EASE }} reducedMotion="user">
       <SessionProvider users={db.benutzer}>
         {(login, auth) => (db.benutzer.length && !localStorage.getItem("drytrack.session.userId")
-          ? <Login users={db.benutzer} onLogin={login} ms365Fehler={auth.ms365Fehler} />
+          ? <Login users={db.benutzer} onLogin={login} ms365Fehler={auth.ms365Fehler} introAktiv={intro} />
           : <Shell />)}
       </SessionProvider>
       <AnimatePresence>{intro && <Intro onDone={() => setIntro(false)} />}</AnimatePresence>

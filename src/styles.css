@@ -485,7 +485,7 @@ input::placeholder { color: var(--muted); }
   background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
   animation: title-in 0.7s var(--ease) both, sheen 7s var(--ease) 1.2s infinite; }
 .login-claim { color: var(--muted); font-size: 1.02rem; margin: 0 0 0 3px; }
-.login-claim em { color: var(--dry); }
+.login-claim .claim-dry { color: var(--dry); font-style: italic; }
 @keyframes sheen { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
 .login-card { background: color-mix(in srgb, var(--surface) 74%, transparent);
   backdrop-filter: blur(20px) saturate(1.35); -webkit-backdrop-filter: blur(20px) saturate(1.35);
