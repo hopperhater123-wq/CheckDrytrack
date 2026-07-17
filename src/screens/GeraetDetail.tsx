@@ -1,14 +1,19 @@
+import { useState } from "react";
 import { useDB } from "../app/useStore";
 import { useNav } from "../app/nav";
 import { GERAET_STATUS_LABEL } from "../app/labels";
 import { fmtDatum, fmtDatumZeit, fmtZahl } from "../app/format";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "../domain/einsatz";
 import { Icon } from "../ui/Icon";
+import { AnimatePresence } from "../ui/motion";
+import { KorrekturModal } from "./KorrekturModal";
+import type { Einsatz } from "../domain/types";
 
 // Geräte-Historie = gefilterte Sicht auf dieselben Einsatz-/Feed-Daten (FR-KOMM-002).
 export function GeraetDetail({ inv }: { inv: string }) {
   const db = useDB();
   const nav = useNav();
+  const [korrektur, setKorrektur] = useState<Einsatz | null>(null);
 
   const g = db.geraet.find((x) => x.inventarnummer === inv);
   if (!g) return <div className="screen"><p className="muted">Gerät nicht gefunden.</p></div>;
@@ -49,10 +54,18 @@ export function GeraetDetail({ inv }: { inv: string }) {
         {einsaetze.map((e) => {
           const verbrauch = berechneVerbrauch(e, g, typ);
           return (
-            <button key={e.id} className="einsatz clickable" onClick={() => nav({ name: "projekt", id: e.projekt_id })}>
+            <div
+              key={e.id} className="einsatz clickable" role="button" tabIndex={0}
+              onClick={() => nav({ name: "projekt", id: e.projekt_id })}
+              onKeyDown={(ev) => ev.key === "Enter" && nav({ name: "projekt", id: e.projekt_id })}
+            >
               <div className="einsatz-head">
                 <span className="einsatz-geraet">{projektNummer(e.projekt_id)}</span>
                 {istLaufend(e) ? <span className="chip chip-live">läuft</span> : <span className="chip">abgebaut</span>}
+                <button
+                  className="iconbtn einsatz-edit" title="Zählerstand korrigieren" aria-label="Zählerstand korrigieren"
+                  onClick={(ev) => { ev.stopPropagation(); setKorrektur(e); }}
+                ><Icon name="pen" size={15} /></button>
               </div>
               <div className="einsatz-meta">
                 <span>{fmtDatumZeit(e.aufbau_datum)} → {istLaufend(e) ? "läuft" : fmtDatumZeit(e.abbau_datum)}</span>
@@ -66,10 +79,12 @@ export function GeraetDetail({ inv }: { inv: string }) {
                 </div>
               )}
               {e.notiz && <p className="einsatz-notiz">{e.notiz}</p>}
-            </button>
+            </div>
           );
         })}
       </section>
+
+      <AnimatePresence>{korrektur && <KorrekturModal einsatz={korrektur} onClose={() => setKorrektur(null)} />}</AnimatePresence>
     </div>
   );
 }

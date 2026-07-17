@@ -203,6 +203,43 @@ class Store {
     return { ok: true };
   }
 
+  /** Zählerstand nachträglich korrigieren (Tippfehler im Feld). Nachvollziehbar:
+   *  jede Änderung landet als Feed-Eintrag (alt → neu) am Projekt. Trägt ein
+   *  abgebauter Einsatz nachträglich einen echten Endstand, entfällt die Schätzung. */
+  korrigiereEinsatz(params: {
+    einsatz_id: string;
+    zaehlerstand_start: number;
+    zaehlerstand_ende?: number | null; // nur relevant, wenn der Einsatz abgebaut ist
+    autor_id: string;
+  }): { ok: boolean; error?: string } {
+    const e = this.db.einsatz.find((x) => x.id === params.einsatz_id);
+    if (!e) return { ok: false, error: "Einsatz nicht gefunden." };
+    const start = params.zaehlerstand_start;
+    if (!Number.isFinite(start) || start < 0) return { ok: false, error: "Ungültiger Startzählerstand." };
+    const ende = e.abbau_datum !== null ? params.zaehlerstand_ende ?? e.zaehlerstand_ende : e.zaehlerstand_ende;
+    if (ende !== null && ende < start) {
+      return { ok: false, error: "Endzählerstand darf nicht kleiner als der Startstand sein." };
+    }
+
+    const fmt = (n: number | null) => n === null ? "geschätzt" : `${n.toLocaleString("de-DE")} kWh`;
+    const aenderungen: string[] = [];
+    if (start !== e.zaehlerstand_start) aenderungen.push(`Start ${fmt(e.zaehlerstand_start)} → ${fmt(start)}`);
+    if (e.abbau_datum !== null && ende !== e.zaehlerstand_ende) aenderungen.push(`Ende ${fmt(e.zaehlerstand_ende)} → ${fmt(ende)}`);
+    if (!aenderungen.length) return { ok: true }; // nichts geändert
+
+    this.commit((db) => {
+      const einsatz = db.einsatz.find((x) => x.id === params.einsatz_id)!;
+      einsatz.zaehlerstand_start = start;
+      if (einsatz.abbau_datum !== null) {
+        einsatz.zaehlerstand_ende = ende;
+        if (ende !== null) einsatz.verbrauch_geschaetzt = false; // echter Messwert ersetzt Schätzung
+      }
+      db.feed_eintrag.push(autoFeed(einsatz.projekt_id, einsatz.geraet_inventarnummer, "zaehlerstand", params.autor_id,
+        `Zählerstand korrigiert (${einsatz.geraet_inventarnummer}): ${aenderungen.join(", ")}.`));
+    });
+    return { ok: true };
+  }
+
   // ---------------------------------------------------------------------------
   // Geräte-Stammdaten (Neuanlage beim Scannen unbekannter Etiketten, FR-SCAN-001)
   // ---------------------------------------------------------------------------

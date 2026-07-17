@@ -389,6 +389,7 @@ input::placeholder { color: var(--muted); }
 .einsatz.clickable { cursor: pointer; width: 100%; text-align: left; color: var(--text); transition: border-color var(--dur), transform var(--dur) var(--ease); }
 .einsatz.clickable:hover { border-color: color-mix(in srgb, var(--accent) 26%, var(--border)); transform: translateX(2px); }
 .einsatz-head { display: flex; align-items: center; gap: 8px; }
+.einsatz-edit { margin-left: auto; width: 30px; height: 30px; }
 .einsatz-geraet { font-weight: 700; letter-spacing: -0.01em; }
 .einsatz-meta { display: flex; flex-wrap: wrap; gap: 5px 14px; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .verbrauch { color: var(--accent); font-weight: 600; }

@@ -7,6 +7,7 @@ import { store } from "../domain/store";
 import { GERAET_STATUS_LABEL } from "../app/labels";
 import { fmtZahl } from "../app/format";
 import { AbbauModal } from "./AbbauModal";
+import { KorrekturModal } from "./KorrekturModal";
 import { Icon } from "../ui/Icon";
 import { CameraScanner } from "../ui/CameraScanner";
 import { FotoErfassung } from "../ui/FotoErfassung";
@@ -21,6 +22,7 @@ export function ScanFlow() {
   const [eingabe, setEingabe] = useState("");
   const [inv, setInv] = useState<string | null>(null);
   const [abbau, setAbbau] = useState<Einsatz | null>(null);
+  const [korrektur, setKorrektur] = useState<Einsatz | null>(null);
   const [modus, setModus] = useState<"barcode" | "qr">("barcode");
   const [kamera, setKamera] = useState(false);
 
@@ -97,12 +99,16 @@ export function ScanFlow() {
                 Projekt {db.projekt.find((p) => p.id === aktiverEinsatz.projekt_id)?.projektnummer}
               </p>
               <button className="btn btn-primary block" onClick={() => setAbbau(aktiverEinsatz)}>Gerät abbauen</button>
+              <button className="linkbtn" style={{ marginTop: 10 }} onClick={() => setKorrektur(aktiverEinsatz)}>
+                Startzählerstand korrigieren (vertippt?)
+              </button>
             </div>
           )}
         </section>
       )}
 
       <AnimatePresence>{abbau && <AbbauModal einsatz={abbau} onClose={() => { setAbbau(null); reset(); }} />}</AnimatePresence>
+      <AnimatePresence>{korrektur && <KorrekturModal einsatz={korrektur} onClose={() => setKorrektur(null)} />}</AnimatePresence>
 
       {kamera && (
         <CameraScanner
