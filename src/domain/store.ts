@@ -9,9 +9,35 @@ import type {
 import { absoluteFeuchteGKg } from "./mess";
 import { seedDB } from "./seed";
 import { diffAusStaenden, pkVon, pushDiff, starteSync, type TabelleName } from "./remote";
+import { idbHolen, idbLoeschen, idbSetzen } from "./localdb";
 
 const STORAGE_KEY = "drytrack.db.v2"; // v2: Bodenaufbau/Messung-Felder ergänzt (Migration)
 type Listener = () => void;
+
+// Bild-/Signatur-Felder je Tabelle: diese großen Data-URLs bläht der localStorage-Abzug
+// NICHT auf — sie leben in IndexedDB (localdb.ts). Ohne das sprengen 360°-Fotos das
+// ~5–10-MB-Limit von localStorage. In-Memory-Stand und Sync tragen weiterhin die Bilder.
+const BILD_FELDER: Partial<Record<TabelleName, string[]>> = {
+  raum_foto: ["datei_referenz"],
+  grundriss: ["datei_referenz"],
+  bemusterung: ["musterfoto_referenz"],
+  einsatz: ["foto_start", "foto_ende"],
+};
+
+/** Kopie des Stands ohne die großen Bild-Data-URLs — nur für den localStorage-Abzug. */
+function ohneBilder(db: DryTrackDB): DryTrackDB {
+  const kopie = { ...db } as Record<string, unknown[]>;
+  for (const [tabelle, felder] of Object.entries(BILD_FELDER)) {
+    const rows = (db as unknown as Record<string, Record<string, unknown>[]>)[tabelle];
+    if (!rows) continue;
+    kopie[tabelle] = rows.map((r) => {
+      const flach = { ...r };
+      for (const f of felder!) if (flach[f]) flach[f] = "";
+      return flach;
+    });
+  }
+  return kopie as unknown as DryTrackDB;
+}
 
 function uid(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36).slice(-4)}`;
@@ -23,11 +49,15 @@ class Store {
 
   constructor() {
     this.db = this.load();
+    // Vollen Stand (inkl. Bilder) aus IndexedDB nachladen — der localStorage-Abzug
+    // ist bildlos; die Bilder kommen hier dazu. Asynchron, wie der Server-Pull auch.
+    void this.hydratisieren();
     if (typeof window !== "undefined") {
       window.addEventListener("storage", (e) => {
+        // Anderer Tab hat geschrieben: bildlosen Abzug übernehmen, Bilder aus IDB nachziehen.
         if (e.key === STORAGE_KEY && e.newValue) {
-          this.db = JSON.parse(e.newValue);
-          this.emit();
+          try { this.db = this.normalize(JSON.parse(e.newValue)); this.emit(); } catch { /* ignorieren */ }
+          void this.hydratisieren();
         }
       });
     }
@@ -45,6 +75,37 @@ class Store {
     return fresh;
   }
 
+  /** Bilder aus IndexedDB in den (aus dem bildlosen localStorage-Abzug geladenen)
+   *  Stand nachziehen. Bewusst als MERGE statt „ganz ersetzen": so überschreibt der
+   *  asynchrone Nachlauf keine inzwischen erfolgte lokale Änderung. Nur leere
+   *  Bild-Felder werden aus IndexedDB gefüllt. */
+  private async hydratisieren() {
+    const voll = await idbHolen();
+    if (!voll || !voll.benutzer?.length) {
+      // Erststart nach dem Umbau (IndexedDB leer): der aktuelle Stand kommt noch aus
+      // dem alten (vollen) localStorage — nach IndexedDB heben, localStorage schrumpfen.
+      this.persist(this.db);
+      return;
+    }
+    const next: DryTrackDB = structuredClone(this.db);
+    let geaendert = false;
+    for (const [tabelle, felder] of Object.entries(BILD_FELDER)) {
+      const quelle = (voll as unknown as Record<string, Record<string, unknown>[]>)[tabelle];
+      const ziel = (next as unknown as Record<string, Record<string, unknown>[]>)[tabelle];
+      if (!quelle || !ziel) continue;
+      const pk = pkVon(tabelle as TabelleName);
+      const bildVon = new Map(quelle.map((r) => [r[pk], r]));
+      for (const row of ziel) {
+        const q = bildVon.get(row[pk]);
+        if (!q) continue;
+        for (const f of felder!) {
+          if (!row[f] && q[f]) { row[f] = q[f]; geaendert = true; }
+        }
+      }
+    }
+    if (geaendert) { this.db = next; this.emit(); }
+  }
+
   /** Robust gegen ältere/teilweise Datenstände: fehlende Tabellen werden zu leeren Arrays. */
   private normalize(parsed: Partial<DryTrackDB>): DryTrackDB {
     const leer: DryTrackDB = {
@@ -59,12 +120,19 @@ class Store {
     return { ...base, ...parsed } as DryTrackDB;
   }
 
+  // Serialisierte IndexedDB-Schreibkette: mehrere schnelle commits schreiben
+  // nacheinander (letzter Stand gewinnt), nichts überholt sich.
+  private idbKette: Promise<void> = Promise.resolve();
+
   private persist(db: DryTrackDB) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+      // Nur der bildlose Abzug geht in localStorage → bleibt klein, sprengt kein Limit.
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(ohneBilder(db)));
     } catch {
-      /* Speicher voll o.ä. — App bleibt trotzdem im Speicher nutzbar */
+      /* Abzug zu groß/Speicher voll — App bleibt über IndexedDB nutzbar */
     }
+    // Voller Stand (inkl. Bilder) nach IndexedDB, geordnet.
+    this.idbKette = this.idbKette.then(() => idbSetzen(db)).catch(() => {});
   }
 
   private commit(mutate: (db: DryTrackDB) => void, stumm = false) {
@@ -123,6 +191,8 @@ class Store {
 
   reset() {
     localStorage.removeItem(STORAGE_KEY);
+    // Erst löschen, dann schreibt load()→persist() den frischen Seed (geordnet über die Kette).
+    this.idbKette = this.idbKette.then(() => idbLoeschen()).catch(() => {});
     this.db = this.load();
     this.emit();
     // Mit Backend: frischen Serverstand ziehen statt lokalem Seed zu vertrauen.
