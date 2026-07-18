@@ -269,6 +269,28 @@ class Store {
     return { ok: true };
   }
 
+  /** Einsatz komplett löschen (Fehlerfassung, PO 18.07.). Bei laufendem Einsatz
+   *  geht das Gerät zurück ins Lager. Nachvollziehbar: die Eckdaten des gelöschten
+   *  Einsatzes landen im Projekt-Feed — nichts verschwindet stillschweigend. */
+  loescheEinsatz(einsatz_id: string, autor_id: string): { ok: boolean; error?: string } {
+    const e = this.db.einsatz.find((x) => x.id === einsatz_id);
+    if (!e) return { ok: false, error: "Einsatz nicht gefunden." };
+    this.commit((db) => {
+      const einsatz = db.einsatz.find((x) => x.id === einsatz_id)!;
+      if (einsatz.abbau_datum === null) {
+        const g = db.geraet.find((x) => x.inventarnummer === einsatz.geraet_inventarnummer);
+        if (g && g.status === "baustelle") { g.status = "lager"; g.aktuelles_projekt_id = null; }
+      }
+      db.einsatz = db.einsatz.filter((x) => x.id !== einsatz_id);
+      const eck = `Start ${einsatz.zaehlerstand_start.toLocaleString("de-DE")} kWh` +
+        (einsatz.zaehlerstand_ende !== null ? `, Ende ${einsatz.zaehlerstand_ende.toLocaleString("de-DE")} kWh` : "") +
+        `, Aufbau ${new Date(einsatz.aufbau_datum).toLocaleDateString("de-DE")}`;
+      db.feed_eintrag.push(autoFeed(einsatz.projekt_id, einsatz.geraet_inventarnummer, "zaehlerstand", autor_id,
+        `Einsatz gelöscht (${einsatz.geraet_inventarnummer}, ${eck}) — Fehlerfassung.`));
+    });
+    return { ok: true };
+  }
+
   /** Rolle eines Mitarbeiters ändern (FR-ROLE-002: ausschließlich Admins — die UI
    *  zeigt die Verwaltung nur mit mitarbeiterVerwalten). Schutz: der letzte
    *  Admin/GF kann nicht herabgestuft werden, sonst sperrt sich die Firma aus. */

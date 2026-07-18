@@ -21,10 +21,20 @@ import { Intro } from "./ui/Intro";
 import { FluidField } from "./ui/FluidField";
 import { MotionConfig, EASE, DUR, AnimatePresence } from "./ui/motion";
 
+// Marken-Intro nur einmal pro Tag (PO 18.07.): im Feld-Alltag soll die App sofort
+// aufgehen; der erste Start des Tages behält den Marken-Moment. Tipp überspringt weiter.
+const introFaellig = () => {
+  try { return localStorage.getItem("torrek.intro.tag") !== new Date().toDateString(); }
+  catch { return true; }
+};
+
 export function App() {
   const db = useDB();
-  // Marken-Intro beim App-Start (überspringbar); die App rendert darunter schon mit.
-  const [intro, setIntro] = useState(true);
+  const [intro, setIntro] = useState(introFaellig);
+  const introFertig = () => {
+    setIntro(false);
+    try { localStorage.setItem("torrek.intro.tag", new Date().toDateString()); } catch { /* egal */ }
+  };
   return (
     // Globale Motion-Defaults: konsistentes Timing/Easing, Reduced-Motion respektiert.
     <MotionConfig transition={{ duration: DUR, ease: EASE }} reducedMotion="user">
@@ -33,7 +43,7 @@ export function App() {
           ? <Login users={db.benutzer} onLogin={login} ms365Fehler={auth.ms365Fehler} introAktiv={intro} />
           : <Shell />)}
       </SessionProvider>
-      <AnimatePresence>{intro && <Intro onDone={() => setIntro(false)} />}</AnimatePresence>
+      <AnimatePresence>{intro && <Intro onDone={introFertig} />}</AnimatePresence>
     </MotionConfig>
   );
 }

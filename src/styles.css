@@ -879,3 +879,7 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
   border-bottom: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent); }
 .editierbar:hover { color: var(--accent); border-bottom-color: var(--accent); }
 .editierbar svg { opacity: 0.5; vertical-align: -1px; }
+
+/* Einsatz löschen (Fehlerfassung) — bewusst zurückhaltend, Rot nur als Text */
+.loeschen-btn { color: var(--danger); margin-top: 4px; }
+.loeschen-btn:hover { background: var(--danger-soft); }

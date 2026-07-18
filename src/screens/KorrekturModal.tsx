@@ -63,6 +63,17 @@ export function KorrekturModal({ einsatz, onClose }: { einsatz: Einsatz; onClose
         <button className="btn" onClick={onClose}>Abbrechen</button>
         <button className="btn btn-primary" onClick={speichern} disabled={!gueltig}>Korrektur speichern</button>
       </div>
+      <button
+        className="btn btn-ghost block loeschen-btn"
+        onClick={() => {
+          if (!confirm(`Einsatz ${einsatz.geraet_inventarnummer} komplett löschen?\n\nDas Gerät geht zurück ins Lager; die Eckdaten bleiben im Projekt-Feed nachvollziehbar.`)) return;
+          const res = store.loescheEinsatz(einsatz.id, user.id);
+          if (!res.ok) { setFehler(res.error ?? "Fehler"); return; }
+          onClose();
+        }}
+      >
+        Einsatz löschen (Fehlerfassung)
+      </button>
     </Modal>
   );
 }
