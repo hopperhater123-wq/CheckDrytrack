@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AnimatePresence, motion, EASE, Modal } from "../ui/motion";
 import { QrCode } from "../ui/QrCode";
 import {
-  strombriefHtml, abschlussberichtHtml, aundvHtml, vollmachtHtml,
+  strombriefHtml, abschlussberichtHtml, projektDossierHtml, aundvHtml, vollmachtHtml,
   zusatzerklaerungHtml, organschaftHtml, merkblattHochwasserHtml, printHtml,
 } from "../domain/report";
 import { SignaturPad } from "../ui/SignaturPad";
@@ -529,6 +529,12 @@ function DokumenteTab({ projektId, kostenSichtbar, benutzerName, userId }: { pro
     printHtml(abschlussberichtHtml(projekt, db));
     store.addDokument({ projekt_id: projektId, typ: "abschlussbericht", speicher_referenz: `abschlussbericht://${projektId}/${Date.now()}.pdf`, erstellt_von: userId });
   };
+  // Projekt-Dossier (PO 18.07.): das eine Abschluss-Gesamtdokument — Ergebnis,
+  // Messprotokoll, Geräte/Strom, Berichts-Register und Foto-Anhang in einem PDF.
+  const dossier = () => {
+    printHtml(projektDossierHtml(projekt, db));
+    store.addDokument({ projekt_id: projektId, typ: "abschlussbericht", speicher_referenz: `dossier://${projektId}/${Date.now()}.pdf`, erstellt_von: userId });
+  };
   // Einfache Erklärungs-/Merkblatt-Dokumente (Alt-System "Neue Dokumente").
   const erzeuge = (typ: import("../domain/types").DokumentTyp, html: string) => {
     printHtml(html);
@@ -549,9 +555,17 @@ function DokumenteTab({ projektId, kostenSichtbar, benutzerName, userId }: { pro
       <div className="card-head"><h2>Dokumente</h2>
         <div className="btn-row">
           <button className="btn btn-sm" onClick={strombrief}><Icon name="fileText" size={14} /> Strombrief</button>
-          <button className="btn btn-sm btn-primary" onClick={abschlussbericht}><Icon name="fileText" size={14} /> Abschlussbericht</button>
+          <button className="btn btn-sm" onClick={abschlussbericht}><Icon name="fileText" size={14} /> Abschlussbericht</button>
         </div>
       </div>
+
+      {/* Das eine Abschluss-Gesamtdokument: alles zum Projekt in einem PDF (PO 18.07.). */}
+      <button className="btn btn-primary block" style={{ marginBottom: 12 }} onClick={dossier}>
+        <Icon name="fileText" size={15} /> Projekt-Dossier erzeugen (alles in einem PDF)
+      </button>
+      <p className="muted small" style={{ marginTop: -6, marginBottom: 12 }}>
+        Deckblatt, Trocknungsergebnis je Raum, vollständiges Messprotokoll, Geräte &amp; Strom, Register aller Berichte und ein Foto-Anhang — zum Übergeben und langfristigen Ablegen.
+      </p>
       <div className="btn-row" style={{ marginBottom: 12, flexWrap: "wrap" }}>
         <button className="btn btn-sm" onClick={() => erzeuge("zusatzerklaerung", zusatzerklaerungHtml(projekt, db))}>Zusatzerklärung</button>
         <button className="btn btn-sm" onClick={() => erzeuge("organschaft", organschaftHtml(projekt, db))}>Organschaft</button>

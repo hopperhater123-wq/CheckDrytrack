@@ -908,6 +908,212 @@ export function abschlussberichtHtml(projekt: Projekt, db: DryTrackDB): string {
   </body></html>`;
 }
 
+// Projekt-Dossier (PO 18.07.): EIN Archivdokument je Projekt, das den Abschluss
+// zusammenfasst und alle Belege bündelt — Deckblatt, Trocknungsergebnis je Raum,
+// Geräte/Strom, vollständiges Messprotokoll, Register aller Berichte/Dokumente
+// (mit Datum + Unterschrift-Status) und ein Foto-Anhang. Gedacht als das eine
+// Dokument, das man dem Kunden/der Versicherung übergibt und langfristig ablegt.
+export function projektDossierHtml(projekt: Projekt, db: DryTrackDB): string {
+  const benutzer = (id: string) => db.benutzer.find((b) => b.id === id)?.name ?? "—";
+  const mat = (id: string) => db.materialdatenbank.find((m) => m.id === id);
+  const d = (iso: string) => new Date(iso).toLocaleDateString("de-DE");
+  const versicherung = projekt.versicherung_id ? db.versicherung.find((v) => v.id === projekt.versicherung_id)?.name ?? "—" : "—";
+  const raeume = db.raum.filter((r) => r.projekt_id === projekt.id);
+  const einsaetze = db.einsatz.filter((e) => e.projekt_id === projekt.id);
+
+  // Zeitraum + Kennzahlen (wie Abschlussbericht).
+  const aufbauten = einsaetze.map((e) => new Date(e.aufbau_datum).getTime());
+  const start = aufbauten.length ? Math.min(...aufbauten) : new Date(projekt.angelegt_am).getTime();
+  const nochLaufend = einsaetze.some(istLaufend);
+  const abbauten = einsaetze.filter((e) => e.abbau_datum).map((e) => new Date(e.abbau_datum!).getTime());
+  const ende = nochLaufend || !abbauten.length ? Date.now() : Math.max(...abbauten);
+  const dauerTage = Math.max(1, Math.ceil((ende - start) / 864e5));
+  let summe = 0, gesamtTage = 0, gabSchaetzung = false;
+  for (const e of einsaetze) {
+    if (istLaufend(e)) continue;
+    const g = db.geraet.find((x) => x.inventarnummer === e.geraet_inventarnummer);
+    const typ = db.geraetetyp.find((t) => t.id === g?.geraetetyp_id);
+    const v = g ? berechneVerbrauch(e, g, typ) : null;
+    if (v) { summe += v.verbrauch; gesamtTage += einsatzTage(e); if (v.geschaetzt) gabSchaetzung = true; }
+  }
+
+  // Trocknungsergebnis je Raum (letzte Messung je Material zählt).
+  const raumErgebnis = raeume.map((r) => {
+    const ms = db.messung.filter((m) => m.raum_id === r.id).sort((a, b) => (a.gemessen_am < b.gemessen_am ? -1 : 1));
+    const perMat = new Map<string, typeof ms[number]>();
+    for (const m of ms) perMat.set(m.material_id, m);
+    const bew = [...perMat.values()].map((m) => bewerteMessung(m, mat(m.material_id)));
+    let erg: "getrocknet" | "in_arbeit" | "kritisch" | "offen";
+    if (!bew.length) erg = "offen";
+    else if (bew.some((b) => b.bewertung === "kontaminiert" || b.bewertung === "austausch")) erg = "kritisch";
+    else if (bew.every((b) => b.bewertung === "trocken")) erg = "getrocknet";
+    else erg = "in_arbeit";
+    const label = { getrocknet: "Trocken — abgeschlossen", in_arbeit: "Trocknung läuft", kritisch: "Austausch/Kontamination", offen: "Keine Messung" }[erg];
+    const zeilen = [...perMat.values()].map((m) => {
+      const b = bewerteMessung(m, mat(m.material_id));
+      return `<tr><td>${esc(mat(m.material_id)?.bezeichnung ?? "—")}</td><td class="b-${b.bewertung}">${BEWERTUNG_LABEL[b.bewertung]}</td><td>${d(m.gemessen_am)}</td></tr>`;
+    }).join("");
+    const zusatz = [r.geschoss, r.betroffene_flaeche_m2 != null ? `${r.betroffene_flaeche_m2} m²` : null,
+      r.faekalschaden ? "Fäkalschaden" : null, r.sichtbarer_schimmel ? "Schimmel" : null].filter(Boolean).join(" · ");
+    return `<section class="box"><div class="box-head"><h3>${esc(r.bezeichnung)}</h3><span class="erg erg-${erg}">${label}</span></div>
+      ${zusatz ? `<p class="sub">${esc(zusatz)}</p>` : ""}
+      ${zeilen ? `<table><thead><tr><th>Material</th><th>Ergebnis</th><th>Letzte Messung</th></tr></thead><tbody>${zeilen}</tbody></table>` : "<p class='sub'>Keine Messungen erfasst.</p>"}</section>`;
+  }).join("");
+
+  // Vollständiges Messprotokoll je Raum (alle Messungen).
+  const messBlocks = raeume.map((r) => {
+    const ms = db.messung.filter((m) => m.raum_id === r.id).sort((a, b) => (a.gemessen_am < b.gemessen_am ? -1 : 1));
+    if (!ms.length) return "";
+    const mpName = (id: string | null) => (id ? db.messpunkt.find((p) => p.id === id)?.bezeichnung ?? "—" : "—");
+    const zeilen = ms.map((m) => {
+      const b = bewerteMessung(m, mat(m.material_id));
+      return `<tr><td>${esc(mpName(m.messpunkt_id))}</td><td>${esc(mat(m.material_id)?.bezeichnung ?? (m.messverfahren === "hygrometer" ? "Raumluft" : "—"))}</td>
+        <td>${m.anlass === "eingangsmessung" ? "Eingang" : "Frei"}</td><td>${m.absolute_feuchte_g_kg != null ? `${m.absolute_feuchte_g_kg} g/kg` : "—"}</td>
+        <td class="b-${b.bewertung}">${BEWERTUNG_LABEL[b.bewertung]}</td><td>${esc(m.messgeraet ?? "—")}</td><td>${d(m.gemessen_am)}</td></tr>`;
+    }).join("");
+    return `<section class="box"><h3>${esc(r.bezeichnung)}</h3>
+      <table><thead><tr><th>Messpunkt</th><th>Material</th><th>Anlass</th><th>abs. Feuchte</th><th>Bewertung</th><th>Gerät</th><th>Datum</th></tr></thead><tbody>${zeilen}</tbody></table></section>`;
+  }).join("");
+
+  // Register: alle Berichte & Dokumente mit Datum + Unterschrift-Status.
+  const sig = (u: string | null) => (u ? "✓ unterschrieben" : "ohne Unterschrift");
+  const register: { titel: string; datum: string; info: string }[] = [];
+  db.besuchsbericht.filter((b) => b.projekt_id === projekt.id).forEach((b) => {
+    const min = db.stunden_eintrag.filter((s) => s.besuchsbericht_id === b.id).reduce((s, e) => s + (arbeitszeitMin(e.von, e.bis, e.pause_min) ?? 0), 0);
+    register.push({ titel: "Besuchsbericht", datum: b.datum, info: `${minutenZuText(min)} h · ${sig(b.unterschrift_kunde)}` });
+  });
+  db.stundenlohnbericht.filter((b) => b.projekt_id === projekt.id).forEach((b) =>
+    register.push({ titel: "Stundenlohnbericht", datum: b.datum, info: `${b.stunden.reduce((s, z) => s + (Number.isFinite(z.stunden) ? z.stunden : 0), 0)} h · ${sig(b.unterschrift_kunde)}` }));
+  db.abnahmeprotokoll.filter((b) => b.projekt_id === projekt.id).forEach((b) =>
+    register.push({ titel: "Abnahmeprotokoll", datum: b.datum, info: sig(b.unterschrift_kunde) }));
+  db.ersatzfliesenbericht.filter((b) => b.projekt_id === projekt.id).forEach((b) =>
+    register.push({ titel: "Ersatzfliesenbericht", datum: b.datum, info: sig(b.unterschrift_kunde) }));
+  db.notdiensteinsatzbericht.filter((b) => b.projekt_id === projekt.id).forEach((b) =>
+    register.push({ titel: "Notdienst-Einsatzbericht", datum: b.datum, info: sig(b.unterschrift_kunde) }));
+  db.kundenzufriedenheit.filter((b) => b.projekt_id === projekt.id).forEach((b) =>
+    register.push({ titel: "Kundenzufriedenheit", datum: b.datum, info: sig(b.unterschrift_kunde) }));
+  db.dokument.filter((x) => x.projekt_id === projekt.id).forEach((x) =>
+    register.push({ titel: DOSSIER_DOK_LABEL[x.typ] ?? x.typ, datum: x.erstellt_am, info: benutzer(x.erstellt_von) }));
+  register.sort((a, b) => (a.datum < b.datum ? -1 : 1));
+  const registerZeilen = register.length
+    ? register.map((r) => `<tr><td>${esc(r.titel)}</td><td>${d(r.datum)}</td><td>${esc(r.info)}</td></tr>`).join("")
+    : "<tr><td colspan='3' class='sub'>Noch keine Berichte oder Dokumente erfasst.</td></tr>";
+
+  // Foto-Anhang je Raum (inkl. 360°-Panoramen als flaches Bild).
+  const fotoBlocks = raeume.map((r) => {
+    const fotos = db.raum_foto.filter((f) => f.raum_id === r.id);
+    if (!fotos.length) return "";
+    const kacheln = fotos.map((f) => `<figure><img src="${f.datei_referenz}" alt="">
+      <figcaption>${f.kategorie === "schadenstelle" ? "Schadenstelle" : f.kategorie === "pano" ? "360°-Panorama" : "Übersicht"}</figcaption></figure>`).join("");
+    return `<section class="box"><h3>${esc(r.bezeichnung)}</h3><div class="fotos">${kacheln}</div></section>`;
+  }).join("");
+
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Projekt-Dossier ${esc(projekt.projektnummer)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #0b0d12; margin: 32px; font-size: 13px; }
+    .brand { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; } .brand span { color: #0E7C86; }
+    .deckblatt { min-height: 78vh; display: flex; flex-direction: column; justify-content: center; border-bottom: 2px solid #0E7C86; }
+    .deckblatt h1 { font-size: 30px; margin: 18px 0 6px; letter-spacing: -0.02em; }
+    .deckblatt .gross { font-size: 16px; color: #0E7C86; font-weight: 600; }
+    .deckblatt .meta { color: #667085; font-size: 13px; line-height: 1.7; margin-top: 14px; }
+    .kap { page-break-before: always; }
+    h2 { font-size: 13px; margin: 26px 0 10px; text-transform: uppercase; letter-spacing: .06em; color: #0E7C86; border-bottom: 1px solid #e7e9ee; padding-bottom: 5px; }
+    h3 { font-size: 14px; margin: 0; }
+    .kennz { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 6px 0 4px; }
+    .kennz div { border: 1px solid #e7e9ee; border-radius: 10px; padding: 10px 12px; }
+    .kennz .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #667085; display: block; }
+    .kennz b { font-size: 16px; }
+    dl.facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 24px; margin: 0; }
+    dl.facts > div { display: flex; justify-content: space-between; border-bottom: 1px solid #f0f1f4; padding: 5px 0; }
+    dl.facts dt { color: #667085; } dl.facts dd { margin: 0; font-weight: 600; }
+    .box { border: 1px solid #e7e9ee; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; page-break-inside: avoid; }
+    .box-head { display: flex; justify-content: space-between; align-items: center; }
+    .sub { color: #98a1b0; font-size: 11px; margin: 4px 0 0; }
+    .erg { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+    .erg-getrocknet { background: #dcfce7; color: #059669; } .erg-in_arbeit { background: #fef3c7; color: #b45309; }
+    .erg-kritisch { background: #fee2e2; color: #dc2626; } .erg-offen { background: #eef0f4; color: #667085; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #667085; border-bottom: 1px solid #e7e9ee; padding: 5px 8px; }
+    td { padding: 6px 8px; border-bottom: 1px solid #f0f1f4; vertical-align: top; }
+    .b-trocken { color: #059669; font-weight: 600; } .b-feucht, .b-kontaminiert, .b-austausch { color: #dc2626; font-weight: 600; } .b-grenzwertig { color: #d97706; font-weight: 600; }
+    .fazit { border: 1px solid #e7e9ee; border-left: 3px solid #0E7C86; border-radius: 8px; padding: 12px 14px; line-height: 1.5; }
+    .fotos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+    .fotos figure { margin: 0; page-break-inside: avoid; }
+    .fotos img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #e7e9ee; display: block; }
+    .fotos figcaption { font-size: 10px; color: #667085; margin-top: 3px; }
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 18px; page-break-inside: avoid; }
+    .sig-linie { border-bottom: 1px solid #0b0d12; margin-top: 34px; } .sig-label { font-size: 11px; color: #667085; margin-top: 4px; }
+    footer { margin-top: 24px; font-size: 11px; color: #98a1b0; border-top: 1px solid #e7e9ee; padding-top: 10px; }
+  </style></head><body>
+    <div class="deckblatt">
+      <div class="brand">◐ Tor<span>rek</span></div>
+      <div class="gross">Projekt-Dossier</div>
+      <h1>${esc(projekt.bezeichnung)}</h1>
+      <div class="meta">
+        <div><b>${esc(projekt.projektnummer)}</b> · ${esc(projekt.adresse)}</div>
+        <div>Trocknungszeitraum: ${d(new Date(start).toISOString())} – ${nochLaufend ? "laufend" : d(new Date(ende).toISOString())} (${dauerTage} Tage)</div>
+        ${projekt.ansprechpartner ? `<div>Ansprechpartner: ${esc(projekt.ansprechpartner)}${projekt.telefon ? ` · ${esc(projekt.telefon)}` : ""}</div>` : ""}
+        <div>Versicherung: ${esc(versicherung)}</div>
+        <div style="margin-top:8px">Erstellt am ${new Date().toLocaleDateString("de-DE")} · ${esc(benutzer(projekt.angelegt_von))}</div>
+      </div>
+    </div>
+
+    <div class="kap">
+      <h2>1 · Zusammenfassung</h2>
+      <div class="kennz">
+        <div><span class="lbl">Trocknungsdauer</span><b>${dauerTage} Tage</b></div>
+        <div><span class="lbl">Geräteeinsätze</span><b>${einsaetze.filter((e) => !istLaufend(e)).length}${nochLaufend ? " (+laufend)" : ""}</b></div>
+        <div><span class="lbl">Gerätetage</span><b>${gesamtTage}</b></div>
+        <div><span class="lbl">Stromverbrauch</span><b>${summe.toLocaleString("de-DE", { maximumFractionDigits: 0 })} kWh</b></div>
+      </div>
+      <h2>Objekt &amp; Auftrag</h2>
+      <dl class="facts">
+        <div><dt>Baujahr</dt><dd>${projekt.baujahr ?? "—"}</dd></div>
+        <div><dt>Geschosse</dt><dd>${projekt.geschosse ?? "—"}</dd></div>
+        <div><dt>Bauweise</dt><dd>${esc(projekt.bauweise ?? "—")}</dd></div>
+        <div><dt>Kontamination</dt><dd>${projekt.kontamination_art ?? "—"}</dd></div>
+        <div><dt>Räume erfasst</dt><dd>${raeume.length}</dd></div>
+        <div><dt>A&amp;A unterschrieben</dt><dd>${projekt.aundv_unterschrieben ? "ja" : "offen"}</dd></div>
+      </dl>
+    </div>
+
+    <div class="kap">
+      <h2>2 · Trocknungsergebnis je Raum</h2>
+      ${raumErgebnis || "<p class='sub'>Keine Räume erfasst.</p>"}
+    </div>
+
+    ${messBlocks ? `<div class="kap"><h2>3 · Messprotokoll (vollständig)</h2>${messBlocks}
+      <p class="sub">Feuchtebewertungen sind Praxisrichtwerte (FR-MESS-002); Richtwert absolute Feuchte ≤ 10 g/kg = trocken.</p></div>` : ""}
+
+    <div class="kap">
+      <h2>4 · Register der Berichte &amp; Dokumente</h2>
+      <table><thead><tr><th>Dokument</th><th>Datum</th><th>Details</th></tr></thead><tbody>${registerZeilen}</tbody></table>
+      <p class="sub">Die Einzeldokumente (Besuchsberichte, Abnahmen usw.) mit Unterschriften werden im jeweiligen Bereich der App als separates PDF erzeugt.</p>
+    </div>
+
+    ${fotoBlocks ? `<div class="kap"><h2>5 · Foto-Anhang</h2>${fotoBlocks}</div>` : ""}
+
+    <div class="kap">
+      <h2>6 · Bestätigung</h2>
+      <div class="fazit">Dieses Dossier fasst den Verlauf und das Ergebnis der Trocknungsmaßnahme zum Objekt ${esc(projekt.adresse)} zusammen.
+      ${nochLaufend ? "Die Maßnahme ist noch nicht vollständig abgeschlossen." : "Die dokumentierten Räume wurden gemäß den erfassten Freimessungen bewertet."}</div>
+      <div class="sig-grid">
+        <div><div class="sig-linie"></div><div class="sig-label">Kunde / Auftraggeber</div></div>
+        <div><div class="sig-linie"></div><div class="sig-label">${esc(benutzer(projekt.angelegt_von))} · Torrek</div></div>
+      </div>
+    </div>
+
+    <footer>${gabSchaetzung ? "Stromverbrauch teilweise als Näherung (Tage × Geräteleistung) berechnet — ohne Gewähr (FR-EINSATZ-003). " : ""}Torrek · Projekt-Dossier ${esc(projekt.projektnummer)} · erstellt am ${new Date().toLocaleString("de-DE")}.</footer>
+  </body></html>`;
+}
+
+const DOSSIER_DOK_LABEL: Record<string, string> = {
+  strombrief: "Strombrief", abschlussbericht: "Abschlussbericht", kva: "Kostenvoranschlag (KVA)",
+  zusatzerklaerung: "Zusatzerklärung", organschaft: "Erklärung Organschaft", merkblatt_hochwasser: "Merkblatt Hochwasser",
+  aundv: "Auftrag & Abtretung", vollmacht: "Vollmacht",
+};
+
 /** Öffnet den Druckdialog für den übergebenen HTML-Report in einem isolierten iframe. */
 // Gemeinsamer Rahmen für die einfachen Erklärungs-/Merkblatt-Dokumente (Alt-System "Neue Dokumente").
 function einfachesDokument(titel: string, projekt: Projekt, inhalt: string): string {
