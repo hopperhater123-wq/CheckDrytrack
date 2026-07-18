@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDB } from "./app/useStore";
 import { SessionProvider, useSession } from "./app/session";
 import { NavCtx, type Route } from "./app/nav";
@@ -14,7 +14,7 @@ import { ScanFlow } from "./screens/ScanFlow";
 import { Einstellungen } from "./screens/Einstellungen";
 import { TermineScreen } from "./screens/TermineScreen";
 import { BestellungenScreen } from "./screens/BestellungenScreen";
-import { FeldScansScreen } from "./screens/FeldScansScreen";
+import { ListenScreen } from "./screens/ListenScreen";
 import { ROLLEN_LABEL } from "./domain/roles";
 import { Icon, type IconName } from "./ui/Icon";
 import { Intro } from "./ui/Intro";
@@ -47,7 +47,7 @@ const NAV_ITEMS: { icon: IconName; label: string; ziel: Route; match: Route["nam
   { icon: "scan", label: "Scan", ziel: { name: "scan" }, match: ["scan"] },
   { icon: "calendar", label: "Termine", ziel: { name: "termine" }, match: ["termine"], nurDesktop: true },
   { icon: "layers", label: "Bestellungen", ziel: { name: "bestellungen" }, match: ["bestellungen"], nurDesktop: true },
-  { icon: "barcode", label: "Feld-Scans", ziel: { name: "feldscans" }, match: ["feldscans"], nurDesktop: true },
+  { icon: "barcode", label: "Listen", ziel: { name: "listen" }, match: ["listen", "feldscans"] },
   { icon: "wind", label: "Geräte", ziel: { name: "geraete" }, match: ["geraete", "geraet"] },
   { icon: "menu", label: "Einstellungen", ziel: { name: "einstellungen" }, match: ["einstellungen"] },
 ];
@@ -70,8 +70,27 @@ function startRoute(rolle: string): Route {
 
 function Shell() {
   const { user, logout } = useSession();
-  const [route, setRoute] = useState<Route>(() => startRoute(user.rolle));
+  const [route, setRouteState] = useState<Route>(() => startRoute(user.rolle));
   const initialen = user.name.split(" ").map((t) => t[0]).slice(0, 2).join("");
+
+  // Browser-Zurück (PO-Feedback): jede Navigation landet in der History,
+  // der Zurück-Knopf des Browsers/Handys geht eine Ansicht zurück statt
+  // die App zu verlassen. URL bleibt unverändert (GitHub-Pages-freundlich).
+  const setRoute = (r: Route) => {
+    setRouteState(r);
+    try { window.history.pushState({ route: r }, ""); } catch { /* z. B. iframe-Sandbox */ }
+  };
+  useEffect(() => {
+    try { window.history.replaceState({ route }, ""); } catch { /* ignorieren */ }
+    const zurueck = (e: PopStateEvent) => {
+      const r = (e.state as { route?: Route } | null)?.route;
+      if (r?.name) setRouteState(r);
+    };
+    window.addEventListener("popstate", zurueck);
+    return () => window.removeEventListener("popstate", zurueck);
+    // Nur beim Mount: der Start-Eintrag bekommt die Start-Route.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <NavCtx.Provider value={setRoute}>
@@ -158,7 +177,8 @@ function Screen({ route }: { route: Route }) {
     case "scan": return <ScanFlow />;
     case "termine": return <TermineScreen />;
     case "bestellungen": return <BestellungenScreen />;
-    case "feldscans": return <FeldScansScreen />;
+    case "feldscans": return <ListenScreen />;
+    case "listen": return <ListenScreen />;
     case "einstellungen": return <Einstellungen />;
   }
 }

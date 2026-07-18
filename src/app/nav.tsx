@@ -12,6 +12,7 @@ export type Route =
   | { name: "termine" }
   | { name: "bestellungen" }
   | { name: "feldscans" }
+  | { name: "listen" }
   | { name: "einstellungen" };
 
 export const NavCtx = createContext<(r: Route) => void>(() => {});

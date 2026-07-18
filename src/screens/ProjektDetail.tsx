@@ -384,13 +384,11 @@ export function EinsaetzeTab({ projektId, einsaetze }: { projektId: string; eins
     return (
       <div key={e.id} className="einsatz">
         <div className="einsatz-head">
-          <span className="einsatz-geraet">{e.geraet_inventarnummer}</span>
+          <button className="einsatz-geraet editierbar" title="Nummer korrigieren" onClick={() => setKorrektur(e)}>
+            {e.geraet_inventarnummer} <Icon name="pen" size={11} />
+          </button>
           <span className="muted small">{typ?.bezeichnung}</span>
           {istLaufend(e) ? <span className="chip chip-live">läuft</span> : <span className="chip">abgebaut</span>}
-          <button
-            className="iconbtn einsatz-edit" title="Einsatz korrigieren (Nummer/kWh)" aria-label="Einsatz korrigieren"
-            onClick={() => setKorrektur(e)}
-          ><Icon name="pen" size={15} /></button>
         </div>
         <div className="einsatz-meta">
           <span>Raum: {raumName(e.raum_id)}</span>
@@ -398,8 +396,14 @@ export function EinsaetzeTab({ projektId, einsaetze }: { projektId: string; eins
           <span>{istLaufend(e) ? `${einsatzTage(e)} Tage (läuft)` : `Abbau: ${fmtDatumZeit(e.abbau_datum)}`}</span>
         </div>
         <div className="einsatz-meta">
-          <span>Start: {fmtZahl(e.zaehlerstand_start)} kWh</span>
-          {e.zaehlerstand_ende !== null && <span>Ende: {fmtZahl(e.zaehlerstand_ende)} kWh</span>}
+          <button className="editierbar" title="Zählerstand korrigieren" onClick={() => setKorrektur(e)}>
+            Start: {fmtZahl(e.zaehlerstand_start)} kWh <Icon name="pen" size={10} />
+          </button>
+          {e.zaehlerstand_ende !== null && (
+            <button className="editierbar" title="Zählerstand korrigieren" onClick={() => setKorrektur(e)}>
+              Ende: {fmtZahl(e.zaehlerstand_ende)} kWh <Icon name="pen" size={10} />
+            </button>
+          )}
           {verbrauch && (
             <span className={verbrauch.geschaetzt ? "verbrauch-schaetz" : "verbrauch"}>
               Verbrauch: {fmtZahl(verbrauch.verbrauch)} kWh{verbrauch.geschaetzt ? " (geschätzt, ohne Gewähr)" : ""}

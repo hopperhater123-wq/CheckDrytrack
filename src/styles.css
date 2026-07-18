@@ -868,3 +868,14 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
   .stapel-fakten { display: flex; gap: 22px; margin-top: 16px; font-size: 0.9rem; }
   .stapel-fakten strong { font-family: var(--font-mono); font-size: 1.15rem; margin-right: 4px; }
 }
+
+/* Listen (Torrek-Scan-Stil): kompakte Einsatz-Zeilen, Werte direkt antippbar */
+.lz { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--hairline); }
+.lz:last-of-type { border-bottom: none; }
+.lz-nr { font-weight: 600; font-size: 0.9rem; }
+.lz-meta { color: var(--muted); font-size: 0.76rem; flex: 1; display: inline-flex; align-items: center; gap: 6px; }
+.lz-kwh { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 0.86rem; text-align: right; }
+.editierbar { background: none; border: none; color: var(--text); cursor: pointer; padding: 2px 0; font-size: inherit; font-family: inherit;
+  border-bottom: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent); }
+.editierbar:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.editierbar svg { opacity: 0.5; vertical-align: -1px; }
