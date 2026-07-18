@@ -205,13 +205,16 @@ class Store {
     return { ok: true };
   }
 
-  /** Zählerstand nachträglich korrigieren (Tippfehler im Feld). Nachvollziehbar:
-   *  jede Änderung landet als Feed-Eintrag (alt → neu) am Projekt. Trägt ein
-   *  abgebauter Einsatz nachträglich einen echten Endstand, entfällt die Schätzung. */
+  /** Einsatz nachträglich korrigieren (Tippfehler im Feld): Zählerstände und/oder
+   *  die Gerätenummer (falsches Etikett erwischt). Nachvollziehbar: jede Änderung
+   *  landet als Feed-Eintrag (alt → neu) am Projekt. Trägt ein abgebauter Einsatz
+   *  nachträglich einen echten Endstand, entfällt die Schätzung. Beim Gerätetausch
+   *  eines laufenden Einsatzes wandert das alte Gerät zurück ins Lager. */
   korrigiereEinsatz(params: {
     einsatz_id: string;
     zaehlerstand_start: number;
     zaehlerstand_ende?: number | null; // nur relevant, wenn der Einsatz abgebaut ist
+    inventarnummer?: string;           // neue Gerätenummer (Gerät muss existieren)
     autor_id: string;
   }): { ok: boolean; error?: string } {
     const e = this.db.einsatz.find((x) => x.id === params.einsatz_id);
@@ -223,21 +226,45 @@ class Store {
       return { ok: false, error: "Endzählerstand darf nicht kleiner als der Startstand sein." };
     }
 
+    // Gerätenummer-Wechsel prüfen (nur auf existierende Geräte — sonst zuerst im Scan anlegen).
+    const invNeu = params.inventarnummer?.trim().toUpperCase();
+    const wechsel = !!invNeu && invNeu !== e.geraet_inventarnummer;
+    if (wechsel) {
+      const neu = this.db.geraet.find((g) => g.inventarnummer === invNeu);
+      if (!neu) return { ok: false, error: `Gerät ${invNeu} nicht gefunden — zuerst über Scan anlegen.` };
+      if (e.abbau_datum === null) {
+        if (neu.status === "baustelle") return { ok: false, error: `Gerät ${invNeu} ist bereits im Einsatz.` };
+        if (neu.status === "werkstatt") return { ok: false, error: `Gerät ${invNeu} ist in der Werkstatt.` };
+      }
+    }
+
     const fmt = (n: number | null) => n === null ? "geschätzt" : `${n.toLocaleString("de-DE")} kWh`;
     const aenderungen: string[] = [];
+    if (wechsel) aenderungen.push(`Gerät ${e.geraet_inventarnummer} → ${invNeu}`);
     if (start !== e.zaehlerstand_start) aenderungen.push(`Start ${fmt(e.zaehlerstand_start)} → ${fmt(start)}`);
     if (e.abbau_datum !== null && ende !== e.zaehlerstand_ende) aenderungen.push(`Ende ${fmt(e.zaehlerstand_ende)} → ${fmt(ende)}`);
     if (!aenderungen.length) return { ok: true }; // nichts geändert
 
     this.commit((db) => {
       const einsatz = db.einsatz.find((x) => x.id === params.einsatz_id)!;
+      const invAlt = einsatz.geraet_inventarnummer;
       einsatz.zaehlerstand_start = start;
       if (einsatz.abbau_datum !== null) {
         einsatz.zaehlerstand_ende = ende;
         if (ende !== null) einsatz.verbrauch_geschaetzt = false; // echter Messwert ersetzt Schätzung
       }
+      if (wechsel && invNeu) {
+        einsatz.geraet_inventarnummer = invNeu;
+        if (einsatz.abbau_datum === null) {
+          // Laufender Einsatz: Status der Geräte mitziehen (alt → Lager, neu → Baustelle).
+          const alt = db.geraet.find((g) => g.inventarnummer === invAlt);
+          if (alt && alt.status === "baustelle") { alt.status = "lager"; alt.aktuelles_projekt_id = null; }
+          const neu = db.geraet.find((g) => g.inventarnummer === invNeu)!;
+          neu.status = "baustelle"; neu.aktuelles_projekt_id = einsatz.projekt_id;
+        }
+      }
       db.feed_eintrag.push(autoFeed(einsatz.projekt_id, einsatz.geraet_inventarnummer, "zaehlerstand", params.autor_id,
-        `Zählerstand korrigiert (${einsatz.geraet_inventarnummer}): ${aenderungen.join(", ")}.`));
+        `Einsatz korrigiert (${einsatz.geraet_inventarnummer}): ${aenderungen.join(", ")}.`));
     });
     return { ok: true };
   }

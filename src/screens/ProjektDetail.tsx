@@ -18,6 +18,7 @@ import { fmtDatum, fmtDatumZeit, fmtZahl, relativZeit } from "../app/format";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "../domain/einsatz";
 import type { Einsatz, FeedKategorie } from "../domain/types";
 import { AbbauModal } from "./AbbauModal";
+import { KorrekturModal } from "./KorrekturModal";
 import { MessprotokollTab } from "./MessprotokollTab";
 import { RaumDetailModal } from "./RaumDetailModal";
 import { BerichteTab } from "./BerichteTab";
@@ -369,6 +370,7 @@ function UebersichtTab(props: {
 export function EinsaetzeTab({ projektId, einsaetze }: { projektId: string; einsaetze: Einsatz[] }) {
   const db = useDB();
   const [abbau, setAbbau] = useState<Einsatz | null>(null);
+  const [korrektur, setKorrektur] = useState<Einsatz | null>(null);
   const laufend = einsaetze.filter(istLaufend);
   const beendet = einsaetze.filter((e) => !istLaufend(e));
   void projektId;
@@ -385,6 +387,10 @@ export function EinsaetzeTab({ projektId, einsaetze }: { projektId: string; eins
           <span className="einsatz-geraet">{e.geraet_inventarnummer}</span>
           <span className="muted small">{typ?.bezeichnung}</span>
           {istLaufend(e) ? <span className="chip chip-live">läuft</span> : <span className="chip">abgebaut</span>}
+          <button
+            className="iconbtn einsatz-edit" title="Einsatz korrigieren (Nummer/kWh)" aria-label="Einsatz korrigieren"
+            onClick={() => setKorrektur(e)}
+          ><Icon name="pen" size={15} /></button>
         </div>
         <div className="einsatz-meta">
           <span>Raum: {raumName(e.raum_id)}</span>
@@ -418,6 +424,7 @@ export function EinsaetzeTab({ projektId, einsaetze }: { projektId: string; eins
         </section>
       )}
       <AnimatePresence>{abbau && <AbbauModal einsatz={abbau} onClose={() => setAbbau(null)} />}</AnimatePresence>
+      <AnimatePresence>{korrektur && <KorrekturModal einsatz={korrektur} onClose={() => setKorrektur(null)} />}</AnimatePresence>
     </>
   );
 }
