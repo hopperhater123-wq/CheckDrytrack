@@ -127,6 +127,10 @@ export function pushDiff(diffs: TabellenDiff[]) {
 // Pull + Realtime
 // ---------------------------------------------------------------------------
 
+// ⚠️ OFFENE TECHNISCHE SCHULD (Roadmap 011 D · Teil 2, Tagebuch #050):
+// select("*") zieht ALLE Bilder (Base64 in den Tabellen) bei JEDEM Start mit.
+// Vor flächendeckendem 360°-Rollout: Bilder in Supabase Storage auslagern und
+// hier nur noch Verweise ziehen (Lazy-Loading). Siehe Kopf von localdb.ts.
 async function allesZiehen(sb: SupabaseClient): Promise<DryTrackDB> {
   const db = {} as Record<TabelleName, unknown[]>;
   await Promise.all(TABELLEN.map(async (t) => {

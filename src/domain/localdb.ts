@@ -1,3 +1,15 @@
+// ╔═══════════════════════════════════════════════════════════════════════════╗
+// ║  ⚠️  OFFENE TECHNISCHE SCHULD — Roadmap 011, Punkt D · TEIL 2  ⚠️            ║
+// ║                                                                             ║
+// ║  Bilder liegen weiterhin als Base64 IN DER DATENBANK und werden beim        ║
+// ║  App-Start KOMPLETT mitgezogen (allesZiehen in remote.ts). Teil 1 (dieser   ║
+// ║  IndexedDB-Umbau) hat nur das Gerät-Speicher-Limit gelöst, NICHT den        ║
+// ║  Server-/Bandbreiten-Teil.                                                  ║
+// ║  → VOR flächendeckendem 360°-Rollout: Bilder in Supabase Storage auslagern  ║
+// ║    (Verweis statt Base64, Lazy-Loading, Report-Auflösung, Migration).       ║
+// ║  Details: Notion „011 · Roadmap" Punkt D + Tagebuch #050. NICHT VERGESSEN!  ║
+// ╚═══════════════════════════════════════════════════════════════════════════╝
+//
 // Lokaler Bild-/Datenspeicher auf IndexedDB (PO 18.07.: Speicher wächst mit Fotos).
 //
 // Warum: Der gesamte Offline-Datenbestand lag bisher als ein JSON in localStorage.
