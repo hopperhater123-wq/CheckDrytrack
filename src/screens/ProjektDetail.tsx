@@ -380,7 +380,8 @@ export function EinsaetzeTab({ projektId, einsaetze }: { projektId: string; eins
   const zeile = (e: Einsatz) => {
     const geraet = db.geraet.find((g) => g.inventarnummer === e.geraet_inventarnummer);
     const typ = db.geraetetyp.find((t) => t.id === geraet?.geraetetyp_id);
-    const verbrauch = berechneVerbrauch(e, geraet!, typ);
+    // Robust gegen verwaiste Referenzen (Gerät remote gelöscht/umbenannt): kein Absturz.
+    const verbrauch = geraet ? berechneVerbrauch(e, geraet, typ) : null;
     return (
       <div key={e.id} className="einsatz">
         <div className="einsatz-head">
