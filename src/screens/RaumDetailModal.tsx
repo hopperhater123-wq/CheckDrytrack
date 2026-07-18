@@ -26,6 +26,12 @@ export function RaumDetailModal({ raumId, onClose }: { raumId: string; onClose: 
         <h2>{raum.bezeichnung}</h2>
         <p className="muted small">Änderungen werden sofort gespeichert und synchronisiert.</p>
 
+        {/* Umbenennen (PO 18.07.): Tippfehler bei der Anlage direkt hier korrigieren. */}
+        <label className="field"><span>Bezeichnung</span>
+          <input defaultValue={raum.bezeichnung} placeholder="z. B. Küche"
+            onBlur={(e) => { const b = e.target.value.trim(); if (b && b !== raum.bezeichnung) set({ bezeichnung: b }); }} />
+        </label>
+
         <div className="two-col">
           <label className="field"><span>Raumtyp</span>
             <select value={raum.raumtyp ?? ""} onChange={(e) => set({ raumtyp: e.target.value || null })}>
@@ -86,10 +92,40 @@ export function RaumDetailModal({ raumId, onClose }: { raumId: string; onClose: 
         <h3>Fotos</h3>
         <RaumFotos raumId={raum.id} />
 
+        {/* Fehlerfassung (PO 18.07.): falsch angelegten Raum wieder loswerden.
+            Messungen/Fotos des Raums fallen mit — deshalb Rückfrage mit Eckdaten. */}
+        <RaumLoeschenKnopf raum={raum} onGeloescht={onClose} />
+
         <div className="modal-actions">
           <button className="btn btn-primary" onClick={onClose}>Fertig</button>
         </div>
       </Modal>
+  );
+}
+
+// „Raum löschen" mit Rückfrage: nennt, was mitgelöscht wird; Einsätze bleiben
+// erhalten (verlieren nur den Raum-Bezug) — wie das Server-FK-Verhalten.
+function RaumLoeschenKnopf({ raum, onGeloescht }: { raum: Raum; onGeloescht: () => void }) {
+  const db = useDB();
+  const { user } = useSession();
+  const messungen = db.messung.filter((m) => m.raum_id === raum.id).length;
+  const fotos = db.raum_foto.filter((f) => f.raum_id === raum.id).length;
+
+  const loeschen = () => {
+    const inhalt = [messungen ? `${messungen} Messungen` : null, fotos ? `${fotos} Fotos` : null].filter(Boolean).join(" und ");
+    const frage = `Raum „${raum.bezeichnung}" wirklich löschen?` +
+      (inhalt ? `\n\nDabei werden auch ${inhalt} gelöscht.` : "") +
+      "\n\nGeräte-Einsätze bleiben erhalten und verlieren nur den Raum-Bezug.";
+    if (!window.confirm(frage)) return;
+    const res = store.loescheRaum(raum.id, user.id);
+    if (res.ok) onGeloescht();
+    else window.alert(res.error ?? "Löschen fehlgeschlagen.");
+  };
+
+  return (
+    <button className="btn btn-ghost block loeschen-btn" style={{ marginTop: 14 }} onClick={loeschen}>
+      <Icon name="trash" size={15} /> Raum löschen (Fehlerfassung)
+    </button>
   );
 }
 

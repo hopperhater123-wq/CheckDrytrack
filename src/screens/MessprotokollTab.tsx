@@ -10,7 +10,7 @@ import { Icon } from "../ui/Icon";
 import { spiele } from "../ui/sound";
 import { SignaturPad } from "../ui/SignaturPad";
 import { TrockenMoment } from "../ui/TrockenMoment";
-import { RaumPanoKnopf } from "./RaumDetailModal";
+import { RaumDetailModal, RaumPanoKnopf } from "./RaumDetailModal";
 import type {
   EstrichBauart, Materialdatenbank, Messanlass, Messpunkt, MessStatusCheckliste, Messung, Messverfahren, Raum, SchichtTyp,
 } from "../domain/types";
@@ -97,6 +97,7 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
   const db = useDB();
   // false = Formular zu; { mp } = offen, optional mit vorgewähltem Messpunkt.
   const [form, setForm] = useState<false | { mp: Messpunkt | null }>(false);
+  const [detail, setDetail] = useState(false); // Raum-Detail: umbenennen, Fotos/360°, löschen
   const [feier, setFeier] = useState<Feier | null>(null);
   const [alleZeigen, setAlleZeigen] = useState(false);
   const materialById = (id: string) => db.materialdatenbank.find((m) => m.id === id);
@@ -112,9 +113,12 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
       <div className="card-head"><h2>{raum.bezeichnung}{raum.geschoss ? <span className="muted small" style={{ fontFamily: "var(--font)", marginLeft: 8 }}>{raum.geschoss}</span> : null}</h2>
         <div className="btn-row" style={{ margin: 0 }}>
           <RaumPanoKnopf raumId={raum.id} bezeichnung={raum.bezeichnung} />
+          <button className="iconbtn" onClick={() => setDetail(true)} title="Raum bearbeiten (umbenennen, Fotos, löschen)" aria-label="Raum bearbeiten"><Icon name="pen" size={15} /></button>
           <button className="btn btn-sm" onClick={() => setForm({ mp: null })}>+ Messung</button>
         </div>
       </div>
+
+      <AnimatePresence>{detail && <RaumDetailModal raumId={raum.id} onClose={() => setDetail(false)} />}</AnimatePresence>
 
       <AufbauEditor raum={raum} />
 

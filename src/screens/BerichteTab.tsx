@@ -53,6 +53,8 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
 
   return (
     <>
+      {/* Besuchsberichte und Stundenlohnberichte gehören zusammen (PO 18.07.):
+          beides ist Stundennachweis — deshalb EINE Karte mit zwei Bereichen. */}
       <section className="card">
         <div className="card-head"><h2>Besuchsberichte <span className="count">{berichte.length}</span></h2>
           <button className="btn btn-sm btn-primary" onClick={() => setNeu(true)}>+ Besuchsbericht</button>
@@ -73,6 +75,29 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
                 {b.unterschrift_kunde && <span className="chip small chip-live"><Icon name="check" size={12} /> unterschrieben</span>}
               </div>
               <button className="btn btn-sm" onClick={() => projekt && printHtml(besuchsberichtHtml(b, projekt, db))}>
+                <Icon name="fileText" size={14} /> PDF
+              </button>
+            </div>
+          );
+        })}
+
+        <div className="card-head" style={{ marginTop: 14 }}>
+          <h3 style={{ margin: 0 }}>Stundenlohnberichte <span className="count">{slBerichte.length}</span></h3>
+          <button className="btn btn-sm" onClick={() => setNeuSl(true)}>+ Stundenlohn</button>
+        </div>
+        {slBerichte.length === 0 && <p className="muted small">Regie-/Stundenlohnarbeiten mit Stunden und Material — gehört zum Stundennachweis des Besuchs.</p>}
+        {slBerichte.map((s) => {
+          const summe = s.stunden.reduce((sum, z) => sum + (Number.isFinite(z.stunden) ? z.stunden : 0), 0);
+          return (
+            <div key={s.id} className="listrow static">
+              <div className="listrow-main">
+                <span className="listrow-title">Stundenlohn {fmtDatum(s.datum)} · {summe.toLocaleString("de-DE")} h</span>
+                <span className="listrow-sub">{benutzerName(s.erstellt_von)} · {s.material.length} Materialposten</span>
+              </div>
+              <div className="listrow-side">
+                {s.unterschrift_kunde && <span className="chip small chip-live"><Icon name="check" size={12} /> unterschrieben</span>}
+              </div>
+              <button className="btn btn-sm" onClick={() => projekt && printHtml(stundenlohnberichtHtml(s, projekt, db))}>
                 <Icon name="fileText" size={14} /> PDF
               </button>
             </div>
@@ -164,30 +189,6 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
             </button>
           </div>
         ))}
-      </section>
-
-      <section className="card">
-        <div className="card-head"><h2>Stundenlohnberichte <span className="count">{slBerichte.length}</span></h2>
-          <button className="btn btn-sm btn-primary" onClick={() => setNeuSl(true)}>+ Stundenlohn</button>
-        </div>
-        {slBerichte.length === 0 && <p className="muted">Noch kein Stundenlohnbericht. Regie-/Stundenlohnarbeiten mit Stunden und Material dokumentieren.</p>}
-        {slBerichte.map((s) => {
-          const summe = s.stunden.reduce((sum, z) => sum + (Number.isFinite(z.stunden) ? z.stunden : 0), 0);
-          return (
-            <div key={s.id} className="listrow static">
-              <div className="listrow-main">
-                <span className="listrow-title">Stundenlohn {fmtDatum(s.datum)} · {summe.toLocaleString("de-DE")} h</span>
-                <span className="listrow-sub">{benutzerName(s.erstellt_von)} · {s.material.length} Materialposten</span>
-              </div>
-              <div className="listrow-side">
-                {s.unterschrift_kunde && <span className="chip small chip-live"><Icon name="check" size={12} /> unterschrieben</span>}
-              </div>
-              <button className="btn btn-sm" onClick={() => projekt && printHtml(stundenlohnberichtHtml(s, projekt, db))}>
-                <Icon name="fileText" size={14} /> PDF
-              </button>
-            </div>
-          );
-        })}
       </section>
 
       <AnimatePresence>{neu && <BerichtForm projektId={projektId} userId={userId} onClose={() => setNeu(false)} />}</AnimatePresence>

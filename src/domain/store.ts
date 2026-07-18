@@ -445,6 +445,32 @@ class Store {
     });
   }
 
+  /** Raum komplett löschen (Fehlerfassung, PO 18.07.). Dokumentation am Raum
+   *  (Messpunkte, Messungen, Fotos, Bodenaufbau) fällt mit; Einsätze und
+   *  Plan-Markierungen bleiben erhalten und verlieren nur den Raum-Bezug —
+   *  spiegelt das Server-FK-Verhalten (CASCADE bzw. SET NULL). Die Eckdaten
+   *  landen im Projekt-Feed, nichts verschwindet stillschweigend. */
+  loescheRaum(raum_id: string, autor_id: string): { ok: boolean; error?: string } {
+    const raum = this.db.raum.find((r) => r.id === raum_id);
+    if (!raum) return { ok: false, error: "Raum nicht gefunden." };
+    this.commit((db) => {
+      const messungen = db.messung.filter((m) => m.raum_id === raum_id).length;
+      const fotos = db.raum_foto.filter((f) => f.raum_id === raum_id).length;
+      db.messpunkt = db.messpunkt.filter((mp) => mp.raum_id !== raum_id);
+      db.messung = db.messung.filter((m) => m.raum_id !== raum_id);
+      db.raum_foto = db.raum_foto.filter((f) => f.raum_id !== raum_id);
+      db.bodenaufbau_schicht = db.bodenaufbau_schicht.filter((s) => s.raum_id !== raum_id);
+      db.einsatz.forEach((e) => { if (e.raum_id === raum_id) e.raum_id = null; });
+      db.grundriss_markierung.forEach((m) => { if (m.raum_id === raum_id) m.raum_id = null; });
+      db.raum = db.raum.filter((r) => r.id !== raum_id);
+      const eck = [messungen ? `${messungen} Messungen` : null, fotos ? `${fotos} Fotos` : null]
+        .filter(Boolean).join(", ");
+      db.feed_eintrag.push(autoFeed(raum.projekt_id, null, "manuell", autor_id,
+        `Raum gelöscht: ${raum.bezeichnung}${eck ? ` (mit ${eck})` : ""} — Fehlerfassung.`, "dispo"));
+    });
+    return { ok: true };
+  }
+
   /** Bauteilaufbau eines Raums setzen. Boden (Reihenfolge 0–2) + weitere Bauteile (ab 10). */
   setBodenaufbau(
     raum_id: string,
