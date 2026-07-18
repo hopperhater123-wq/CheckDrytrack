@@ -27,6 +27,21 @@ import { Icon } from "../ui/Icon";
 
 type Tab = "uebersicht" | "einsaetze" | "messung" | "grundriss" | "berichte" | "feed" | "dokumente";
 
+// WhatsApp-Teilen Stufe A (Roadmap 011 „Büro & Kommunikation"): kein Bot, keine API —
+// nur ein wa.me-Link mit fertig formulierter Nachricht. Der Nutzer wählt den Chat selbst.
+function whatsappProjektLink(p: { id: string; projektnummer: string; bezeichnung: string; adresse: string; ansprechpartner: string | null; telefon: string | null }): string {
+  // Deep-Link wie beim Projekt-QR: öffnet das Projekt direkt in der App (Backlog ④).
+  const basis = window.location.pathname.replace(/index\.html?$/i, "");
+  const deepLink = `${window.location.origin}${basis}?p=${p.id}`;
+  const zeilen = [
+    `Torrek · Projekt ${p.projektnummer} — ${p.bezeichnung}`,
+    `Adresse: ${p.adresse}`,
+    p.ansprechpartner ? `Vor Ort: ${p.ansprechpartner}${p.telefon ? ` (${p.telefon})` : ""}` : null,
+    `In Torrek öffnen: ${deepLink}`,
+  ].filter(Boolean);
+  return `https://wa.me/?text=${encodeURIComponent(zeilen.join("\n"))}`;
+}
+
 export function ProjektDetail({ id }: { id: string }) {
   const db = useDB();
   const { user, can } = useSession();
@@ -51,6 +66,10 @@ export function ProjektDetail({ id }: { id: string }) {
             {p.projektnummer} · {p.adresse}
             <a className="chip small" href={`https://www.google.com/maps?q=${encodeURIComponent(p.adresse)}`} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
               <Icon name="map" size={12} /> Route
+            </a>
+            {/* WhatsApp Stufe A (Roadmap 011): vorbereitete Nachricht + Deep-Link, Empfänger wählt man in WhatsApp. */}
+            <a className="chip small" href={whatsappProjektLink(p)} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+              <Icon name="phone" size={12} /> WhatsApp
             </a>
           </p>
         </div>

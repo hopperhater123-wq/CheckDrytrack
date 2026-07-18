@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 import { Modal, AnimatePresence, motion, staggerContainer, fadeUpItem } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { useSession } from "../app/session";
@@ -28,6 +28,9 @@ export function TermineScreen() {
   const [woche, setWoche] = useState(0);
   const [nurMeine, setNurMeine] = useState(user.rolle === "monteur");
   const [neu, setNeu] = useState(false);
+  // Plantafel-light (Roadmap 011 „Büro & Kommunikation", PO 18.07.): Woche × Mitarbeiter,
+  // Termine per Ziehen umplanen. Bewusst klein gehalten — kein ERP, keine Kapazitätsplanung.
+  const [ansicht, setAnsicht] = useState<"liste" | "tafel">("liste");
 
   const start = montag(woche);
   const tage = Array.from({ length: 7 }, (_, i) => new Date(start.getTime() + i * TAG_MS));
@@ -58,10 +61,21 @@ export function TermineScreen() {
         <button className="iconbtn" onClick={() => setWoche(woche + 1)} aria-label="Nächste Woche"><Icon name="chevronRight" size={18} /></button>
       </div>
 
-      <label className="toggle">
-        <input type="checkbox" checked={nurMeine} onChange={(e) => setNurMeine(e.target.checked)} /> Nur meine Termine
-      </label>
+      <div className="btn-row" style={{ alignItems: "center", justifyContent: "space-between" }}>
+        <div className="segmented" style={{ display: "inline-flex" }}>
+          <button className={ansicht === "liste" ? "seg active" : "seg"} onClick={() => setAnsicht("liste")}>Liste</button>
+          <button className={ansicht === "tafel" ? "seg active" : "seg"} onClick={() => setAnsicht("tafel")}>Plantafel</button>
+        </div>
+        {ansicht === "liste" && (
+          <label className="toggle" style={{ margin: 0 }}>
+            <input type="checkbox" checked={nurMeine} onChange={(e) => setNurMeine(e.target.checked)} /> Nur meine Termine
+          </label>
+        )}
+      </div>
 
+      {ansicht === "tafel" && <Plantafel tage={tage} heuteIso={heuteIso} />}
+
+      {ansicht === "liste" && (
       <motion.div className="tage" variants={staggerContainer} initial="hidden" animate="show" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {tage.map((tag) => {
         const tagIso = isoTag(tag);
@@ -79,9 +93,97 @@ export function TermineScreen() {
         );
       })}
       </motion.div>
+      )}
 
       <AnimatePresence>{neu && <TerminForm userId={user.id} onClose={() => setNeu(false)} />}</AnimatePresence>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+// Plantafel-light: Zeilen = Mitarbeiter (+ „Nicht zugewiesen"), Spalten = Wochentage.
+// Karte ziehen = Termin auf anderen Tag/Monteur umplanen (store.verschiebeTermin).
+function Plantafel({ tage, heuteIso }: { tage: Date[]; heuteIso: string }) {
+  const db = useDB();
+  const nav = useNav();
+  const [ueber, setUeber] = useState<string | null>(null); // Zellen-Key unter dem Zeiger
+
+  const tagIsos = tage.map(isoTag);
+  // Monteure zuerst — die Tafel plant primär das Feld; Büro-Rollen folgen darunter.
+  const zeilen: { id: string | null; name: string }[] = [
+    ...[...db.benutzer].sort((a, b) => Number(b.rolle === "monteur") - Number(a.rolle === "monteur")).map((b) => ({ id: b.id as string | null, name: b.name })),
+    { id: null, name: "Nicht zugewiesen" },
+  ];
+  const projekt = (pid: string) => db.projekt.find((p) => p.id === pid);
+  const zelle = (mid: string | null, tagIso: string) =>
+    db.termin.filter((t) => t.mitarbeiter_id === mid && t.datum === tagIso)
+      .sort((a, b) => ((a.uhrzeit ?? "99") < (b.uhrzeit ?? "99") ? -1 : 1));
+
+  const ablegen = (e: DragEvent, mid: string | null, tagIso: string) => {
+    e.preventDefault(); setUeber(null);
+    const id = e.dataTransfer.getData("text/plain");
+    if (id) store.verschiebeTermin(id, tagIso, mid);
+  };
+
+  return (
+    <div className="plantafel-scroll card">
+      <div className="plantafel" style={{ gridTemplateColumns: `130px repeat(${tage.length}, minmax(118px, 1fr))` }}>
+        <div className="pt-ecke" />
+        {tage.map((tag, i) => (
+          <div key={tagIsos[i]} className={`pt-tag${tagIsos[i] === heuteIso ? " heute" : ""}`}>
+            {tag.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" })}
+          </div>
+        ))}
+        {zeilen.map((z) => (
+          <PlantafelZeile key={z.id ?? "frei"} zeile={z} tagIsos={tagIsos} heuteIso={heuteIso}
+            zelle={zelle} ueber={ueber} setUeber={setUeber} ablegen={ablegen}
+            projekt={projekt} oeffnen={(pid) => nav({ name: "projekt", id: pid })} />
+        ))}
+      </div>
+      <p className="muted small" style={{ margin: "10px 2px 2px" }}>Karte auf einen anderen Tag oder Mitarbeiter ziehen, um den Termin umzuplanen. Klick öffnet das Projekt.</p>
+    </div>
+  );
+}
+
+function PlantafelZeile({ zeile, tagIsos, heuteIso, zelle, ueber, setUeber, ablegen, projekt, oeffnen }: {
+  zeile: { id: string | null; name: string }; tagIsos: string[]; heuteIso: string;
+  zelle: (mid: string | null, tagIso: string) => Termin[];
+  ueber: string | null; setUeber: (k: string | null) => void;
+  ablegen: (e: DragEvent, mid: string | null, tagIso: string) => void;
+  projekt: (pid: string) => { projektnummer: string; bezeichnung: string } | undefined;
+  oeffnen: (projektId: string) => void;
+}) {
+  return (
+    <>
+      <div className={`pt-name${zeile.id === null ? " frei" : ""}`}>{zeile.name}</div>
+      {tagIsos.map((tagIso) => {
+        const key = `${zeile.id ?? "frei"}|${tagIso}`;
+        return (
+          <div key={key}
+            className={`pt-zelle${tagIso === heuteIso ? " heute" : ""}${ueber === key ? " ueber" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); setUeber(key); }}
+            onDragLeave={() => setUeber(null)}
+            onDrop={(e) => ablegen(e, zeile.id, tagIso)}
+          >
+            {zelle(zeile.id, tagIso).map((t) => {
+              const p = projekt(t.projekt_id);
+              return (
+                <div key={t.id} className={`pt-karte${t.erledigt ? " erledigt" : ""}`} draggable
+                  onDragStart={(e) => { e.dataTransfer.setData("text/plain", t.id); e.dataTransfer.effectAllowed = "move"; }}
+                  onClick={() => oeffnen(t.projekt_id)}
+                  title={`${t.beschreibung} · ${p?.projektnummer ?? ""}`}
+                >
+                  <span className="pt-karte-zeit">{t.uhrzeit ?? "—"}</span>
+                  <span className="pt-karte-text">{t.beschreibung}</span>
+                  <span className="pt-karte-projekt">{p?.projektnummer}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </>
   );
 }
 

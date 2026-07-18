@@ -269,6 +269,14 @@ class Store {
     return { ok: true };
   }
 
+  /** Plantafel (PO 18.07.): Termin auf einen anderen Tag und/oder Monteur ziehen. */
+  verschiebeTermin(termin_id: string, datum: string, mitarbeiter_id: string | null) {
+    this.commit((db) => {
+      const t = db.termin.find((x) => x.id === termin_id);
+      if (t) { t.datum = datum; t.mitarbeiter_id = mitarbeiter_id; }
+    });
+  }
+
   /** Einsatz komplett löschen (Fehlerfassung, PO 18.07.). Bei laufendem Einsatz
    *  geht das Gerät zurück ins Lager. Nachvollziehbar: die Eckdaten des gelöschten
    *  Einsatzes landen im Projekt-Feed — nichts verschwindet stillschweigend. */
@@ -772,7 +780,7 @@ class Store {
   }
 
   /** Raum-Foto anlegen (14 · Dokumente / FlashApp-Ersatz). Bild als komprimierte Data-URL. */
-  addRaumFoto(params: { raum_id: string; kategorie: "uebersicht" | "schadenstelle"; datei_referenz: string; aufgenommen_von: string }) {
+  addRaumFoto(params: { raum_id: string; kategorie: "uebersicht" | "schadenstelle" | "pano"; datei_referenz: string; aufgenommen_von: string }) {
     this.commit((db) => {
       db.raum_foto.push({
         id: uid("rf"), raum_id: params.raum_id, kategorie: params.kategorie,

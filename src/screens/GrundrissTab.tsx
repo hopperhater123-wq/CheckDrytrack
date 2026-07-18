@@ -7,6 +7,7 @@ import { GESCHOSSE } from "../app/labels";
 import { Icon } from "../ui/Icon";
 import { komprimiereBild } from "../ui/foto";
 import { FotoAnnotator } from "../ui/FotoAnnotator";
+import { RaumPanoKnopf } from "./RaumDetailModal";
 import type { Grundriss, Raum } from "../domain/types";
 
 // Grundriss/Skizze JE GESCHOSS (Backlog ⑤; Alt-System zeigte Skizzen pro Keller/EG/OG/DG).
@@ -43,6 +44,7 @@ export function GrundrissTab({ projektId, userId }: { projektId: string; userId:
         return (
           <GeschossBlock
             key={geschoss} projektId={projektId} geschoss={geschoss} grundrisse={gs}
+            panoRaumIds={new Set(db.raum_foto.filter((f) => f.kategorie === "pano").map((f) => f.raum_id))}
             raeume={raeume.filter((r) => r.geschoss === geschoss)}
             markierungen={db.grundriss_markierung.filter((m) => gs.some((g) => g.id === m.grundriss_id))}
             benutzerName={(uid) => db.benutzer.find((b) => b.id === uid)?.name ?? "?"}
@@ -73,8 +75,8 @@ export function GrundrissTab({ projektId, userId }: { projektId: string; userId:
   );
 }
 
-function GeschossBlock({ projektId, geschoss, grundrisse, raeume, markierungen, benutzerName, raumName, onMarkierung }: {
-  projektId: string; geschoss: string; grundrisse: Grundriss[]; raeume: Raum[];
+function GeschossBlock({ projektId, geschoss, grundrisse, raeume, panoRaumIds, markierungen, benutzerName, raumName, onMarkierung }: {
+  projektId: string; geschoss: string; grundrisse: Grundriss[]; raeume: Raum[]; panoRaumIds: Set<string>;
   markierungen: import("../domain/types").GrundrissMarkierung[];
   benutzerName: (uid: string) => string; raumName: (rid: string | null) => string; onMarkierung: (grundrissId: string) => void;
 }) {
@@ -113,6 +115,15 @@ function GeschossBlock({ projektId, geschoss, grundrisse, raeume, markierungen, 
           ? <span className="chip small chip-neutral">{grundriss.quelle === "magicplan" ? "MagicPlan" : "Skizze/Foto"}</span>
           : <span className="muted small">{raeume.length} {raeume.length === 1 ? "Raum" : "Räume"}</span>}
       </div>
+
+      {/* 360°-Einstieg vom Plan aus: je Raum mit Panorama ein Chip (Roadmap C-Detail). */}
+      {raeume.some((r) => panoRaumIds.has(r.id)) && (
+        <div className="btn-row" style={{ flexWrap: "wrap", marginBottom: 8 }}>
+          {raeume.filter((r) => panoRaumIds.has(r.id)).map((r) => (
+            <RaumPanoKnopf key={r.id} raumId={r.id} bezeichnung={r.bezeichnung} mitName />
+          ))}
+        </div>
+      )}
 
       <input ref={fotoInput} type="file" accept="image/*" capture="environment" hidden
         onChange={(e) => void hochladen(e.target.files)} />

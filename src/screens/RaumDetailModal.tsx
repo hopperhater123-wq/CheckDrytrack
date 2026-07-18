@@ -5,6 +5,7 @@ import { store } from "../domain/store";
 import { useSession } from "../app/session";
 import { komprimiereBild } from "../ui/foto";
 import { FotoAnnotator } from "../ui/FotoAnnotator";
+import { Pano360 } from "../ui/Pano360";
 import { Icon } from "../ui/Icon";
 import { GESCHOSSE, RAUMTYPEN } from "../app/labels";
 import { AufbauEditor } from "./MessprotokollTab";
@@ -92,6 +93,26 @@ export function RaumDetailModal({ raumId, onClose }: { raumId: string; onClose: 
   );
 }
 
+// 360°-Einstieg (Roadmap C-Detail): kleiner Knopf überall dort, wo ein Raum
+// auftaucht (Messprotokoll, Grundriss) — erscheint nur, wenn ein Panorama existiert.
+export function RaumPanoKnopf({ raumId, bezeichnung, mitName }: { raumId: string; bezeichnung: string; mitName?: boolean }) {
+  const db = useDB();
+  const [offen, setOffen] = useState(false);
+  const panos = db.raum_foto.filter((f) => f.raum_id === raumId && f.kategorie === "pano");
+  if (!panos.length) return null;
+  const neuestes = panos.reduce((a, b) => (a.aufgenommen_am > b.aufgenommen_am ? a : b));
+  return (
+    <>
+      <button className="chip small pano-chip" onClick={() => setOffen(true)} title={`360°-Ansicht ${bezeichnung}`}>
+        <Icon name="camera" size={12} /> {mitName ? `${bezeichnung} 360°` : "360°"}
+      </button>
+      <AnimatePresence>
+        {offen && <Pano360 src={neuestes.datei_referenz} titel={`360° — ${bezeichnung}`} onClose={() => setOffen(false)} />}
+      </AnimatePresence>
+    </>
+  );
+}
+
 // Foto-Dokumentation je Raum (FlashApp-Ersatz, 14 · Dokumente). Aufnahme über die
 // Kamera (capture="environment") oder Galerie; Bilder werden vor dem Speichern komprimiert.
 export function RaumFotos({ raumId }: { raumId: string }) {
@@ -103,6 +124,7 @@ export function RaumFotos({ raumId }: { raumId: string }) {
   const [laedt, setLaedt] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [gross, setGross] = useState<string | null>(null);
+  const [pano, setPano] = useState<string | null>(null);
   const [malen, setMalen] = useState<RaumFoto | null>(null);
 
   const dateienWaehlen = async (liste: FileList | null) => {
@@ -110,7 +132,8 @@ export function RaumFotos({ raumId }: { raumId: string }) {
     setFehler(null); setLaedt(true);
     try {
       for (const datei of Array.from(liste)) {
-        const dataUrl = await komprimiereBild(datei);
+        // Panoramen brauchen mehr Breite, sonst verschwimmt die Kugel-Ansicht.
+        const dataUrl = await komprimiereBild(datei, kategorie === "pano" ? 4096 : undefined);
         store.addRaumFoto({ raum_id: raumId, kategorie, datei_referenz: dataUrl, aufgenommen_von: user.id });
       }
     } catch {
@@ -126,14 +149,22 @@ export function RaumFotos({ raumId }: { raumId: string }) {
       <div className="segmented small">
         <button className={kategorie === "uebersicht" ? "seg active" : "seg"} onClick={() => setKategorie("uebersicht")}>Übersicht</button>
         <button className={kategorie === "schadenstelle" ? "seg active" : "seg"} onClick={() => setKategorie("schadenstelle")}>Schadenstelle</button>
+        <button className={kategorie === "pano" ? "seg active" : "seg"} onClick={() => setKategorie("pano")}>360°</button>
       </div>
+      {/* Panoramen entstehen in der Kamera-/Pano-App des Handys → Galerie statt Kamera öffnen. */}
       <input
-        ref={inputRef} type="file" accept="image/*" capture="environment" multiple hidden
+        ref={inputRef} type="file" accept="image/*" multiple hidden
+        {...(kategorie !== "pano" ? { capture: "environment" as const } : {})}
         onChange={(e) => void dateienWaehlen(e.target.files)}
       />
       <button className="btn block" disabled={laedt} onClick={() => inputRef.current?.click()}>
-        <Icon name="camera" size={16} /> {laedt ? "Wird verarbeitet…" : `Foto aufnehmen / wählen (${kategorie === "uebersicht" ? "Übersicht" : "Schadenstelle"})`}
+        <Icon name="camera" size={16} /> {laedt ? "Wird verarbeitet…"
+          : kategorie === "pano" ? "Panorama aus Galerie wählen (360°)"
+          : `Foto aufnehmen / wählen (${kategorie === "uebersicht" ? "Übersicht" : "Schadenstelle"})`}
       </button>
+      {kategorie === "pano" && (
+        <p className="muted small">Mit der Panorama-Funktion der Handy-Kamera einmal im Raum drehen, dann das Bild hier wählen — es wird als schwenkbare 360°-Ansicht gezeigt.</p>
+      )}
       {fehler && <p className="error">{fehler}</p>}
 
       {fotos.length === 0 ? (
@@ -144,12 +175,17 @@ export function RaumFotos({ raumId }: { raumId: string }) {
             {fotos.map((f) => (
               <motion.div key={f.id} className="foto-item" layout
                 initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.18 }}>
-                <button className="foto-thumb" onClick={() => setGross(f.datei_referenz)} aria-label="Foto vergrößern">
+                <button className="foto-thumb" onClick={() => (f.kategorie === "pano" ? setPano(f.datei_referenz) : setGross(f.datei_referenz))}
+                  aria-label={f.kategorie === "pano" ? "360°-Ansicht öffnen" : "Foto vergrößern"}>
                   <img src={f.datei_referenz} alt={f.kategorie} loading="lazy" />
-                  <span className={`foto-tag${f.kategorie === "schadenstelle" ? " danger" : ""}`}>{f.kategorie === "schadenstelle" ? "Schaden" : "Übersicht"}</span>
+                  <span className={`foto-tag${f.kategorie === "schadenstelle" ? " danger" : ""}`}>
+                    {f.kategorie === "schadenstelle" ? "Schaden" : f.kategorie === "pano" ? "360°" : "Übersicht"}
+                  </span>
                 </button>
                 <button className="foto-del" onClick={() => store.removeRaumFoto(f.id)} aria-label="Foto löschen"><Icon name="trash" size={14} /></button>
-                <button className="foto-edit" onClick={() => setMalen(f)} aria-label="Foto markieren" title="Markieren"><Icon name="pen" size={14} /></button>
+                {f.kategorie !== "pano" && (
+                  <button className="foto-edit" onClick={() => setMalen(f)} aria-label="Foto markieren" title="Markieren"><Icon name="pen" size={14} /></button>
+                )}
               </motion.div>
             ))}
           </AnimatePresence>
@@ -163,6 +199,10 @@ export function RaumFotos({ raumId }: { raumId: string }) {
             <div className="modal-actions"><button className="btn btn-primary" onClick={() => setGross(null)}>Schließen</button></div>
           </Modal>
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {pano && <Pano360 src={pano} titel="360°-Ansicht" onClose={() => setPano(null)} />}
       </AnimatePresence>
 
       {malen && (

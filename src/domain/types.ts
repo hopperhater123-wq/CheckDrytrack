@@ -321,7 +321,7 @@ export interface Bemusterung {
 export interface RaumFoto {
   id: string;
   raum_id: string;
-  kategorie: "uebersicht" | "schadenstelle";
+  kategorie: "uebersicht" | "schadenstelle" | "pano"; // pano = 360°-Rundumblick (equirectangular)
   datei_referenz: string;
   aufgenommen_von: string;
   aufgenommen_am: string;

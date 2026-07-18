@@ -5,15 +5,16 @@
 const MAX_KANTE = 1280; // px längste Kante
 const QUALITAET = 0.72; // JPEG
 
-/** Liest eine Bilddatei, skaliert sie herunter und liefert eine komprimierte JPEG-Data-URL. */
-export function komprimiereBild(datei: File): Promise<string> {
+/** Liest eine Bilddatei, skaliert sie herunter und liefert eine komprimierte JPEG-Data-URL.
+ *  maxKante überschreibbar: 360°-Panoramen brauchen mehr Breite (Detail beim Schwenken). */
+export function komprimiereBild(datei: File, maxKante: number = MAX_KANTE): Promise<string> {
   return new Promise((resolve, reject) => {
     if (!datei.type.startsWith("image/")) { reject(new Error("Keine Bilddatei")); return; }
     const url = URL.createObjectURL(datei);
     const img = new Image();
     img.onload = () => {
       URL.revokeObjectURL(url);
-      const skala = Math.min(1, MAX_KANTE / Math.max(img.width, img.height));
+      const skala = Math.min(1, maxKante / Math.max(img.width, img.height));
       const w = Math.round(img.width * skala);
       const h = Math.round(img.height * skala);
       const canvas = document.createElement("canvas");

@@ -10,6 +10,7 @@ import { Icon } from "../ui/Icon";
 import { spiele } from "../ui/sound";
 import { SignaturPad } from "../ui/SignaturPad";
 import { TrockenMoment } from "../ui/TrockenMoment";
+import { RaumPanoKnopf } from "./RaumDetailModal";
 import type {
   EstrichBauart, Materialdatenbank, Messanlass, Messpunkt, MessStatusCheckliste, Messung, Messverfahren, Raum, SchichtTyp,
 } from "../domain/types";
@@ -109,7 +110,10 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
   return (
     <section className="card">
       <div className="card-head"><h2>{raum.bezeichnung}{raum.geschoss ? <span className="muted small" style={{ fontFamily: "var(--font)", marginLeft: 8 }}>{raum.geschoss}</span> : null}</h2>
-        <button className="btn btn-sm" onClick={() => setForm({ mp: null })}>+ Messung</button>
+        <div className="btn-row" style={{ margin: 0 }}>
+          <RaumPanoKnopf raumId={raum.id} bezeichnung={raum.bezeichnung} />
+          <button className="btn btn-sm" onClick={() => setForm({ mp: null })}>+ Messung</button>
+        </div>
       </div>
 
       <AufbauEditor raum={raum} />
