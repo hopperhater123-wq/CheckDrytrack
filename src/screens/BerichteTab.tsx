@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Modal, AnimatePresence } from "../ui/motion";
 import { useDB } from "../app/useStore";
+import { useSession } from "../app/session";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
@@ -492,6 +493,7 @@ const BELAG_ARTEN: BemusterungArt[] = ["ersatzfliese", "parkett", "laminat", "vi
 const istBelag = (a: BemusterungArt) => BELAG_ARTEN.includes(a);
 
 function BemusterungListe({ projektId }: { projektId: string }) {
+  const { can } = useSession();
   const db = useDB();
   const muster = db.bemusterung.filter((m) => m.projekt_id === projektId);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -544,10 +546,14 @@ function BemusterungListe({ projektId }: { projektId: string }) {
                   <div className="muster-titel">{m.material_beschreibung}</div>
                   <div className="muted small">{[BEMUSTERUNG_ART_LABEL[m.art], m.menge, m.lieferant].filter(Boolean).join(" · ")}</div>
                 </div>
-                <select className="muster-status" value={m.bestellstatus} aria-label="Bestellstatus"
-                  onChange={(e) => store.setBemusterungStatus(m.id, e.target.value as Bestellstatus)}>
-                  {(Object.keys(BESTELLSTATUS_LABEL) as Bestellstatus[]).map((s) => <option key={s} value={s}>{BESTELLSTATUS_LABEL[s]}</option>)}
-                </select>
+                {can.bestellungenVerwalten ? (
+                  <select className="muster-status" value={m.bestellstatus} aria-label="Bestellstatus"
+                    onChange={(e) => store.setBemusterungStatus(m.id, e.target.value as Bestellstatus)}>
+                    {(Object.keys(BESTELLSTATUS_LABEL) as Bestellstatus[]).map((s) => <option key={s} value={s}>{BESTELLSTATUS_LABEL[s]}</option>)}
+                  </select>
+                ) : (
+                  <span className="chip chip-neutral" title="Bestellstatus ändert nur das Büro (Disposition/Projektleitung)">{BESTELLSTATUS_LABEL[m.bestellstatus]}</span>
+                )}
                 <button className="foto-del" onClick={() => store.removeBemusterung(m.id)} aria-label="Bemusterung löschen"><Icon name="trash" size={14} /></button>
               </div>
             ))}

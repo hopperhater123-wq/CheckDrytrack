@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useDB } from "../app/useStore";
 import { useNav } from "../app/nav";
+import { useSession } from "../app/session";
 import { store } from "../domain/store";
 import { BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL } from "../app/labels";
 import { Icon } from "../ui/Icon";
@@ -12,6 +13,7 @@ type Filter = "offen" | Bestellstatus | "alle";
 const STATUS_RANG: Record<Bestellstatus, number> = { ausgewaehlt: 0, bestellt: 1, geliefert: 2 };
 
 export function BestellungenScreen() {
+  const { can } = useSession();
   const db = useDB();
   const nav = useNav();
   const [filter, setFilter] = useState<Filter>("offen");
@@ -64,10 +66,14 @@ export function BestellungenScreen() {
                       {[BEMUSTERUNG_ART_LABEL[m.art], m.menge, m.lieferant, `${p.projektnummer} · ${p.bezeichnung}`].filter(Boolean).join(" · ")}
                     </div>
                   </button>
-                  <select className="muster-status" value={m.bestellstatus} aria-label="Bestellstatus"
-                    onChange={(e) => store.setBemusterungStatus(m.id, e.target.value as Bestellstatus)}>
-                    {(Object.keys(BESTELLSTATUS_LABEL) as Bestellstatus[]).map((s) => <option key={s} value={s}>{BESTELLSTATUS_LABEL[s]}</option>)}
-                  </select>
+                  {can.bestellungenVerwalten ? (
+                    <select className="muster-status" value={m.bestellstatus} aria-label="Bestellstatus"
+                      onChange={(e) => store.setBemusterungStatus(m.id, e.target.value as Bestellstatus)}>
+                      {(Object.keys(BESTELLSTATUS_LABEL) as Bestellstatus[]).map((s) => <option key={s} value={s}>{BESTELLSTATUS_LABEL[s]}</option>)}
+                    </select>
+                  ) : (
+                    <span className="chip chip-neutral" title="Bestellstatus ändert nur das Büro (Disposition/Projektleitung)">{BESTELLSTATUS_LABEL[m.bestellstatus]}</span>
+                  )}
                 </div>
               ))}
             </div>}

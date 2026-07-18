@@ -5,6 +5,9 @@ import type { Rolle } from "./types";
 
 export interface Faehigkeiten {
   geraeteScannen: boolean;
+  // Bestellstatus (Bemusterung/Bestellübersicht) ändern: Büro-Sache —
+  // der Monteur SIEHT Bestellungen, markiert aber nichts (PO-Vorgabe 18.07.).
+  bestellungenVerwalten: boolean;
   alleErfassungenEinsehen: boolean;
   projektAnlegen: boolean;
   projektBearbeiten: boolean;
@@ -29,6 +32,7 @@ export function faehigkeiten(rolle: Rolle): Faehigkeiten {
     case "monteur":
       return {
         geraeteScannen: true,
+        bestellungenVerwalten: false,
         alleErfassungenEinsehen: false,
         projektAnlegen: true,
         projektBearbeiten: false,
@@ -41,6 +45,7 @@ export function faehigkeiten(rolle: Rolle): Faehigkeiten {
     case "disposition":
       return {
         geraeteScannen: true,
+        bestellungenVerwalten: true,
         alleErfassungenEinsehen: true,
         projektAnlegen: true,
         projektBearbeiten: true,
@@ -53,6 +58,7 @@ export function faehigkeiten(rolle: Rolle): Faehigkeiten {
     case "projektleiter":
       return {
         geraeteScannen: true,
+        bestellungenVerwalten: true,
         alleErfassungenEinsehen: true, // eigene Projekte
         projektAnlegen: true,
         projektBearbeiten: true, // eigene
@@ -65,6 +71,7 @@ export function faehigkeiten(rolle: Rolle): Faehigkeiten {
     case "admin_gf":
       return {
         geraeteScannen: true,
+        bestellungenVerwalten: true,
         alleErfassungenEinsehen: true,
         projektAnlegen: true,
         projektBearbeiten: true,

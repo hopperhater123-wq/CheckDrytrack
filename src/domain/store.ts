@@ -4,7 +4,7 @@
 
 import type {
   DryTrackDB, Eigentum, Einsatz, EstrichBauart, FeedEintrag, FeedKategorie, Geraet, Geraetetyp, Messanlass,
-  MessStatusCheckliste, Messverfahren, Projekt, ProjektStatus, Raum, SchichtTyp,
+  MessStatusCheckliste, Messverfahren, Projekt, ProjektStatus, Raum, Rolle, SchichtTyp,
 } from "./types";
 import { absoluteFeuchteGKg } from "./mess";
 import { seedDB } from "./seed";
@@ -266,6 +266,21 @@ class Store {
       db.feed_eintrag.push(autoFeed(einsatz.projekt_id, einsatz.geraet_inventarnummer, "zaehlerstand", params.autor_id,
         `Einsatz korrigiert (${einsatz.geraet_inventarnummer}): ${aenderungen.join(", ")}.`));
     });
+    return { ok: true };
+  }
+
+  /** Rolle eines Mitarbeiters ändern (FR-ROLE-002: ausschließlich Admins — die UI
+   *  zeigt die Verwaltung nur mit mitarbeiterVerwalten). Schutz: der letzte
+   *  Admin/GF kann nicht herabgestuft werden, sonst sperrt sich die Firma aus. */
+  setBenutzerRolle(benutzer_id: string, rolle: Rolle): { ok: boolean; error?: string } {
+    const b = this.db.benutzer.find((x) => x.id === benutzer_id);
+    if (!b) return { ok: false, error: "Mitarbeiter nicht gefunden." };
+    if (b.rolle === rolle) return { ok: true };
+    if (b.rolle === "admin_gf" && rolle !== "admin_gf"
+      && this.db.benutzer.filter((x) => x.rolle === "admin_gf").length <= 1) {
+      return { ok: false, error: "Der letzte Admin/GF kann nicht herabgestuft werden." };
+    }
+    this.commit((db) => { db.benutzer.find((x) => x.id === benutzer_id)!.rolle = rolle; });
     return { ok: true };
   }
 

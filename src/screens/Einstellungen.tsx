@@ -151,12 +151,47 @@ function TorrekScanCard({ sichtbar }: { sichtbar: boolean }) {
   );
 }
 
+// Rollen-Verwaltung (FR-ROLE-002): nur für Rollen mit mitarbeiterVerwalten (Admin/GF).
+// Die Rolle steuert die Berechtigungen (Rollen-Rechte-Matrix, 04 · Rollenmodell) —
+// z. B. wer Bestellstatus ändern oder Projekte bearbeiten darf.
+function MitarbeiterCard({ sichtbar }: { sichtbar: boolean }) {
+  const db = useDB();
+  const [fehler, setFehler] = useState<string | null>(null);
+  if (!sichtbar) return null;
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Mitarbeiter & Rollen</h2></div>
+      <p className="muted small">Die Rolle bestimmt die Berechtigungen (z. B. Bestellstatus = Büro). Nur Admin/GF kann Rollen ändern.</p>
+      {db.benutzer.map((b) => (
+        <div key={b.id} className="listrow static" style={{ marginBottom: 8 }}>
+          <div className="listrow-main">
+            <span className="listrow-title">{b.name}</span>
+            <span className="listrow-sub">{b.microsoft_account_id}</span>
+          </div>
+          <select
+            value={b.rolle} aria-label={`Rolle von ${b.name}`} style={{ width: "auto" }}
+            onChange={(e) => {
+              setFehler(null);
+              const res = store.setBenutzerRolle(b.id, e.target.value as typeof b.rolle);
+              if (!res.ok) setFehler(res.error ?? "Fehler");
+            }}
+          >
+            {(Object.keys(ROLLEN_LABEL) as (typeof b.rolle)[]).map((r) => <option key={r} value={r}>{ROLLEN_LABEL[r]}</option>)}
+          </select>
+        </div>
+      ))}
+      {fehler && <p className="error">{fehler}</p>}
+    </section>
+  );
+}
+
 export function Einstellungen() {
   const db = useDB();
   const { user, can } = useSession();
 
   const faehigkeiten: [string, boolean][] = [
     ["Geräte scannen/erfassen", can.geraeteScannen],
+    ["Bestellstatus ändern (Büro)", can.bestellungenVerwalten],
     ["Alle Erfassungen einsehen", can.alleErfassungenEinsehen],
     ["Projekt anlegen", can.projektAnlegen],
     ["Projekt bearbeiten/schließen", can.projektBearbeiten],
@@ -207,6 +242,8 @@ export function Einstellungen() {
           <div><dt>Freigabegrenze</dt><dd>{freigabegrenze ? `${Number(freigabegrenze).toLocaleString("de-DE")} €` : "—"} (FR-PROJ-011)</dd></div>
         </dl>
       </section>
+
+      <MitarbeiterCard sichtbar={can.mitarbeiterVerwalten} />
 
       <TorrekScanCard sichtbar={can.geraeteStammdatenVerwalten} />
 
