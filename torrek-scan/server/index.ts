@@ -15,6 +15,10 @@
 // v4 (Feld-Helfer): Notiz je Gerät (Spalte scan_erfassung.notiz, additiv)
 // wird gespeichert und im Verlauf ausgegeben; "stammdaten" liefert zusätzlich
 // Büro-Einstellungen (foto_pflicht: aus | hinweis | pflicht) aus scan_einstellung.
+//
+// v5 (mehrere Mieter je Liste): "projekt" (offen) liefert den Mieter des
+// Aufbaus mit, damit der Abbau ihn je Gerät erbt; Einstellungen zusätzlich
+// buero_email (optional) für den E-Mail-Entwurf der App.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -63,7 +67,7 @@ Deno.serve(async (req) => {
       const bekannt: Record<string, string> = {};
       for (const g of gesehen ?? []) bekannt[g.code] = g.typ_id!;
       const { data: einst } = await db.from("scan_einstellung")
-        .select("schluessel, wert").in("schluessel", ["foto_pflicht"]);
+        .select("schluessel, wert").in("schluessel", ["foto_pflicht", "buero_email"]);
       const einstellungen: Record<string, string> = {};
       for (const e of einst ?? []) einstellungen[e.schluessel] = e.wert;
       return json({ typen: typen ?? [], bekannt, einstellungen });
@@ -73,7 +77,7 @@ Deno.serve(async (req) => {
     if (b.aktion === "projekt") {
       const pn = norm(b.projektnummer);
       const { data: alle } = await db.from("scan_erfassung")
-        .select("code, modus, kwh, erfasst_am, typ_id, standort")
+        .select("code, modus, kwh, erfasst_am, typ_id, standort, mieter")
         .eq("projektnummer", pn).order("erfasst_am");
       const auf = (alle ?? []).filter((r) => r.modus === "aufbau");
       const ab = new Set((alle ?? []).filter((r) => r.modus === "abbau").map((r) => r.code));
@@ -83,6 +87,7 @@ Deno.serve(async (req) => {
           zaehlerstand_start: Number(r.kwh),
           aufbau_datum: r.erfasst_am,
           standort: r.standort ?? null,
+          mieter: r.mieter ?? null,
         })),
       });
     }

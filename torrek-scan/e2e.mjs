@@ -540,6 +540,99 @@ try {
     check('Foto-Weg: Barcode-Foto führt zum Typ-Screen', chipTxt.includes('800000006120'));
     await ctx.close();
   }
+
+  // ============ Szenario P — Mehrere Mieter je Liste ============
+  {
+    const ctx = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    await mockFn(ctx);
+    const page = await ctx.newPage();
+    await page.goto(base, { waitUntil: 'load' });
+    await page.waitForTimeout(2600);
+    await setup(page, {});                                  // Standard-Mieter „Wimmer"
+    await onScanScreen(page);
+    // Gerät 1 — Mieter unangetastet (bleibt Wimmer)
+    await tippen(page, '111222333444');
+    await page.waitForTimeout(400);
+    if (await page.$('.typen')) { await page.click('.typen button'); await page.waitForTimeout(300); }
+    check('Wert-Screen: Mieter vorbelegt mit Setup-Mieter', (await page.inputValue('input[placeholder="Mieter dieser Wohnung"]')) === 'Wimmer');
+    for (const n of '4217') await page.click(`.pad button:has-text("${n}")`);
+    await page.click('text=Speichern');
+    await page.waitForTimeout(500);
+    // Gerät 2 — andere Wohnung, Mieter „Meier"
+    await tippen(page, '555666777888');
+    await page.waitForTimeout(400);
+    if (await page.$('.typen')) { await page.click('.typen button'); await page.waitForTimeout(300); }
+    await page.fill('input[placeholder="Mieter dieser Wohnung"]', 'Meier');
+    for (const n of '5000') await page.click(`.pad button:has-text("${n}")`);
+    await page.click('text=Speichern');
+    await page.waitForTimeout(500);
+    // Gerät 3 — erbt den zuletzt genutzten Mieter (Meier), nicht den Setup-Mieter
+    await tippen(page, '999000111222');
+    await page.waitForTimeout(400);
+    if (await page.$('.typen')) { await page.click('.typen button'); await page.waitForTimeout(300); }
+    check('Nächstes Gerät erbt zuletzt genutzten Mieter', (await page.inputValue('input[placeholder="Mieter dieser Wohnung"]')) === 'Meier');
+    await page.click('.back'); await page.waitForTimeout(300);   // Gerät 3 verwerfen
+    await page.click('button:has-text("Liste")');
+    await page.waitForTimeout(500);
+    const smalls = (await page.$$eval('.row .id small', els => els.map(e => e.textContent))).join(' | ');
+    check('Liste zeigt Mieter je Zeile (bei mehreren)', smalls.includes('Wimmer') && smalls.includes('Meier'));
+    const csv = await page.evaluate(() => XLSX.utils.sheet_to_csv(wb().Sheets['Geräteliste']));
+    check('Excel: Mieter je Zeile', csv.includes('Meier') && csv.includes('Wimmer'));
+    check('Excel-Kopf sagt „mehrere"', csv.includes('mehrere'));
+    await ctx.close();
+
+    // Abbau erbt den Mieter des Aufbaus (vom Server)
+    const ctxB = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    await ctxB.route('**/functions/v1/**', async route => {
+      let aktion = ''; try { aktion = JSON.parse(route.request().postData() || '{}').aktion; } catch {}
+      const bodies = { stammdaten: { typen: [], bekannt: {}, einstellungen: {} }, erfassen: { ok: true },
+        projekt: { offen: [{ geraet_inventarnummer: '999888777666', zaehlerstand_start: 1000, mieter: 'Huber' }] } };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(bodies[aktion] ?? {}) });
+    });
+    const pageB = await ctxB.newPage();
+    await pageB.goto(base, { waitUntil: 'load' });
+    await pageB.waitForTimeout(2600);
+    await setup(pageB, { modus: 'abbau' });
+    await onScanScreen(pageB);
+    await tippen(pageB, '999888777666');
+    await pageB.waitForTimeout(500);
+    if (await pageB.$('.typen')) { await pageB.click('.typen .unk'); await pageB.waitForTimeout(300); }
+    check('Abbau erbt Mieter des Aufbaus (Server)', (await pageB.inputValue('input[placeholder="Mieter dieser Wohnung"]')) === 'Huber');
+    await ctxB.close();
+  }
+
+  // ============ Szenario Q — Per E-Mail senden ============
+  {
+    const ctx = await browser.newContext({ viewport: { width: 420, height: 900 } });
+    await ctx.route('**/functions/v1/**', async route => {
+      let aktion = ''; try { aktion = JSON.parse(route.request().postData() || '{}').aktion; } catch {}
+      const bodies = { stammdaten: { typen: [], bekannt: {}, einstellungen: { buero_email: 'buero@example.de' } },
+        projekt: { offen: [] }, erfassen: { ok: true } };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(bodies[aktion] ?? {}) });
+    });
+    const page = await ctx.newPage();
+    await page.goto(base, { waitUntil: 'load' });
+    await page.waitForTimeout(2600);
+    await setup(page, {});
+    await onScanScreen(page);
+    await tippen(page, '123456789012');
+    await page.waitForTimeout(400);
+    if (await page.$('.typen')) { await page.click('.typen .unk'); await page.waitForTimeout(300); }
+    for (const n of '4217') await page.click(`.pad button:has-text("${n}")`);
+    await page.click('text=Speichern');
+    await page.waitForTimeout(500);
+    await page.click('button:has-text("Liste")');
+    await page.waitForTimeout(400);
+    await page.click('text=Abschließen');
+    await page.waitForTimeout(400);
+    check('Abschluss: „Per E-Mail senden"-Knopf vorhanden', await page.$('button:has-text("Per E-Mail senden")') !== null);
+    const href = await page.evaluate(() => mailtoFuer('2026 033996', 'aufbau', 'Wimmer'));
+    check('Mail-Entwurf: Büro-Adresse vorausgefüllt', href.startsWith('mailto:buero%40example.de?'));
+    const entwurf = decodeURIComponent(href);
+    check('Mail-Entwurf: Betreff + Zählerstand im Text', href.includes('subject=') && entwurf.includes('4.217'));
+    check('Mail-Entwurf: Gerät im Text', entwurf.includes('123456789012'));
+    await ctx.close();
+  }
 } catch (e) {
   check('Testlauf ohne unerwartete Ausnahme', false);
   console.error('\nAusnahme:', e && e.message);
