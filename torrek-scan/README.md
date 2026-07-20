@@ -22,7 +22,9 @@ hängt optional ein **Foto vom Zähler** an. Beim Abbau rechnet die App automati
   Chrome — hardwarenah, liest direkt vom Video, robust bei gewölbten/glänzenden Etiketten);
   ZXing nur als Ersatz, dann direkt vom Canvas. Mehrere 1D-Formate (Code 128/39/93, ITF,
   Codabar, EAN, UPC). Zusätzlich: **Barcode vom Foto einlesen**, **Taschenlampe**,
-  **Nummer eintippen** als letzter Weg.
+  **Nummer eintippen** als letzter Weg. Eine **EAN-13-Prüfziffer** (Drucker codiert
+  13 Striche, Etikett zeigt 12 Ziffern) wird automatisch abgeschnitten — Scan,
+  Etikett und Tippen ergeben dieselbe Nummer.
 - **Aufbau / Abbau** als zwei Modi einer Liste. Im Abbau kennt die App die offenen Geräte des
   Projekts und warnt bei fehlenden (mit **Standort**), fremden oder negativen Ständen.
   **Tippfehler-Bremse** bei unplausiblen Zählerständen.
@@ -32,6 +34,12 @@ hängt optional ein **Foto vom Zähler** an. Beim Abbau rechnet die App automati
 - **Offline-first:** Jede Erfassung geht zuerst in IndexedDB. Der Sync gegen den Server läuft
   best-effort und automatisch nach, sobald wieder Netz da ist — nichts geht verloren.
   „**Alles gesendet?**"-Banner im Setup, solange Erfassungen warten.
+- **Korrigieren statt neu erfassen:** vertippten kWh-Stand **oder** die Etikettennummer
+  nachträglich ändern — Wert bzw. Nummer in der Liste oder in früheren Listen (Archiv)
+  antippen (✎), neuen Stand/neue Nummer eingeben. Doppelte Nummern in derselben Liste
+  sind gesperrt; bereits gesendete Zeilen werden am Server nachgezogen. Die ursprünglichen
+  Werte bleiben dort nachvollziehbar (`kwh_alt`/`code_alt`), das Büro-Archiv kennzeichnet
+  Korrekturen („korrigiert — Nr. war …").
 - **Excel-Export** (SheetJS) als „Zettel fürs Büro", inkl. Gesamtverbrauch beim Abbau.
 - **Archiv:** frühere Listen dieses Geräts (mit Löschen → **Papierkorb** → Wiederherstellen)
   und **Büro-Archiv** (geräteübergreifender Verlauf vom Server, mit Excel-Export).
@@ -81,7 +89,8 @@ Hermetischer E2E-Golden-Path (Playwright, echtes Chromium): startet einen eigene
 Server und **mockt bzw. blockiert die Edge Function** — es geht nie ein echter Request an
 Supabase raus. Deckt u. a. Setup, Aufbau, Abbau-Differenz, Offline, Hell/Dunkel, Büro-Archiv,
 Standort, Löschen/Papierkorb, Tippfehler-Bremse, Foto-Erinnerung, letzte Baustellen und den
-Scanner-Kern (selbst erzeugter CODE-128 durch den echten Foto-Weg) ab — **52 Checks**.
+Scanner-Kern (selbst erzeugter CODE-128 durch den echten Foto-Weg) und die
+Zählerstand- und Nummern-Korrektur sowie den Excel-Export ab — **63 Checks**.
 
 ```bash
 # aus dem Repo-Wurzelverzeichnis (nutzt playwright-core aus dem Wurzel-node_modules)
