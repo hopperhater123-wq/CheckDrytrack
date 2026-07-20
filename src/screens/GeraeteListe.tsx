@@ -3,7 +3,7 @@ import { useDB } from "../app/useStore";
 import { useNav } from "../app/nav";
 import { GERAET_STATUS_LABEL } from "../app/labels";
 import { berechneVerbrauch } from "../domain/einsatz";
-import { tabelleTeilen } from "../ui/tabelle";
+import { arbeitsmappeTeilen } from "../ui/tabelle";
 import { Icon } from "../ui/Icon";
 import { CameraScanner } from "../ui/CameraScanner";
 import type { GeraetStatus } from "../domain/types";
@@ -34,33 +34,45 @@ export function GeraeteListe() {
   const projektNummer = (pid: string | null) => pid ? db.projekt.find((p) => p.id === pid)?.projektnummer ?? "?" : null;
   const heute = new Date().toISOString().slice(0, 10);
 
-  // Geräteliste (die „Datenbank") als Tabelle zum Teilen/Mailen.
+  // Geräteliste (die „Datenbank") als echte Excel-Datei zum Teilen/Mailen.
   const exportGeraete = () => {
-    const kopf = ["Inventarnummer", "Gerätetyp", "Leistung kW", "Status", "Aktuelles Projekt", "Eigentum", "E-Check"];
-    const body = db.geraet.slice().sort((a, b) => a.inventarnummer.localeCompare(b.inventarnummer)).map((g) => {
+    const zeilen = db.geraet.slice().sort((a, b) => a.inventarnummer.localeCompare(b.inventarnummer)).map((g) => {
       const typ = db.geraetetyp.find((t) => t.id === g.geraetetyp_id);
-      return [g.inventarnummer, typ?.bezeichnung, typ?.leistungswert_kw, GERAET_STATUS_LABEL[g.status],
-        projektNummer(g.aktuelles_projekt_id), g.eigentum === "gemietet" ? "gemietet" : "eigen",
+      return [g.inventarnummer, typ?.bezeichnung ?? "", typ?.leistungswert_kw ?? "", GERAET_STATUS_LABEL[g.status],
+        projektNummer(g.aktuelles_projekt_id) ?? "", g.eigentum === "gemietet" ? "gemietet" : "eigen",
         g.e_check_datum ? new Date(g.e_check_datum).toLocaleDateString("de-DE") : ""];
     });
-    return tabelleTeilen(`Torrek-Geraeteliste-${heute}.csv`, [kopf, ...body]);
+    return arbeitsmappeTeilen(`Torrek-Geraeteliste-${heute}.xlsx`, {
+      blattname: "Geräte",
+      titel: "Torrek — Geräteliste (Inventar)",
+      kopfzeilen: [["Datum:", new Date().toLocaleDateString("de-DE")], ["Geräte:", db.geraet.length]],
+      spalten: ["Inventarnummer", "Gerätetyp", "Leistung kW", "Status", "Aktuelles Projekt", "Eigentum", "E-Check"],
+      zeilen,
+      breiten: [16, 24, 12, 12, 16, 10, 12],
+    }, "Torrek Geräteliste");
   };
 
-  // Einsätze (Aufbau/Abbau mit kWh + Verbrauch) als Tabelle.
+  // Einsätze (Aufbau/Abbau mit kWh + Verbrauch) als echte Excel-Datei.
   const exportEinsaetze = () => {
-    const kopf = ["Inventarnummer", "Gerätetyp", "Projekt", "Raum", "Aufbau", "Start kWh", "Abbau", "Ende kWh", "Verbrauch kWh", "geschätzt", "Status"];
-    const body = db.einsatz.slice().sort((a, b) => (a.aufbau_datum < b.aufbau_datum ? 1 : -1)).map((e) => {
+    const zeilen = db.einsatz.slice().sort((a, b) => (a.aufbau_datum < b.aufbau_datum ? 1 : -1)).map((e) => {
       const g = db.geraet.find((x) => x.inventarnummer === e.geraet_inventarnummer);
       const typ = g ? db.geraetetyp.find((t) => t.id === g.geraetetyp_id) : undefined;
       const p = db.projekt.find((x) => x.id === e.projekt_id);
-      const raum = e.raum_id ? db.raum.find((r) => r.id === e.raum_id)?.bezeichnung : "";
+      const raum = e.raum_id ? db.raum.find((r) => r.id === e.raum_id)?.bezeichnung ?? "" : "";
       const v = g ? berechneVerbrauch(e, g, typ) : null;
-      return [e.geraet_inventarnummer, typ?.bezeichnung, p?.projektnummer, raum,
+      return [e.geraet_inventarnummer, typ?.bezeichnung ?? "", p?.projektnummer ?? "", raum,
         new Date(e.aufbau_datum).toLocaleDateString("de-DE"), e.zaehlerstand_start,
-        e.abbau_datum ? new Date(e.abbau_datum).toLocaleDateString("de-DE") : "", e.zaehlerstand_ende,
+        e.abbau_datum ? new Date(e.abbau_datum).toLocaleDateString("de-DE") : "", e.zaehlerstand_ende ?? "",
         v ? Math.round(v.verbrauch) : "", v ? (v.geschaetzt ? "ja" : "nein") : "", e.abbau_datum ? "abgebaut" : "läuft"];
     });
-    return tabelleTeilen(`Torrek-Einsaetze-${heute}.csv`, [kopf, ...body]);
+    return arbeitsmappeTeilen(`Torrek-Einsaetze-${heute}.xlsx`, {
+      blattname: "Einsätze",
+      titel: "Torrek — Einsätze (Aufbau/Abbau)",
+      kopfzeilen: [["Datum:", new Date().toLocaleDateString("de-DE")], ["Einsätze:", db.einsatz.length]],
+      spalten: ["Inventarnummer", "Gerätetyp", "Projekt", "Raum", "Aufbau", "Start kWh", "Abbau", "Ende kWh", "Verbrauch kWh", "geschätzt", "Status"],
+      zeilen,
+      breiten: [16, 22, 12, 14, 12, 11, 12, 11, 15, 10, 10],
+    }, "Torrek Einsätze");
   };
 
   return (

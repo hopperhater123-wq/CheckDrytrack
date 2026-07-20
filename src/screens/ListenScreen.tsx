@@ -7,7 +7,7 @@ import { store } from "../domain/store";
 import { getSupabaseClient } from "../domain/remote";
 import { berechneVerbrauch, istLaufend } from "../domain/einsatz";
 import { fmtZahl } from "../app/format";
-import { tabelleTeilen } from "../ui/tabelle";
+import { arbeitsmappeTeilen } from "../ui/tabelle";
 import { Icon } from "../ui/Icon";
 import { KorrekturModal } from "./KorrekturModal";
 import type { DryTrackDB, Einsatz, Projekt } from "../domain/types";
@@ -116,18 +116,35 @@ export function ListenScreen() {
   };
 
   const exportListe = (p: Projekt, einsaetze: Einsatz[]) => {
-    const kopf = ["Nr.", "Gerät", "Typ", "Raum", "Aufbau", "Start kWh", "Abbau", "Ende kWh", "Verbrauch kWh"];
-    const body = einsaetze.map((e, i) => {
+    let summeKwh = 0;
+    const zeilen = einsaetze.map((e, i) => {
       const g = db.geraet.find((x) => x.inventarnummer === e.geraet_inventarnummer);
       const typ = g ? db.geraetetyp.find((t) => t.id === g.geraetetyp_id) : undefined;
       const v = g ? berechneVerbrauch(e, g, typ) : null;
-      return [i + 1, e.geraet_inventarnummer, typ?.bezeichnung,
-        e.raum_id ? db.raum.find((r) => r.id === e.raum_id)?.bezeichnung : "",
+      const verbrauch = v && !istLaufend(e) ? Math.round(v.verbrauch) : "";
+      if (typeof verbrauch === "number") summeKwh += verbrauch;
+      return [i + 1, e.geraet_inventarnummer, typ?.bezeichnung ?? "",
+        e.raum_id ? db.raum.find((r) => r.id === e.raum_id)?.bezeichnung ?? "" : "",
         new Date(e.aufbau_datum).toLocaleDateString("de-DE"), e.zaehlerstand_start,
-        e.abbau_datum ? new Date(e.abbau_datum).toLocaleDateString("de-DE") : "läuft", e.zaehlerstand_ende,
-        v && !istLaufend(e) ? Math.round(v.verbrauch) : ""];
+        e.abbau_datum ? new Date(e.abbau_datum).toLocaleDateString("de-DE") : "läuft", e.zaehlerstand_ende ?? "",
+        verbrauch];
     });
-    return tabelleTeilen(`Torrek-Liste-${p.projektnummer}.csv`, [kopf, ...body]);
+    const laufend = einsaetze.filter(istLaufend).length;
+    return arbeitsmappeTeilen(`Torrek-Liste-${p.projektnummer}.xlsx`, {
+      blattname: "Geräteliste",
+      titel: "Torrek — Geräteliste",
+      kopfzeilen: [
+        ["Projektnummer:", p.projektnummer],
+        ["Objekt:", p.bezeichnung],
+        ["Adresse:", p.adresse],
+        ["Datum:", new Date().toLocaleDateString("de-DE")],
+        ["Geräte:", `${einsaetze.length}${laufend ? ` (davon ${laufend} laufend)` : ""}`],
+      ],
+      spalten: ["Nr.", "Gerät", "Typ", "Raum", "Aufbau", "Start kWh", "Abbau", "Ende kWh", "Verbrauch kWh"],
+      zeilen,
+      summe: summeKwh > 0 ? ["Gesamtverbrauch (kWh):", summeKwh] : undefined,
+      breiten: [5, 16, 22, 14, 12, 11, 11, 11, 15],
+    }, `Geräteliste ${p.projektnummer} — ${p.bezeichnung}`);
   };
 
   return (
