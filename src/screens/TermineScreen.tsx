@@ -33,6 +33,7 @@ export function TermineScreen() {
   const [briefingFuer, setBriefingFuer] = useState<Termin | null>(null);
   // Auftrag/Briefing pflegt nur das Büro (F1). Der Monteur sieht es in „Mein Tag", ändert es nicht.
   const darfBriefing = user.rolle !== "monteur";
+  const darfPlantafel = user.rolle !== "monteur";
   // Plantafel-light (Roadmap 011 „Büro & Kommunikation", PO 18.07.): Woche × Mitarbeiter,
   // Termine per Ziehen umplanen. Bewusst klein gehalten — kein ERP, keine Kapazitätsplanung.
   const [ansicht, setAnsicht] = useState<"liste" | "tafel">("liste");
@@ -66,21 +67,27 @@ export function TermineScreen() {
         <button className="iconbtn" onClick={() => setWoche(woche + 1)} aria-label="Nächste Woche"><Icon name="chevronRight" size={18} /></button>
       </div>
 
-      <div className="btn-row" style={{ alignItems: "center", justifyContent: "space-between" }}>
-        <div className="segmented" style={{ display: "inline-flex" }}>
-          <button className={ansicht === "liste" ? "seg active" : "seg"} onClick={() => setAnsicht("liste")}>Liste</button>
-          <button className={ansicht === "tafel" ? "seg active" : "seg"} onClick={() => setAnsicht("tafel")}>Plantafel</button>
+      {/* Plantafel (Gesamtsicht) ist ein Dispositions-Werkzeug → nur Büro. Der Monteur sieht
+          ausschließlich seine eigene Wochentafel (F12, PO 21.07.). */}
+      {darfPlantafel ? (
+        <div className="btn-row" style={{ alignItems: "center", justifyContent: "space-between" }}>
+          <div className="segmented" style={{ display: "inline-flex" }}>
+            <button className={ansicht === "liste" ? "seg active" : "seg"} onClick={() => setAnsicht("liste")}>Liste</button>
+            <button className={ansicht === "tafel" ? "seg active" : "seg"} onClick={() => setAnsicht("tafel")}>Plantafel</button>
+          </div>
+          {ansicht === "liste" && (
+            <label className="toggle" style={{ margin: 0 }}>
+              <input type="checkbox" checked={nurMeine} onChange={(e) => setNurMeine(e.target.checked)} /> Nur meine Termine
+            </label>
+          )}
         </div>
-        {ansicht === "liste" && (
-          <label className="toggle" style={{ margin: 0 }}>
-            <input type="checkbox" checked={nurMeine} onChange={(e) => setNurMeine(e.target.checked)} /> Nur meine Termine
-          </label>
-        )}
-      </div>
+      ) : (
+        <p className="muted small" style={{ margin: "2px 0 -4px" }}>Deine Termine dieser Woche.</p>
+      )}
 
-      {ansicht === "tafel" && <Plantafel tage={tage} heuteIso={heuteIso} />}
+      {darfPlantafel && ansicht === "tafel" && <Plantafel tage={tage} heuteIso={heuteIso} />}
 
-      {ansicht === "liste" && (
+      {(!darfPlantafel || ansicht === "liste") && (
       <motion.div className="tage" variants={staggerContainer} initial="hidden" animate="show" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {tage.map((tag) => {
         const tagIso = isoTag(tag);
@@ -100,7 +107,7 @@ export function TermineScreen() {
       </motion.div>
       )}
 
-      <AnimatePresence>{neu && <TerminForm userId={user.id} onClose={() => setNeu(false)} />}</AnimatePresence>
+      <AnimatePresence>{neu && <TerminForm userId={user.id} rolle={user.rolle} onClose={() => setNeu(false)} />}</AnimatePresence>
       <AnimatePresence>{briefingFuer && <BriefingModal termin={briefingFuer} userId={user.id} onClose={() => setBriefingFuer(null)} />}</AnimatePresence>
     </div>
   );
@@ -226,18 +233,20 @@ function TerminZeile({ termin, projektNr, projektName, mitarbeiter, onOpen, onBr
   );
 }
 
-function TerminForm({ userId, onClose }: { userId: string; onClose: () => void }) {
+function TerminForm({ userId, rolle, onClose }: { userId: string; rolle: string; onClose: () => void }) {
   const db = useDB();
   const offene = db.projekt.filter((p) => !p.storniert && p.status !== "abgeschlossen");
   const [projektId, setProjektId] = useState(offene[0]?.id ?? "");
   const [datum, setDatum] = useState(isoTag(new Date()));
   const [uhrzeit, setUhrzeit] = useState("08:00");
-  const [mitarbeiterId, setMitarbeiterId] = useState("");
+  // Zuweisung ist Pflicht (F12, PO 21.07.): jeder Termin gehört einer Person, damit sie
+  // ihn in ihrer Wochentafel hat. Legt ein Monteur selbst an, ist er selbst vorbelegt.
+  const [mitarbeiterId, setMitarbeiterId] = useState(rolle === "monteur" ? userId : "");
   const [beschreibung, setBeschreibung] = useState("");
   const [briefing, setBriefing] = useState("");
   const [mitnehmen, setMitnehmen] = useState<string[]>([]);
 
-  const gueltig = projektId && datum && beschreibung.trim();
+  const gueltig = projektId && datum && beschreibung.trim() && mitarbeiterId;
   const speichern = () => {
     if (!gueltig) return;
     store.addTermin({
@@ -264,12 +273,13 @@ function TerminForm({ userId, onClose }: { userId: string; onClose: () => void }
             <input type="time" value={uhrzeit} onChange={(e) => setUhrzeit(e.target.value)} />
           </label>
         </div>
-        <label className="field"><span>Mitarbeiter</span>
+        <label className="field"><span>Zugewiesen an *</span>
           <select value={mitarbeiterId} onChange={(e) => setMitarbeiterId(e.target.value)}>
-            <option value="">— noch nicht zugewiesen —</option>
+            <option value="">— Person wählen (Pflicht) —</option>
             {db.benutzer.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
         </label>
+        {!mitarbeiterId && <p className="muted small" style={{ margin: "-4px 0 8px" }}>Wer fährt hin? Die Person bekommt den Termin in ihre Wochentafel.</p>}
         <label className="field"><span>Was ist zu tun? *</span>
           <input value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="z. B. TRO Abbau / WH aufnehmen" />
         </label>

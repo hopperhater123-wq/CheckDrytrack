@@ -384,6 +384,25 @@ function MesspunktBereich({ raum, onMessen }: { raum: Raum; onMessen: (mp: Messp
     return BEWERTUNG_LABEL[b.bewertung];
   };
 
+  // Trend je Messpunkt (F13, PO 21.07.): Bewertungs-Rang über die Zeit vergleichen —
+  // zeigt auf einen Blick, ob es trockener wird und ob „trocken" erreicht ist.
+  // Rang statt Rohwert, weil höhere Digits je nach Gerät nass ODER trocken heißen können.
+  const RANG: Record<string, number> = { trocken: 0, grenzwertig: 1, feucht: 2, kontaminiert: 3, austausch: 3, offen: 9 };
+  const trendVon = (mpId: string): { pfeil: string; text: string; erfolg: boolean } | null => {
+    const raenge = zugeordnet
+      .filter((m) => m.messpunkt_id === mpId)
+      .sort((a, b) => (a.gemessen_am < b.gemessen_am ? -1 : 1))
+      .map((m) => RANG[bewerteMessung(m, materialById(m.material_id)).bewertung] ?? 9)
+      .filter((r) => r !== 9);
+    if (raenge.length === 0) return null;
+    const erfolg = raenge[raenge.length - 1] === 0;
+    if (raenge.length < 2) return { pfeil: "", text: erfolg ? "trocken ✓" : "erste Messung", erfolg };
+    const d = raenge[raenge.length - 1] - raenge[raenge.length - 2];
+    const pfeil = d < 0 ? "↘" : d > 0 ? "↗" : "→";
+    const text = erfolg ? "trocken ✓" : d < 0 ? "trockener" : d > 0 ? "feuchter" : "gleich";
+    return { pfeil, text, erfolg };
+  };
+
   return (
     <div className="mp-bereich">
       <h3 style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -401,23 +420,30 @@ function MesspunktBereich({ raum, onMessen }: { raum: Raum; onMessen: (mp: Messp
         <div className="matrix-scroll">
           <table className="matrix">
             <thead>
-              <tr><th>Messpunkt</th>{tage.map((t) => <th key={t}>{fmtTag(t)}</th>)}</tr>
+              <tr><th>Messpunkt</th>{tage.map((t, i) => <th key={t} className={i === tage.length - 1 ? "aktuell" : ""}>{fmtTag(t)}</th>)}<th className="trend-h">Trend</th></tr>
             </thead>
             <tbody>
-              {punkte.map((mp) => (
+              {punkte.map((mp) => {
+                const tr = trendVon(mp.id);
+                return (
                 <tr key={mp.id}>
                   <th>{mp.bezeichnung}</th>
-                  {tage.map((t) => {
+                  {tage.map((t, i) => {
                     const m = zelle(mp.id, t);
-                    if (!m) return <td key={t} className="leer">—</td>;
+                    const aktuell = i === tage.length - 1 ? " aktuell" : "";
+                    if (!m) return <td key={t} className={`leer${aktuell}`}>—</td>;
                     const b = bewerteMessung(m, materialById(m.material_id));
-                    return <td key={t} className={`mz-${b.bewertung}`} title={b.text}>{zellWert(m)}</td>;
+                    return <td key={t} className={`mz-${b.bewertung}${aktuell}`} title={b.text}>{zellWert(m)}</td>;
                   })}
+                  <td className={`trend${tr?.erfolg ? " erfolg" : ""}`} title="Entwicklung Richtung trocken">
+                    {tr ? <><span className="trend-pfeil">{tr.pfeil}</span> {tr.text}</> : "—"}
+                  </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
-          <p className="muted small" style={{ margin: "6px 0 0" }}>Werte: Digits bzw. g/kg (Hygrometer) · Farbe = Bewertung</p>
+          <p className="muted small" style={{ margin: "6px 0 0" }}>Werte: Digits bzw. g/kg (Hygrometer) · Farbe = Bewertung · Trend = Entwicklung zur letzten Messung (↘ trockener, ↗ feuchter)</p>
         </div>
       )}
 

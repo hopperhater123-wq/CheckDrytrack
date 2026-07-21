@@ -308,11 +308,24 @@ export interface GrundrissMarkierung {
   // Art der Markierung (F6): Schadensursache (wo das Wasser herkommt) vs.
   // Feuchtestelle (wo es ankommt/nass ist) vs. allgemeiner Hinweis.
   art?: MarkierungArt;
+  // Befund-Layer (F14): gezeichnete Kategorie (Farbe/Form via BEFUND_KATEGORIEN),
+  // Status offen→erledigt (Legende „markiert/erledigt"), Geometrie als JSON
+  // (normierte 0..1-Koordinaten über der aktuellen Skizze). Alle optional —
+  // Text-Hinweise ohne Zeichnung bleiben unverändert gültig.
+  kategorie?: string;
+  status?: MarkierungStatus;
+  geometrie?: string;
   text: string;
   erstellt_von: string;
   erstellt_am: string;
 }
 export type MarkierungArt = "schadensursache" | "feuchtestelle" | "hinweis";
+export type MarkierungStatus = "offen" | "erledigt";
+// Gezeichnete Befund-Geometrie auf der Skizze (normiert 0..1).
+export type BefundGeometrie =
+  | { form: "flaeche"; x: number; y: number; w: number; h: number }
+  | { form: "linie"; x1: number; y1: number; x2: number; y2: number }
+  | { form: "punkt"; x: number; y: number };
 
 // Ursachen-Chronik (F6): wer wann was zur Schadensursache festgestellt hat.
 // Die Beweiskette gegen das „wer-ist-schuld"-Pingpong (Leckortung → Installateur …).

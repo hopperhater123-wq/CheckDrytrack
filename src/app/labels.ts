@@ -162,6 +162,22 @@ export const MARKIERUNG_ART_LABEL: Record<import("../domain/types").MarkierungAr
   schadensursache: "Schadensursache", feuchtestelle: "Feuchtestelle", hinweis: "Hinweis",
 };
 
+// Befund-Layer (F14, PO 21.07.): Zeichen-Kategorien für den Grundriss — je Kategorie
+// eine feste Farbe und Form (Fläche schraffiert / Linie / Punkt). Die Farben meiden
+// bewusst Rot/Gelb/Grün — die bleiben laut CLAUDE.md den Messwert-Bewertungen vorbehalten.
+export type BefundForm = "flaeche" | "linie" | "punkt";
+export interface BefundKategorie { key: string; label: string; form: BefundForm; farbe: string; }
+export const BEFUND_KATEGORIEN: BefundKategorie[] = [
+  { key: "nass",          label: "Nass / Feuchtefläche",   form: "flaeche", farbe: "#2f6fed" }, // Blau
+  { key: "kontamination", label: "Kontamination",          form: "flaeche", farbe: "#7b3fe4" }, // Violett
+  { key: "sockelleiste",  label: "Sockelleiste entfernen", form: "linie",   farbe: "#c026a9" }, // Magenta
+  { key: "estrich",       label: "Estrich / Dämmung öffnen", form: "linie", farbe: "#0e8a94" }, // Türkis
+  { key: "geraet",        label: "Gerät / Trockner",       form: "punkt",   farbe: "#4b5bd4" }, // Indigo
+  { key: "befund",        label: "Befund / Hinweis",       form: "punkt",   farbe: "#334155" }, // Schiefer
+];
+export const BEFUND_KAT_MAP: Record<string, BefundKategorie> =
+  Object.fromEntries(BEFUND_KATEGORIEN.map((k) => [k.key, k]));
+
 // Beteiligte je Projekt (F3): Rollen der externen Parteien.
 export const BETEILIGTER_ROLLE_LABEL: Record<import("../domain/types").BeteiligterRolle, string> = {
   leckortung: "Leckortung", installateur: "Installateur", sanierer: "Sanierer",

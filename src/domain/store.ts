@@ -967,15 +967,34 @@ class Store {
     this.commit((db) => { db.raum_foto = db.raum_foto.filter((f) => f.id !== foto_id); });
   }
 
-  /** Markierung auf dem Grundriss (FR-PROJ-025): Hinweis für Sanierer oder Trocknungsmonteur. */
-  addMarkierung(params: { grundriss_id: string; raum_id: string | null; zielgruppe: "sanierer" | "trocknungsmonteur"; art?: import("./types").MarkierungArt; text: string; erstellt_von: string }) {
+  /** Markierung auf dem Grundriss (FR-PROJ-025): Hinweis für Sanierer oder Trocknungsmonteur.
+   *  Optional als gezeichneter Befund (F14): Kategorie + Geometrie + Status. */
+  addMarkierung(params: {
+    grundriss_id: string; raum_id: string | null; zielgruppe: "sanierer" | "trocknungsmonteur";
+    art?: import("./types").MarkierungArt; text: string; erstellt_von: string;
+    kategorie?: string; geometrie?: string; status?: import("./types").MarkierungStatus;
+  }) {
     this.commit((db) => {
       db.grundriss_markierung.push({
         id: uid("gm"), grundriss_id: params.grundriss_id, raum_id: params.raum_id,
         zielgruppe: params.zielgruppe, art: params.art ?? "hinweis", text: params.text, erstellt_von: params.erstellt_von,
+        kategorie: params.kategorie, geometrie: params.geometrie, status: params.status ?? "offen",
         erstellt_am: new Date().toISOString(),
       });
     });
+  }
+
+  /** Befund-Status umschalten (F14): markiert (offen) ↔ erledigt — speist die Legende. */
+  setMarkierungStatus(id: string, status: import("./types").MarkierungStatus) {
+    this.commit((db) => {
+      const m = db.grundriss_markierung.find((x) => x.id === id);
+      if (m) m.status = status;
+    });
+  }
+
+  /** Markierung/Befund entfernen (Fehlerfassung auf dem Plan). */
+  removeMarkierung(id: string) {
+    this.commit((db) => { db.grundriss_markierung = db.grundriss_markierung.filter((m) => m.id !== id); });
   }
 }
 
