@@ -12,7 +12,7 @@ import { SignaturPad } from "../ui/SignaturPad";
 import { TrockenMoment } from "../ui/TrockenMoment";
 import { RaumDetailModal, RaumPanoKnopf } from "./RaumDetailModal";
 import type {
-  EstrichBauart, Materialdatenbank, Messanlass, Messpunkt, MessStatusCheckliste, Messung, Messverfahren, Raum, SchichtTyp,
+  DryTrackDB, EstrichBauart, Materialdatenbank, Messanlass, Messpunkt, MessStatusCheckliste, Messung, Messverfahren, Raum, SchichtTyp,
 } from "../domain/types";
 
 // Feier-Inhalt des „Objekt trocken"-Moments (Freimessung → trocken).
@@ -25,12 +25,48 @@ const BEWERTUNG_CHIP: Record<Bewertung, string> = {
   kontaminiert: "chip-danger", austausch: "chip-danger", offen: "",
 };
 
+// Doku-Status je Raum (F10, PO 21.07.): Überblick, was je Raum schon dokumentiert
+// ist — löst „man verliert bei vielen Räumen die Übersicht". 360° ist optional und
+// zählt nicht zur Vollständigkeit; der Plan ist Projekt-Sache (einmal), nicht je Raum.
+interface RaumDokuStatus { aufbau: boolean; messpunkte: boolean; eingang: boolean; frei: boolean; fotos: boolean; pano: boolean; erledigt: number; fertig: boolean }
+const DOKU_SPALTEN: { key: keyof RaumDokuStatus; label: string; pflicht: boolean }[] = [
+  { key: "aufbau", label: "Aufbau", pflicht: true },
+  { key: "messpunkte", label: "Messpkt.", pflicht: true },
+  { key: "eingang", label: "Eingang", pflicht: true },
+  { key: "frei", label: "Frei", pflicht: true },
+  { key: "fotos", label: "Fotos", pflicht: true },
+  { key: "pano", label: "360°", pflicht: false },
+];
+function raumDokuStatus(db: DryTrackDB, raum: Raum): RaumDokuStatus {
+  const aufbau = db.bodenaufbau_schicht.some((s) => s.raum_id === raum.id);
+  const messpunkte = db.messpunkt.some((mp) => mp.raum_id === raum.id);
+  const messungen = db.messung.filter((m) => m.raum_id === raum.id);
+  const eingang = messungen.some((m) => m.anlass === "eingangsmessung");
+  const frei = messungen.some((m) => m.anlass === "freimessung");
+  const fotos = db.raum_foto.some((f) => f.raum_id === raum.id && f.kategorie !== "pano");
+  const pano = db.raum_foto.some((f) => f.raum_id === raum.id && f.kategorie === "pano");
+  const erledigt = [aufbau, messpunkte, eingang, frei, fotos].filter(Boolean).length;
+  return { aufbau, messpunkte, eingang, frei, fotos, pano, erledigt, fertig: erledigt === 5 };
+}
+
 // Messprotokoll pro Raum: Bodenaufbau (Oberbelag › Estrich › Dämmstoff) + Feuchtemessungen.
 export function MessprotokollTab({ projektId, userId }: { projektId: string; userId: string }) {
   const db = useDB();
   const [neuerRaum, setNeuerRaum] = useState("");
   const raeume = db.raum.filter((r) => r.projekt_id === projektId);
   const projekt = db.projekt.find((p) => p.id === projektId);
+  // Akkordeon: nur ein Raum offen (PO-Wahl). Standard: erster noch nicht fertiger Raum.
+  const [offenerRaum, setOffenerRaum] = useState<string | null>(() => {
+    const erste = raeume.find((r) => !raumDokuStatus(db, r).fertig) ?? raeume[0];
+    return erste?.id ?? null;
+  });
+  const waehleRaum = (id: string) => {
+    setOffenerRaum(id);
+    setTimeout(() => document.getElementById(`mp-raum-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
+  // Plan/Schadensstelle ist Projekt-Sache (einmal): angezeichnet = eine Grundriss-Markierung existiert.
+  const grundrissIds = new Set(db.grundriss.filter((gr) => gr.projekt_id === projektId).map((gr) => gr.id));
+  const planAngezeichnet = db.grundriss_markierung.some((m) => grundrissIds.has(m.grundriss_id));
 
   const exportPdf = () => { if (projekt) printHtml(messprotokollHtml(projekt, db)); };
   const raumAnlegen = () => {
@@ -81,10 +117,22 @@ export function MessprotokollTab({ projektId, userId }: { projektId: string; use
         </div>
       </section>
 
+      {/* Doku-Status-Matrix (F10): immer sichtbarer Überblick + Navigation zu den Räumen. */}
+      {raeume.length > 1 && (
+        <DokuStatusMatrix db={db} raeume={raeume} offenerRaum={offenerRaum} onWaehle={waehleRaum} planAngezeichnet={planAngezeichnet} />
+      )}
+
       {gruppen.map((g) => (
         <div key={g.geschoss} id={`mp-geschoss-${g.geschoss}`}>
           {gruppen.length > 1 && <div className="eyebrow" style={{ margin: "4px 0 10px" }}>{g.geschoss}</div>}
-          {g.raeume.map((r) => <RaumMessblock key={r.id} raum={r} userId={userId} />)}
+          {g.raeume.map((r) => (
+            <RaumMessblock
+              key={r.id} raum={r} userId={userId}
+              status={raumDokuStatus(db, r)}
+              offen={offenerRaum === r.id}
+              onToggle={() => setOffenerRaum(offenerRaum === r.id ? null : r.id)}
+            />
+          ))}
         </div>
       ))}
 
@@ -93,7 +141,49 @@ export function MessprotokollTab({ projektId, userId }: { projektId: string; use
   );
 }
 
-function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
+// Doku-Status-Matrix: Zeilen = Räume, Spalten = Doku-Schritte, Teal = erledigt,
+// hohler Ring = offen (KEINE Ampelfarben — die bleiben den Messwerten vorbehalten).
+// Antippen eines Raums öffnet ihn im Akkordeon darunter.
+function DokuStatusMatrix({ db, raeume, offenerRaum, onWaehle, planAngezeichnet }: {
+  db: DryTrackDB; raeume: Raum[]; offenerRaum: string | null; onWaehle: (id: string) => void; planAngezeichnet: boolean;
+}) {
+  const fertig = raeume.filter((r) => raumDokuStatus(db, r).fertig).length;
+  return (
+    <section className="card doku-matrix-card">
+      <div className="card-head"><h2>Doku-Status je Raum</h2>
+        <span className="muted small"><b style={{ color: "var(--accent)" }}>{fertig}</b> von {raeume.length} vollständig</span>
+      </div>
+      <div className="doku-matrix" style={{ gridTemplateColumns: `minmax(120px, 1.4fr) repeat(${DOKU_SPALTEN.length}, 1fr)` }}>
+        <div className="dm-h dm-raum">Raum · antippen</div>
+        {DOKU_SPALTEN.map((s) => <div key={s.key} className="dm-h">{s.label}</div>)}
+        {raeume.map((r) => {
+          const st = raumDokuStatus(db, r);
+          return (
+            <div key={r.id} className={`dm-rz${offenerRaum === r.id ? " aktiv" : ""}`}>
+              <button className="dm-raumzelle" onClick={() => onWaehle(r.id)}>
+                <span className="dm-name">{r.bezeichnung}</span>
+                {st.fertig ? <span className="dm-voll">fertig</span> : <span className="dm-fort">{st.erledigt}/5</span>}
+              </button>
+              {DOKU_SPALTEN.map((s) => (
+                <div key={s.key} className="dm-zelle">
+                  {st[s.key] ? <span className="dm-ok"><Icon name="check" size={12} /></span> : <span className="dm-off" />}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+      <div className="dm-plan">
+        <span><Icon name="map" size={13} /> <b>Grundriss / Plan</b> <span className="muted small">(einmal fürs Objekt)</span></span>
+        <span className={planAngezeichnet ? "dm-plan-ok" : "muted small"}>
+          {planAngezeichnet ? "✓ Schadensstelle angezeichnet" : "○ noch nicht angezeichnet"}
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function RaumMessblock({ raum, userId, status, offen, onToggle }: { raum: Raum; userId: string; status: RaumDokuStatus; offen: boolean; onToggle: () => void }) {
   const db = useDB();
   // false = Formular zu; { mp } = offen, optional mit vorgewähltem Messpunkt.
   const [form, setForm] = useState<false | { mp: Messpunkt | null }>(false);
@@ -109,13 +199,21 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
   const sichtbare = alleZeigen ? messungen : messungen.slice(0, 5);
 
   return (
-    <section className="card">
-      <div className="card-head"><h2>{raum.bezeichnung}{raum.geschoss ? <span className="muted small" style={{ fontFamily: "var(--font)", marginLeft: 8 }}>{raum.geschoss}</span> : null}</h2>
-        <div className="btn-row" style={{ margin: 0 }}>
-          <RaumPanoKnopf raumId={raum.id} bezeichnung={raum.bezeichnung} />
-          <button className="iconbtn" onClick={() => setDetail(true)} title="Raum bearbeiten (umbenennen, Fotos, löschen)" aria-label="Raum bearbeiten"><Icon name="pen" size={15} /></button>
-          <button className="btn btn-sm" onClick={() => setForm({ mp: null })}>+ Messung</button>
-        </div>
+    <section className={`card raum-akk${offen ? " offen" : ""}`} id={`mp-raum-${raum.id}`}>
+      {/* Akkordeon-Balken: zugeklappt nur ein Einzeiler (PO 21.07. — kein endloses Scrollen). */}
+      <button className="raum-bar" onClick={onToggle} aria-expanded={offen}>
+        <span className="raum-bar-name">{raum.bezeichnung}{raum.geschoss ? <span className="muted small" style={{ fontFamily: "var(--font)", marginLeft: 8 }}>{raum.geschoss}</span> : null}</span>
+        <span className="raum-bar-status">
+          {status.fertig ? <span className="chip small chip-neutral" style={{ color: "var(--accent)" }}>fertig</span> : <span className="raum-prog">{status.erledigt}/5</span>}
+          <span className={`raum-chev${offen ? " auf" : ""}`}><Icon name="chevronRight" size={16} /></span>
+        </span>
+      </button>
+
+      {!offen ? null : (<>
+      <div className="btn-row" style={{ margin: "10px 0 4px", justifyContent: "flex-end" }}>
+        <RaumPanoKnopf raumId={raum.id} bezeichnung={raum.bezeichnung} />
+        <button className="iconbtn" onClick={() => setDetail(true)} title="Raum bearbeiten (umbenennen, Fotos, löschen)" aria-label="Raum bearbeiten"><Icon name="pen" size={15} /></button>
+        <button className="btn btn-sm" onClick={() => setForm({ mp: null })}>+ Messung</button>
       </div>
 
       <AnimatePresence>{detail && <RaumDetailModal raumId={raum.id} onClose={() => setDetail(false)} />}</AnimatePresence>
@@ -165,6 +263,7 @@ function RaumMessblock({ raum, userId }: { raum: Raum; userId: string }) {
 
       <AnimatePresence>{form && <MessungForm raum={raum} userId={userId} vorMesspunkt={form.mp} onClose={() => setForm(false)} onTrocken={setFeier} />}</AnimatePresence>
       <AnimatePresence>{feier && <TrockenMoment titel={feier.titel} sub={feier.sub} onDone={() => setFeier(null)} />}</AnimatePresence>
+      </>)}
     </section>
   );
 }

@@ -55,7 +55,7 @@ ok("Heutiger Termin mit Anruf-Link", await page.locator('.tour-card a[href^="tel
 // Geführter Besuch
 await page.locator("button", { hasText: "Besuch starten" }).first().click();
 await page.waitForSelector(".besuch-rail");
-ok("Schritt-Schiene mit 5 Schritten", await page.locator(".rail-stop").count() === 5);
+ok("Schritt-Schiene mit 6 Schritten", await page.locator(".rail-stop").count() === 6);
 await page.locator("button", { hasText: "Ankunft erfassen" }).click();
 ok("Ankunft erfasst", await page.locator("button", { hasText: "Ankunft erfasst" }).count() === 1);
 
@@ -64,8 +64,10 @@ await page.locator(".besuch-fuss button", { hasText: "Weiter" }).click();
 await page.waitForSelector(".mp-bereich");
 const karten = await page.evaluate(() =>
   [...document.querySelectorAll("section.card h2")].map((h) => h.textContent ?? ""));
-ok("Räume-Karte steht zuoberst", (karten.find((t) => t.includes("Räume") || t.includes("Ersten Raum")) ?? "") !== "" && karten.findIndex((t) => t.startsWith("Räume")) < karten.findIndex((t) => t.startsWith("Küche")));
-const kueche = page.locator("section.card", { has: page.locator("h2", { hasText: "Küche" }) }).first();
+ok("Räume-Karte + Doku-Status vorhanden", karten.some((t) => t.startsWith("Räume") || t.includes("Ersten Raum")) && karten.some((t) => t.includes("Doku-Status")));
+// Räume sind jetzt ein Akkordeon (F10): Küche ist per Default offen; zur Sicherheit aufklappen.
+const kueche = page.locator(".raum-akk", { has: page.locator(".raum-bar-name", { hasText: "Küche" }) }).first();
+if (await kueche.locator(".mp-bereich").count() === 0) { await kueche.locator(".raum-bar").click(); await page.waitForTimeout(200); }
 ok("Bodenaufbau eingeklappt (gepflegt)", await kueche.locator(".aufbau-zu").count() === 1);
 ok("3 Seed-Messpunkte + Matrix", await kueche.locator(".mp-bereich .listrow").count() === 3
   && await kueche.locator(".matrix-scroll table").count() === 1);

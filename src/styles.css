@@ -180,6 +180,41 @@ button { font-family: inherit; }
   margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .aundv-title { font-weight: 600; }
 .kostentraeger-block { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+/* Doku-Status-Matrix (F10): Überblick, was je Raum dokumentiert ist. Teal/Neutral,
+   KEINE Ampelfarben — die bleiben den Messwerten vorbehalten. */
+.doku-matrix-card { margin-bottom: 14px; }
+.doku-matrix { display: grid; gap: 0; margin-top: 10px; overflow-x: auto; }
+.dm-h { font-size: 0.6rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+  padding: 5px 3px; text-align: center; border-bottom: 1px solid var(--border); }
+.dm-h.dm-raum { text-align: left; padding-left: 4px; }
+.dm-rz { display: contents; }
+.dm-rz > .dm-zelle, .dm-rz > .dm-raumzelle { border-bottom: 1px solid var(--hairline); }
+.dm-rz.aktiv > .dm-zelle, .dm-rz.aktiv > .dm-raumzelle { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.dm-zelle { padding: 9px 3px; display: flex; align-items: center; justify-content: center; }
+.dm-raumzelle { display: flex; align-items: center; gap: 8px; padding: 9px 4px; background: transparent;
+  border: none; cursor: pointer; color: var(--text); text-align: left; width: 100%; }
+.dm-raumzelle:hover { color: var(--accent); }
+.dm-name { font-weight: 600; font-size: 0.9rem; }
+.dm-fort { font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dm-voll { font-size: 0.58rem; font-weight: 700; color: var(--accent); background: var(--accent-soft);
+  border-radius: var(--radius-pill); padding: 2px 7px; }
+.dm-ok { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--on-accent, #fff);
+  display: flex; align-items: center; justify-content: center; }
+.dm-off { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border); }
+.dm-plan { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline); font-size: 0.85rem; }
+.dm-plan-ok { color: var(--accent); font-weight: 600; }
+
+/* Räume als Akkordeon (F10): zugeklappt nur ein Einzeiler → kein endloses Scrollen. */
+.raum-akk .raum-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; background: transparent; border: none; cursor: pointer; color: var(--text); padding: 4px 0; }
+.raum-bar-name { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; }
+.raum-bar-status { display: flex; align-items: center; gap: 10px; color: var(--muted); }
+.raum-prog { font-size: 0.74rem; font-variant-numeric: tabular-nums; }
+.raum-chev { display: inline-flex; transition: transform var(--dur) var(--ease); }
+.raum-chev.auf { transform: rotate(90deg); }
+.raum-akk.offen { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+
 .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip-row .chip { cursor: pointer; border: 1px solid var(--border); }
 .chip-row .chip:hover { border-color: var(--accent); color: var(--accent); }
