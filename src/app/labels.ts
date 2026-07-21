@@ -162,32 +162,53 @@ export const MARKIERUNG_ART_LABEL: Record<import("../domain/types").MarkierungAr
   schadensursache: "Schadensursache", feuchtestelle: "Feuchtestelle", hinweis: "Hinweis",
 };
 
-// Befund-Layer (F14, PO 21.07.): Zeichen-Kategorien für den Grundriss — je Kategorie
+// Befund-Layer (F14/F16, PO 21.07.): Zeichen-Kategorien für den Grundriss — je Kategorie
 // eine feste Farbe und Form (Fläche schraffiert / Linie / Punkt). Die Farben meiden
 // bewusst Rot/Gelb/Grün — die bleiben laut CLAUDE.md den Messwert-Bewertungen vorbehalten.
+// Zwei Bereiche (PO-Struktur): „trocknung" = Doku des Trocknungstechnikers (was gemacht
+// wurde — KEINE Maßnahme), „sanierung" = Aufgaben für den Sanierer (echte Maßnahmen mit
+// Status offen→erledigt). Dieselbe Skizze wird nach Bereich gefiltert angezeigt.
 export type BefundForm = "flaeche" | "linie" | "punkt";
-export interface BefundKategorie { key: string; label: string; form: BefundForm; farbe: string; }
+export type BefundBereich = "trocknung" | "sanierung";
+export interface BefundKategorie { key: string; label: string; form: BefundForm; farbe: string; bereich: BefundBereich; }
 export const BEFUND_KATEGORIEN: BefundKategorie[] = [
-  // Flächen (schraffiert)
-  { key: "nass",           label: "Nass / Feuchtefläche",     form: "flaeche", farbe: "#2563eb" }, // Blau
-  { key: "kontamination",  label: "Kontamination",            form: "flaeche", farbe: "#7c3aed" }, // Violett
-  { key: "hohlraum",       label: "Hohlraumtrocknung",        form: "flaeche", farbe: "#0891b2" }, // Cyan
-  // Linien (Wandzug / Schnitt)
-  { key: "sockelleiste",   label: "Sockelleiste entfernen",   form: "linie",   farbe: "#c026a9" }, // Magenta
-  { key: "malern_iso",     label: "Malern + Iso",             form: "linie",   farbe: "#9333ea" }, // Purpur
-  { key: "estrich",        label: "Estrich / Dämmung öffnen", form: "linie",   farbe: "#0e8a94" }, // Türkis
-  // Punkte (Positionen / Maßnahmen)
-  { key: "messpunkt",      label: "Messpunkt",                form: "punkt",   farbe: "#1d4ed8" }, // Blau (nummeriert)
-  { key: "kernbohrung",    label: "Kernbohrloch",             form: "punkt",   farbe: "#4f46e5" }, // Indigo
-  { key: "geraet",         label: "Gerät / Trockner",         form: "punkt",   farbe: "#0d9488" }, // Teal
-  { key: "schacht",        label: "Schachttrocknung",         form: "punkt",   farbe: "#0369a1" }, // Dunkelblau
-  { key: "fensterschott",  label: "Fensterschott",            form: "punkt",   farbe: "#a21caf" }, // Fuchsia
-  { key: "einbauschrank",  label: "Einbauschrank entfernen",  form: "punkt",   farbe: "#78716c" }, // Taupe
-  { key: "tuer",           label: "Tür demontieren",          form: "punkt",   farbe: "#475569" }, // Stahl
-  { key: "befund",         label: "Befund / Hinweis",         form: "punkt",   farbe: "#334155" }, // Schiefer
+  // ---- Trocknung (Doku: was der Trocknungstechniker gemacht/festgestellt hat) ----
+  { key: "nass",           label: "Nass / Feuchtefläche",     form: "flaeche", farbe: "#2563eb", bereich: "trocknung" },
+  { key: "kontamination",  label: "Kontamination",            form: "flaeche", farbe: "#7c3aed", bereich: "trocknung" },
+  { key: "hohlraum",       label: "Hohlraumtrocknung",        form: "flaeche", farbe: "#0891b2", bereich: "trocknung" },
+  { key: "sockelleiste",   label: "Sockelleiste entfernt",    form: "linie",   farbe: "#c026a9", bereich: "trocknung" },
+  { key: "estrich",        label: "Estrich / Dämmung geöffnet", form: "linie", farbe: "#0e8a94", bereich: "trocknung" },
+  { key: "messpunkt",      label: "Messpunkt",                form: "punkt",   farbe: "#1d4ed8", bereich: "trocknung" }, // nummeriert
+  { key: "kernbohrung",    label: "Kernbohrloch",             form: "punkt",   farbe: "#4f46e5", bereich: "trocknung" },
+  { key: "geraet",         label: "Gerät / Trockner",         form: "punkt",   farbe: "#0d9488", bereich: "trocknung" },
+  { key: "schacht",        label: "Schachttrocknung",         form: "punkt",   farbe: "#0369a1", bereich: "trocknung" },
+  { key: "fensterschott",  label: "Fensterschott",            form: "punkt",   farbe: "#a21caf", bereich: "trocknung" },
+  { key: "einbauschrank",  label: "Schrank demontiert (Hänge-/Einbau)", form: "punkt", farbe: "#78716c", bereich: "trocknung" },
+  { key: "befund",         label: "Befund / Hinweis",         form: "punkt",   farbe: "#334155", bereich: "trocknung" },
+  // ---- Sanierung (Aufgaben für den Sanierer → Maßnahmenliste) ----
+  { key: "malern_iso",     label: "Malern + Iso",             form: "linie",   farbe: "#9333ea", bereich: "sanierung" },
+  { key: "sockel_setzen",  label: "Sockelleisten setzen",     form: "linie",   farbe: "#db2777", bereich: "sanierung" },
+  { key: "ceravogue_setzen",   label: "Cera Vogue setzen",    form: "linie",   farbe: "#be185d", bereich: "sanierung" },
+  { key: "ceravogue_bestellen", label: "Cera Vogue bestellen", form: "punkt",  farbe: "#831843", bereich: "sanierung" },
+  { key: "bodenbelag",     label: "Bodenbelag einsetzen (Laminat/Parkett/Teppich/Fliese)", form: "flaeche", farbe: "#6d28d9", bereich: "sanierung" },
+  { key: "boden_schleifen", label: "Boden schleifen (Kleberreste)", form: "flaeche", farbe: "#8b5e34", bereich: "sanierung" },
+  { key: "schrank_montieren", label: "Schrank wieder montieren", form: "punkt", farbe: "#57534e", bereich: "sanierung" },
+  { key: "tuer",           label: "Tür demontieren",          form: "punkt",   farbe: "#475569", bereich: "sanierung" },
+  { key: "tuer_einbau",    label: "Tür einbauen",             form: "punkt",   farbe: "#3730a3", bereich: "sanierung" },
+  { key: "tapezieren",     label: "Tapezieren",               form: "linie",   farbe: "#c026d3", bereich: "sanierung" },
+  { key: "silikonfuge",    label: "Silikonfugen erneuern",    form: "linie",   farbe: "#0284c7", bereich: "sanierung" },
 ];
 export const BEFUND_KAT_MAP: Record<string, BefundKategorie> =
   Object.fromEntries(BEFUND_KATEGORIEN.map((k) => [k.key, k]));
+export const BEFUND_BEREICH_LABEL: Record<BefundBereich, string> = {
+  trocknung: "Trocknung", sanierung: "Sanierung",
+};
+/** Bereich eines Befunds/einer Markierung: aus der Kategorie, sonst aus der Zielgruppe. */
+export function befundBereich(kategorie?: string | null, zielgruppe?: string): BefundBereich {
+  const k = kategorie ? BEFUND_KAT_MAP[kategorie] : undefined;
+  if (k) return k.bereich;
+  return zielgruppe === "sanierer" ? "sanierung" : "trocknung";
+}
 
 // Beteiligte je Projekt (F3): Rollen der externen Parteien.
 export const BETEILIGTER_ROLLE_LABEL: Record<import("../domain/types").BeteiligterRolle, string> = {

@@ -5,7 +5,7 @@ import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
 import { store } from "../domain/store";
 import { Icon } from "../ui/Icon";
-import { MITNEHMEN_OPTIONEN, BEFUND_KAT_MAP } from "../app/labels";
+import { MITNEHMEN_OPTIONEN, BEFUND_KAT_MAP, befundBereich } from "../app/labels";
 import { briefingStatus, hatBriefing } from "../domain/termin";
 import type { Termin } from "../domain/types";
 
@@ -355,8 +355,11 @@ function MassnahmenBriefingRef({ projektId, onUebernehmen }: { projektId: string
   const db = useDB();
   const grIds = new Set(db.grundriss.filter((g) => g.projekt_id === projektId).map((g) => g.id));
   const label = (kat?: string) => (kat && BEFUND_KAT_MAP[kat]?.label) || null;
+  // Nur echte Aufgaben (Bereich Sanierung + freie Maßnahmen) — Trocknungs-Doku ist keine Maßnahme (F16).
   const offen: string[] = [
-    ...db.grundriss_markierung.filter((m) => grIds.has(m.grundriss_id) && m.status !== "erledigt").map((m) => label(m.kategorie) ?? m.text),
+    ...db.grundriss_markierung
+      .filter((m) => grIds.has(m.grundriss_id) && m.status !== "erledigt" && befundBereich(m.kategorie, m.zielgruppe) === "sanierung")
+      .map((m) => label(m.kategorie) ?? m.text),
     ...db.massnahme.filter((m) => m.projekt_id === projektId && m.status !== "erledigt").map((m) => m.text),
   ];
   if (!offen.length) return null;

@@ -13,7 +13,7 @@ import { store } from "../domain/store";
 import {
   DOKUMENT_TYP_LABEL, FEED_KATEGORIE_LABEL, FEED_URSPRUNG_LABEL, KONTAMINATION_LABEL,
   KOSTENTRAEGER_LABEL, KOSTENTRAEGER_STATUS_LABEL, BETEILIGTER_ROLLE_LABEL, URSACHE_QUELLE_LABEL,
-  PROJEKT_STATUS_LABEL, PROJEKT_STATUS_REIHENFOLGE, BEFUND_KATEGORIEN, BEFUND_KAT_MAP,
+  PROJEKT_STATUS_LABEL, PROJEKT_STATUS_REIHENFOLGE, BEFUND_KATEGORIEN, BEFUND_KAT_MAP, befundBereich,
 } from "../app/labels";
 import { fmtDatum, fmtDatumZeit, fmtZahl, relativZeit } from "../app/format";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "../domain/einsatz";
@@ -532,7 +532,9 @@ function UrsachenChronikCard({ projektId, userId }: { projektId: string; userId:
 // sondern projektweit an einer Stelle vermerkt (fließt auch ins Dossier).
 function MassnahmenCard({ projektId, userId }: { projektId: string; userId: string }) {
   const db = useDB();
-  const { can } = useSession();
+  const { can, user } = useSession();
+  // Erledigt-Stempel ist Büro-Sache (PO 21.07.): der Monteur sieht den Stand, hakt aber nicht ab.
+  const darfErledigen = user.rolle !== "monteur";
   const [text, setText] = useState("");
   const [kategorie, setKategorie] = useState("");
   const [raumId, setRaumId] = useState("");
@@ -544,10 +546,12 @@ function MassnahmenCard({ projektId, userId }: { projektId: string; userId: stri
   const farbe = (kat?: string) => (kat && BEFUND_KAT_MAP[kat]?.farbe) || "#334155";
   const katLabel = (kat?: string) => (kat && BEFUND_KAT_MAP[kat]?.label) || null;
 
-  // Einheitliche Liste: gezeichnete Befunde (Plan) + freie Maßnahmen (Notiz).
+  // Einheitliche Liste: gezeichnete SANIERUNGS-Aufgaben (Plan) + freie Maßnahmen (Notiz).
+  // Trocknungs-Einzeichnungen (Nassfläche, Messpunkte, Geräte …) sind Doku, keine
+  // Maßnahmen — sie tauchen hier bewusst NICHT auf (PO 21.07., F16).
   type Item = { key: string; titel: string; sub: string; farbe: string; status: string; erledigt: boolean; toggle: () => void; remove?: () => void };
   const gezeichnet: Item[] = db.grundriss_markierung
-    .filter((m) => grIds.has(m.grundriss_id))
+    .filter((m) => grIds.has(m.grundriss_id) && befundBereich(m.kategorie, m.zielgruppe) === "sanierung")
     .map((m) => ({
       key: m.id,
       titel: katLabel(m.kategorie) ?? m.text,
@@ -582,10 +586,10 @@ function MassnahmenCard({ projektId, userId }: { projektId: string; userId: stri
   return (
     <section className="card">
       <div className="card-head"><h2>Maßnahmen <span className="count">{alle.length}</span></h2>
-        <span className="muted small">{alle.length ? `${offen} offen · ${alle.length - offen} erledigt` : "am Plan gezeichnet + freie Notizen"}</span>
+        <span className="muted small">{alle.length ? `${offen} offen · ${alle.length - offen} erledigt` : "Sanierungs-Aufgaben + freie Notizen"}</span>
       </div>
       {alle.length === 0
-        ? <p className="muted small">Abzuarbeitende Tätigkeiten — z. B. „Tür demontieren", „malern + Iso". Am Grundriss gezeichnete Befunde erscheinen hier automatisch; freie Maßnahmen unten hinzufügen.</p>
+        ? <p className="muted small">Sanierungs-Aufgaben — z. B. „Malern + Iso", „Tür einbauen". Am Grundriss im Bereich Sanierung Gezeichnetes erscheint hier automatisch; freie Maßnahmen unten hinzufügen. Trocknungs-Doku (Nassflächen, Messpunkte …) zählt nicht als Maßnahme.</p>
         : alle.map((it) => (
             <div key={it.key} className={`legende-row${it.erledigt ? " erledigt" : ""}`}>
               <span className="legende-swatch" style={{ background: it.farbe }} aria-hidden />
@@ -593,10 +597,16 @@ function MassnahmenCard({ projektId, userId }: { projektId: string; userId: stri
                 <div className="legende-titel">{it.titel}</div>
                 <div className="muted small">{it.sub}</div>
               </div>
-              <button className={`legende-status${it.erledigt ? " on" : ""}`}
-                onClick={it.toggle} title={it.erledigt ? "Als offen markieren" : "Als erledigt markieren"}>
-                {it.erledigt ? <><Icon name="check" size={13} /> erledigt</> : "offen"}
-              </button>
+              {darfErledigen ? (
+                <button className={`legende-status${it.erledigt ? " on" : ""}`}
+                  onClick={it.toggle} title={it.erledigt ? "Als offen markieren" : "Als erledigt markieren"}>
+                  {it.erledigt ? <><Icon name="check" size={13} /> erledigt</> : "offen"}
+                </button>
+              ) : (
+                <span className={`legende-status${it.erledigt ? " on" : ""}`} style={{ cursor: "default" }} title="Abhaken übernimmt das Büro">
+                  {it.erledigt ? <><Icon name="check" size={13} /> erledigt</> : "offen"}
+                </span>
+              )}
               {it.remove
                 ? <button className="iconbtn" onClick={it.remove} title="Entfernen" aria-label="Entfernen"><Icon name="trash" size={14} /></button>
                 : <span className="iconbtn" title="Am Grundriss gezeichnet — dort bearbeiten" style={{ opacity: 0.4 }}><Icon name="pen" size={13} /></span>}
@@ -612,7 +622,7 @@ function MassnahmenCard({ projektId, userId }: { projektId: string; userId: stri
             <label className="field"><span>Kategorie (optional)</span>
               <select value={kategorie} onChange={(e) => setKategorie(e.target.value)}>
                 <option value="">— ohne —</option>
-                {BEFUND_KATEGORIEN.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
+                {BEFUND_KATEGORIEN.filter((k) => k.bereich === "sanierung").map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
               </select>
             </label>
             <label className="field"><span>Raum (optional)</span>

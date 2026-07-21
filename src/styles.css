@@ -893,6 +893,8 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
 .befund-capture { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
 .befund-stage .grundriss-bild { border-radius: var(--radius-sm); }
 .befund-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.befund-gruppe { font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted); margin: 10px 0 6px; }
 .befund-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px;
   border: 1px solid var(--hairline); background: var(--surface); font-size: 0.82rem; font-weight: 600; color: var(--text); cursor: pointer; }
 .befund-chip.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }

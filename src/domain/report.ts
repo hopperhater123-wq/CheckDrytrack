@@ -1,7 +1,7 @@
 // PDF-Export via Druckdialog. Der Report wird in ein isoliertes iframe geschrieben
 // und dort gedruckt (sandbox-sicher) — der Browser bietet „Als PDF speichern" an.
 import type { Abnahmeprotokoll, Besuchsbericht, DryTrackDB, Einsatz, Ersatzfliesenbericht, Kundenzufriedenheit, Notdiensteinsatzbericht, Projekt, Stundenlohnbericht } from "./types";
-import { BEFUND_KAT_MAP } from "../app/labels";
+import { BEFUND_KAT_MAP, befundBereich } from "../app/labels";
 import { bewerteMessung, BEWERTUNG_LABEL } from "./mess";
 import { arbeitszeitMin, minutenZuText } from "./zeit";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "./einsatz";
@@ -1094,17 +1094,19 @@ export function projektDossierHtml(projekt: Projekt, db: DryTrackDB): string {
           <p class="sub">Nachweis, wie sich die Schadensursache über die Zeit dargestellt hat.</p>`;
       })()}
       ${(() => {
-        // Maßnahmen (F15): gezeichnete Befunde + freie Text-Maßnahmen, offen zuerst.
+        // Maßnahmen (F15/F16): nur Sanierungs-Aufgaben vom Plan + freie Text-Maßnahmen,
+        // offen zuerst. Trocknungs-Doku (Nassflächen, Messpunkte …) ist keine Maßnahme.
         const grIds = new Set(db.grundriss.filter((g) => g.projekt_id === projekt.id).map((g) => g.id));
-        const gez = db.grundriss_markierung.filter((m) => grIds.has(m.grundriss_id))
+        const gez = db.grundriss_markierung
+          .filter((m) => grIds.has(m.grundriss_id) && befundBereich(m.kategorie, m.zielgruppe) === "sanierung")
           .map((m) => ({ titel: (m.kategorie && BEFUND_KAT_MAP[m.kategorie]?.label) || m.text, quelle: "Plan", erledigt: m.status === "erledigt" }));
         const frei = db.massnahme.filter((m) => m.projekt_id === projekt.id)
           .map((m) => ({ titel: m.text, quelle: "Notiz", erledigt: m.status === "erledigt" }));
         const alle = [...frei, ...gez].sort((a, b) => Number(a.erledigt) - Number(b.erledigt));
         if (!alle.length) return "";
         const zeilen = alle.map((a) => `<tr><td>${esc(a.titel)}</td><td>${a.quelle}</td><td>${a.erledigt ? "erledigt" : "offen"}</td></tr>`).join("");
-        return `<h2>Maßnahmen</h2><table><thead><tr><th>Maßnahme</th><th>Quelle</th><th>Status</th></tr></thead><tbody>${zeilen}</tbody></table>
-          <p class="sub">Am Grundriss verortete Befunde und freie Maßnahmen mit Erledigungsstand.</p>`;
+        return `<h2>Maßnahmen (Sanierung)</h2><table><thead><tr><th>Maßnahme</th><th>Quelle</th><th>Status</th></tr></thead><tbody>${zeilen}</tbody></table>
+          <p class="sub">Sanierungs-Aufgaben vom Plan und freie Maßnahmen mit Erledigungsstand.</p>`;
       })()}
     </div>
 

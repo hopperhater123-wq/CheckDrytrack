@@ -4,7 +4,8 @@ import { Modal, AnimatePresence } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
 import { fmtDatum, fmtZahl } from "../app/format";
-import { GESCHOSSE, MARKIERUNG_ART_LABEL, BEFUND_KATEGORIEN, BEFUND_KAT_MAP } from "../app/labels";
+import { GESCHOSSE, MARKIERUNG_ART_LABEL, BEFUND_KATEGORIEN, BEFUND_KAT_MAP, BEFUND_BEREICH_LABEL, befundBereich, type BefundBereich } from "../app/labels";
+import { useSession } from "../app/session";
 import { Icon } from "../ui/Icon";
 import { komprimiereBild } from "../ui/foto";
 import { FotoAnnotator } from "../ui/FotoAnnotator";
@@ -148,10 +149,16 @@ function GeschossBlock({ projektId, userId, geschoss, grundrisse, raeume, panoRa
 }) {
   const fotoInput = useRef<HTMLInputElement>(null);
   const modusRef = useRef<"ersetzen" | "neu">("ersetzen"); // was der nächste Upload bewirkt
+  const { user } = useSession();
   const [idx, setIdx] = useState(0);
   const [malen, setMalen] = useState(false);
   const [befund, setBefund] = useState(false); // Befund-Zeichen-Editor offen (F14)
   const [laedt, setLaedt] = useState(false);
+  // Drei Ansichten derselben Skizze (F16, PO): Trocknung (Doku des Technikers),
+  // Sanierung (Aufgaben für den Sanierer), Nur Plan (Grundriss ohne Markierungen).
+  const [ansicht, setAnsicht] = useState<BefundBereich | "plan">("trocknung");
+  // Erledigt-Stempel ist Büro-Sache — der Monteur dokumentiert, hakt aber nicht ab.
+  const darfErledigen = user.rolle !== "monteur";
 
   // Aktuelle Skizze (Alt-System: "Skizze 1 von 3" je Geschoss).
   const sicherIdx = Math.min(idx, Math.max(0, grundrisse.length - 1));
@@ -217,15 +224,23 @@ function GeschossBlock({ projektId, userId, geschoss, grundrisse, raeume, panoRa
 
           {hatBild ? (
             <>
+              {/* Ansichts-Umschalter: dieselbe Skizze, drei Sichten (F16). */}
+              <div className="segmented small" style={{ display: "inline-flex", marginBottom: 8 }}>
+                <button className={ansicht === "trocknung" ? "seg active" : "seg"} onClick={() => setAnsicht("trocknung")}>Trocknung</button>
+                <button className={ansicht === "sanierung" ? "seg active" : "seg"} onClick={() => setAnsicht("sanierung")}>Sanierung</button>
+                <button className={ansicht === "plan" ? "seg active" : "seg"} onClick={() => setAnsicht("plan")}>Nur Plan</button>
+              </div>
               <div className="grundriss-bildwrap befund-stage">
                 <img className="grundriss-bild" src={grundriss.datei_referenz} alt={`Skizze ${geschoss}`} />
-                <BefundShapes markierungen={markierungen.filter((m) => m.grundriss_id === grundriss.id)} />
+                {ansicht !== "plan" && (
+                  <BefundShapes markierungen={markierungen.filter((m) => m.grundriss_id === grundriss.id && befundBereich(m.kategorie, m.zielgruppe) === ansicht)} />
+                )}
               </div>
               <div className="btn-row" style={{ marginBottom: 10, flexWrap: "wrap" }}>
                 <button className="btn btn-sm btn-primary" onClick={() => setBefund(true)}>
                   <Icon name="pen" size={14} /> Befund zeichnen
                 </button>
-                <button className="btn btn-sm" onClick={() => setMalen(true)}>
+                <button className="btn btn-sm" onClick={() => setMalen(true)} title="Zeichnet dauerhaft ins Bild — in keiner Ansicht ausblendbar">
                   <Icon name="pen" size={14} /> Freihand
                 </button>
                 <button className="btn btn-sm" disabled={laedt} onClick={() => uploadStarten("ersetzen")}>
@@ -258,7 +273,8 @@ function GeschossBlock({ projektId, userId, geschoss, grundrisse, raeume, panoRa
           )}
           <AnimatePresence>
             {befund && hatBild && (
-              <BefundEditor grundriss={grundriss} markierungen={markierungen} userId={userId} onClose={() => setBefund(false)} />
+              <BefundEditor grundriss={grundriss} markierungen={markierungen} userId={userId}
+                startBereich={ansicht === "sanierung" ? "sanierung" : "trocknung"} onClose={() => setBefund(false)} />
             )}
           </AnimatePresence>
 
@@ -271,21 +287,32 @@ function GeschossBlock({ projektId, userId, geschoss, grundrisse, raeume, panoRa
           </div>
 
           {(() => {
-            const legende = markierungen.filter((m) => m.grundriss_id === grundriss.id);
+            if (ansicht === "plan") {
+              return <p className="muted small" style={{ marginTop: 8 }}>Ansicht ohne Markierungen — zum Zeigen und für den Export. Freihand-Zeichnungen sind fest im Bild und bleiben sichtbar.</p>;
+            }
+            // Legende folgt der Ansicht: Trocknung = Doku (ohne Status), Sanierung = Aufgaben.
+            const legende = markierungen.filter((m) => m.grundriss_id === grundriss.id && befundBereich(m.kategorie, m.zielgruppe) === ansicht);
+            const aufgaben = ansicht === "sanierung";
             const offen = legende.filter((m) => m.status !== "erledigt").length;
             const nrMap = messpunktNrMap(legende);
             return (<>
               <div className="card-head" style={{ marginTop: 4 }}>
-                <h3 style={{ margin: 0 }}>Legende <span className="count">{legende.length}</span></h3>
+                <h3 style={{ margin: 0 }}>Legende {BEFUND_BEREICH_LABEL[ansicht]} <span className="count">{legende.length}</span></h3>
                 <button className="btn btn-sm" onClick={() => onMarkierung(grundriss.id)}><Icon name="plus" size={14} /> Hinweis</button>
               </div>
-              {legende.length === 0 && <p className="muted small">„Befund zeichnen" markiert Flächen/Linien auf dem Plan; hier erscheinen sie als Legende mit Status (markiert → erledigt).</p>}
-              {legende.length > 0 && <p className="muted small" style={{ margin: "0 0 6px" }}>{offen} offen · {legende.length - offen} erledigt</p>}
+              {legende.length === 0 && (
+                <p className="muted small">
+                  {aufgaben
+                    ? "Noch keine Sanierungs-Aufgaben eingezeichnet — „Befund zeichnen“ → Bereich Sanierung."
+                    : "Noch keine Trocknungs-Doku eingezeichnet — „Befund zeichnen“ → Bereich Trocknung."}
+                </p>
+              )}
+              {aufgaben && legende.length > 0 && <p className="muted small" style={{ margin: "0 0 6px" }}>{offen} offen · {legende.length - offen} erledigt</p>}
               {legende.map((m) => {
                 const kat = m.kategorie ? BEFUND_KAT_MAP[m.kategorie] : undefined;
                 const erledigt = m.status === "erledigt";
                 return (
-                  <div key={m.id} className={`legende-row${erledigt ? " erledigt" : ""}`}>
+                  <div key={m.id} className={`legende-row${aufgaben && erledigt ? " erledigt" : ""}`}>
                     <span className="legende-swatch" style={{ background: farbeVon(m) }} aria-hidden />
                     <div className="legende-txt">
                       <div className="legende-titel">{kat ? (kat.key === "messpunkt" ? `Messpunkt ${nrMap.get(m.id) ?? ""}`.trim() : kat.label) : m.text}</div>
@@ -294,11 +321,19 @@ function GeschossBlock({ projektId, userId, geschoss, grundrisse, raeume, panoRa
                         {raumName(m.raum_id)} · {benutzerName(m.erstellt_von)}
                       </div>
                     </div>
-                    <button className={`legende-status${erledigt ? " on" : ""}`}
-                      onClick={() => store.setMarkierungStatus(m.id, erledigt ? "offen" : "erledigt")}
-                      title={erledigt ? "Als offen markieren" : "Als erledigt markieren"}>
-                      {erledigt ? <><Icon name="check" size={13} /> erledigt</> : "offen"}
-                    </button>
+                    {/* Status nur bei Sanierungs-Aufgaben — Trocknungs-Einträge sind Doku.
+                        Abhaken ist Büro-Sache (PO 21.07.): der Monteur sieht den Stand nur. */}
+                    {aufgaben && (darfErledigen ? (
+                      <button className={`legende-status${erledigt ? " on" : ""}`}
+                        onClick={() => store.setMarkierungStatus(m.id, erledigt ? "offen" : "erledigt")}
+                        title={erledigt ? "Als offen markieren" : "Als erledigt markieren"}>
+                        {erledigt ? <><Icon name="check" size={13} /> erledigt</> : "offen"}
+                      </button>
+                    ) : (
+                      <span className={`legende-status${erledigt ? " on" : ""}`} style={{ cursor: "default" }}>
+                        {erledigt ? <><Icon name="check" size={13} /> erledigt</> : "offen"}
+                      </span>
+                    ))}
                     <button className="iconbtn" onClick={() => store.removeMarkierung(m.id)} title="Entfernen" aria-label="Entfernen"><Icon name="trash" size={14} /></button>
                   </div>
                 );
@@ -313,19 +348,22 @@ function GeschossBlock({ projektId, userId, geschoss, grundrisse, raeume, panoRa
 
 // Zeichen-Editor: Kategorie wählen → auf dem Plan Fläche aufziehen / Linie oder Punkt setzen.
 // Jede Zeichnung wird sofort als Befund gespeichert (schneller Feld-Workflow).
-function BefundEditor({ grundriss, markierungen, userId, onClose }: {
-  grundriss: Grundriss; markierungen: GrundrissMarkierung[]; userId: string; onClose: () => void;
+function BefundEditor({ grundriss, markierungen, userId, startBereich, onClose }: {
+  grundriss: Grundriss; markierungen: GrundrissMarkierung[]; userId: string; startBereich: BefundBereich; onClose: () => void;
 }) {
-  const [toolKey, setToolKey] = useState(BEFUND_KATEGORIEN[0].key);
+  const [toolKey, setToolKey] = useState(BEFUND_KATEGORIEN.find((k) => k.bereich === startBereich)!.key);
   const [start, setStart] = useState<{ x: number; y: number } | null>(null);
   const [now, setNow] = useState<{ x: number; y: number } | null>(null);
   const [lineP1, setLineP1] = useState<{ x: number; y: number } | null>(null);
   const kat = BEFUND_KAT_MAP[toolKey];
-  const aktuelle = markierungen.filter((m) => m.grundriss_id === grundriss.id);
+  // Im Editor nur die Ebene des gewählten Werkzeugs zeigen — Trocknungs-Doku und
+  // Sanierungs-Aufgaben bleiben getrennte Sichten derselben Skizze (F16).
+  const aktuelle = markierungen.filter((m) => m.grundriss_id === grundriss.id && befundBereich(m.kategorie, m.zielgruppe) === kat.bereich);
 
   const speichern = (g: BefundGeometrie) =>
     store.addMarkierung({
-      grundriss_id: grundriss.id, raum_id: null, zielgruppe: "trocknungsmonteur", art: "hinweis",
+      grundriss_id: grundriss.id, raum_id: null,
+      zielgruppe: kat.bereich === "sanierung" ? "sanierer" : "trocknungsmonteur", art: "hinweis",
       kategorie: toolKey, text: kat.label, geometrie: JSON.stringify(g), status: "offen", erstellt_von: userId,
     });
 
@@ -365,16 +403,23 @@ function BefundEditor({ grundriss, markierungen, userId, onClose }: {
   return (
     <Modal onClose={onClose}>
       <h2>Befund zeichnen</h2>
-      <div className="befund-tools">
-        {BEFUND_KATEGORIEN.map((k) => (
-          <button key={k.key} type="button" className={`befund-chip${toolKey === k.key ? " active" : ""}`}
-            onClick={() => { setToolKey(k.key); setLineP1(null); setStart(null); setNow(null); }}>
-            <span className="befund-dot" style={{ background: k.farbe }} />
-            {k.label}
-            <span className="befund-formtag">{k.form === "flaeche" ? "Fläche" : k.form === "linie" ? "Linie" : "Punkt"}</span>
-          </button>
-        ))}
-      </div>
+      {(["trocknung", "sanierung"] as const).map((bereich) => (
+        <div key={bereich}>
+          <div className="befund-gruppe">
+            {bereich === "trocknung" ? "Trocknung — Doku (was gemacht wurde)" : "Sanierung — Aufgaben für den Sanierer"}
+          </div>
+          <div className="befund-tools">
+            {BEFUND_KATEGORIEN.filter((k) => k.bereich === bereich).map((k) => (
+              <button key={k.key} type="button" className={`befund-chip${toolKey === k.key ? " active" : ""}`}
+                onClick={() => { setToolKey(k.key); setLineP1(null); setStart(null); setNow(null); }}>
+                <span className="befund-dot" style={{ background: k.farbe }} />
+                {k.label}
+                <span className="befund-formtag">{k.form === "flaeche" ? "Fläche" : k.form === "linie" ? "Linie" : "Punkt"}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
       <p className="muted small" style={{ margin: "2px 0 8px" }}>{hinweis}</p>
       <div className="befund-stage" style={{ touchAction: "none" }}>
         <img className="grundriss-bild" src={grundriss.datei_referenz} alt="Skizze" draggable={false} />

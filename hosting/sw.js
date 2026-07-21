@@ -1,7 +1,7 @@
 /* Torrek Service Worker — Offline-First (000 Vision).
    Strategie: Cache-first mit Hintergrund-Aktualisierung (stale-while-revalidate).
    Die App-Daten selbst liegen in localStorage; hier geht es um die App-Shell. */
-const CACHE = "torrek-v33";
+const CACHE = "torrek-v34";
 const SHELL = ["./index.html", "./manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
