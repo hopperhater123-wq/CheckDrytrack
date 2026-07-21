@@ -26,11 +26,20 @@ const geoParse = (m: GrundrissMarkierung): BefundGeometrie | null => {
 const farbeVon = (m: GrundrissMarkierung) =>
   (m.kategorie && BEFUND_KAT_MAP[m.kategorie]?.farbe) ||
   (m.art === "schadensursache" ? "#1f2937" : m.art === "feuchtestelle" ? "#0e8a94" : "#334155");
+// Messpunkte fortlaufend nummerieren (1, 2, 3 …) — Reihenfolge nach Anlage.
+function messpunktNrMap(markierungen: GrundrissMarkierung[]): Map<string, number> {
+  const map = new Map<string, number>();
+  markierungen.filter((m) => m.kategorie === "messpunkt")
+    .sort((a, b) => (a.erstellt_am < b.erstellt_am ? -1 : 1))
+    .forEach((m, i) => map.set(m.id, i + 1));
+  return map;
+}
 
 // Zeichnet die gespeicherten Befund-Geometrien als SVG über das Bild (schreibgeschützt).
 function BefundShapes({ markierungen }: { markierungen: GrundrissMarkierung[] }) {
   const mitGeo = markierungen.map((m) => ({ m, g: geoParse(m) })).filter((x) => x.g);
   const flaechenKat = BEFUND_KATEGORIEN.filter((k) => k.form === "flaeche");
+  const nrMap = messpunktNrMap(markierungen);
   return (
     <svg className="befund-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
       <defs>
@@ -55,7 +64,13 @@ function BefundShapes({ markierungen }: { markierungen: GrundrissMarkierung[] })
           return <line key={m.id} x1={g.x1 * 100} y1={g.y1 * 100} x2={g.x2 * 100} y2={g.y2 * 100}
             stroke={farbe} strokeWidth={3} strokeLinecap="round" strokeDasharray="5 3" vectorEffect="non-scaling-stroke" opacity={op} />;
         }
-        return <circle key={m.id} cx={g.x * 100} cy={g.y * 100} r={1.7} fill={farbe} stroke="#fff" strokeWidth={0.7} vectorEffect="non-scaling-stroke" opacity={op} />;
+        const nr = nrMap.get(m.id);
+        return (
+          <g key={m.id} opacity={op}>
+            <circle cx={g.x * 100} cy={g.y * 100} r={nr != null ? 2.4 : 1.7} fill={farbe} stroke="#fff" strokeWidth={0.7} vectorEffect="non-scaling-stroke" />
+            {nr != null && <text x={g.x * 100} y={g.y * 100} dy="1.1" textAnchor="middle" fontSize="3" fontWeight="700" fill="#fff">{nr}</text>}
+          </g>
+        );
       })}
     </svg>
   );
@@ -258,6 +273,7 @@ function GeschossBlock({ projektId, userId, geschoss, grundrisse, raeume, panoRa
           {(() => {
             const legende = markierungen.filter((m) => m.grundriss_id === grundriss.id);
             const offen = legende.filter((m) => m.status !== "erledigt").length;
+            const nrMap = messpunktNrMap(legende);
             return (<>
               <div className="card-head" style={{ marginTop: 4 }}>
                 <h3 style={{ margin: 0 }}>Legende <span className="count">{legende.length}</span></h3>
@@ -272,7 +288,7 @@ function GeschossBlock({ projektId, userId, geschoss, grundrisse, raeume, panoRa
                   <div key={m.id} className={`legende-row${erledigt ? " erledigt" : ""}`}>
                     <span className="legende-swatch" style={{ background: farbeVon(m) }} aria-hidden />
                     <div className="legende-txt">
-                      <div className="legende-titel">{kat ? kat.label : m.text}</div>
+                      <div className="legende-titel">{kat ? (kat.key === "messpunkt" ? `Messpunkt ${nrMap.get(m.id) ?? ""}`.trim() : kat.label) : m.text}</div>
                       <div className="muted small">
                         {kat ? "" : (m.art && m.art !== "hinweis" ? `${MARKIERUNG_ART_LABEL[m.art]} · ` : "")}
                         {raumName(m.raum_id)} · {benutzerName(m.erstellt_von)}

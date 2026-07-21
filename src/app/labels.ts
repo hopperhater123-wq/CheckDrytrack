@@ -168,12 +168,23 @@ export const MARKIERUNG_ART_LABEL: Record<import("../domain/types").MarkierungAr
 export type BefundForm = "flaeche" | "linie" | "punkt";
 export interface BefundKategorie { key: string; label: string; form: BefundForm; farbe: string; }
 export const BEFUND_KATEGORIEN: BefundKategorie[] = [
-  { key: "nass",          label: "Nass / Feuchtefläche",   form: "flaeche", farbe: "#2f6fed" }, // Blau
-  { key: "kontamination", label: "Kontamination",          form: "flaeche", farbe: "#7b3fe4" }, // Violett
-  { key: "sockelleiste",  label: "Sockelleiste entfernen", form: "linie",   farbe: "#c026a9" }, // Magenta
-  { key: "estrich",       label: "Estrich / Dämmung öffnen", form: "linie", farbe: "#0e8a94" }, // Türkis
-  { key: "geraet",        label: "Gerät / Trockner",       form: "punkt",   farbe: "#4b5bd4" }, // Indigo
-  { key: "befund",        label: "Befund / Hinweis",       form: "punkt",   farbe: "#334155" }, // Schiefer
+  // Flächen (schraffiert)
+  { key: "nass",           label: "Nass / Feuchtefläche",     form: "flaeche", farbe: "#2563eb" }, // Blau
+  { key: "kontamination",  label: "Kontamination",            form: "flaeche", farbe: "#7c3aed" }, // Violett
+  { key: "hohlraum",       label: "Hohlraumtrocknung",        form: "flaeche", farbe: "#0891b2" }, // Cyan
+  // Linien (Wandzug / Schnitt)
+  { key: "sockelleiste",   label: "Sockelleiste entfernen",   form: "linie",   farbe: "#c026a9" }, // Magenta
+  { key: "malern_iso",     label: "Malern + Iso",             form: "linie",   farbe: "#9333ea" }, // Purpur
+  { key: "estrich",        label: "Estrich / Dämmung öffnen", form: "linie",   farbe: "#0e8a94" }, // Türkis
+  // Punkte (Positionen / Maßnahmen)
+  { key: "messpunkt",      label: "Messpunkt",                form: "punkt",   farbe: "#1d4ed8" }, // Blau (nummeriert)
+  { key: "kernbohrung",    label: "Kernbohrloch",             form: "punkt",   farbe: "#4f46e5" }, // Indigo
+  { key: "geraet",         label: "Gerät / Trockner",         form: "punkt",   farbe: "#0d9488" }, // Teal
+  { key: "schacht",        label: "Schachttrocknung",         form: "punkt",   farbe: "#0369a1" }, // Dunkelblau
+  { key: "fensterschott",  label: "Fensterschott",            form: "punkt",   farbe: "#a21caf" }, // Fuchsia
+  { key: "einbauschrank",  label: "Einbauschrank entfernen",  form: "punkt",   farbe: "#78716c" }, // Taupe
+  { key: "tuer",           label: "Tür demontieren",          form: "punkt",   farbe: "#475569" }, // Stahl
+  { key: "befund",         label: "Befund / Hinweis",         form: "punkt",   farbe: "#334155" }, // Schiefer
 ];
 export const BEFUND_KAT_MAP: Record<string, BefundKategorie> =
   Object.fromEntries(BEFUND_KATEGORIEN.map((k) => [k.key, k]));
