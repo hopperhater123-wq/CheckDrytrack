@@ -28,6 +28,10 @@ import { Icon } from "../ui/Icon";
 
 type Tab = "uebersicht" | "einsaetze" | "messung" | "grundriss" | "berichte" | "feed" | "dokumente";
 
+// Adresse normalisieren (F2): Groß/Klein + Mehrfach-Leerzeichen egal, damit
+// „Lindenstr. 12" und „lindenstr.  12" als dasselbe Objekt erkannt werden.
+const normAdresse = (a: string | null | undefined) => (a ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+
 // WhatsApp-Teilen Stufe A (Roadmap 011 „Büro & Kommunikation"): kein Bot, keine API —
 // nur ein wa.me-Link mit fertig formulierter Nachricht. Der Nutzer wählt den Chat selbst.
 function whatsappProjektLink(p: { id: string; projektnummer: string; bezeichnung: string; adresse: string; ansprechpartner: string | null; telefon: string | null }): string {
@@ -56,6 +60,10 @@ export function ProjektDetail({ id }: { id: string }) {
   const einsaetze = db.einsatz.filter((e) => e.projekt_id === id);
   const laufend = einsaetze.filter(istLaufend);
   const benutzerName = (uid: string) => db.benutzer.find((b) => b.id === uid)?.name ?? "?";
+  // Objekt-Historie (F2): weitere Schäden an derselben Adresse (Zweit-/Wiederholungsschaden).
+  const andereFaelle = db.projekt
+    .filter((x) => x.id !== p.id && !x.storniert && normAdresse(x.adresse) === normAdresse(p.adresse))
+    .sort((a, b) => (a.angelegt_am < b.angelegt_am ? 1 : -1));
 
   return (
     <div className="screen">
@@ -88,6 +96,13 @@ export function ProjektDetail({ id }: { id: string }) {
         <div className="banner">
           💶 Kostenträger {KOSTENTRAEGER_STATUS_LABEL[p.kostentraeger_status ?? "offen"]}
           {p.kostentraeger && p.kostentraeger !== "ungeklaert" ? ` — voraussichtlich ${KOSTENTRAEGER_LABEL[p.kostentraeger]}` : " — wer zahlt, ist noch nicht geklärt"}.
+        </div>
+      )}
+
+      {/* Objekt-Historie (F2): Hinweis auf Wiederholungs-/Zweitschaden an dieser Adresse. */}
+      {andereFaelle.length > 0 && (
+        <div className="banner">
+          🔁 Wiederholung: {andereFaelle.length} weitere{andereFaelle.length === 1 ? "r Schaden" : " Schäden"} an dieser Adresse — siehe „Objekt-Historie" in der Übersicht.
         </div>
       )}
 
@@ -397,6 +412,36 @@ function BeteiligteCard({ projektId, canEdit, userId }: { projektId: string; can
   );
 }
 
+// Objekt-Historie (F2): frühere/parallele Schäden an derselben Adresse. Beweist auf
+// einen Blick „das ist ein separater (Zweit-)Fall" — wichtig gegenüber der Versicherung.
+function ObjektHistorieCard({ projektId }: { projektId: string }) {
+  const db = useDB();
+  const nav = useNav();
+  const p = db.projekt.find((x) => x.id === projektId);
+  if (!p) return null;
+  const andere = db.projekt
+    .filter((x) => x.id !== p.id && !x.storniert && normAdresse(x.adresse) === normAdresse(p.adresse))
+    .sort((a, b) => (a.angelegt_am < b.angelegt_am ? 1 : -1));
+  if (!andere.length) return null;
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Objekt-Historie <span className="count">{andere.length}</span></h2>
+        <span className="muted small">weitere Schäden an dieser Adresse</span>
+      </div>
+      {andere.map((x) => (
+        <button key={x.id} className="listrow" onClick={() => nav({ name: "projekt", id: x.id })}>
+          <div className="listrow-main">
+            <span className="listrow-title">{x.projektnummer} · {x.bezeichnung}</span>
+            <span className="listrow-sub">{PROJEKT_STATUS_LABEL[x.status]} · angelegt {fmtDatum(x.angelegt_am)}</span>
+          </div>
+          <Icon name="chevronRight" size={16} />
+        </button>
+      ))}
+      <p className="muted small" style={{ marginTop: 8 }}>Gleiches Objekt, eigener Fall — hilft der Versicherung gegenüber, einen Zweit-/Wiederholungsschaden sauber abzugrenzen.</p>
+    </section>
+  );
+}
+
 function UebersichtTab(props: {
   projektId: string; status: import("../domain/types").ProjektStatus;
   kontamination: import("../domain/types").KontaminationArt | null; gefahr: boolean; erst: boolean;
@@ -436,6 +481,8 @@ function UebersichtTab(props: {
       <ObjektdatenCard projektId={props.projektId} canEdit={props.canEdit} userId={props.userId} />
 
       <BeteiligteCard projektId={props.projektId} canEdit={props.canEdit} userId={props.userId} />
+
+      <ObjektHistorieCard projektId={props.projektId} />
 
       <section className="card">
         <div className="card-head"><h2>Räume</h2></div>
