@@ -1079,6 +1079,12 @@ export function projektDossierHtml(projekt: Projekt, db: DryTrackDB): string {
         <div><dt>Räume erfasst</dt><dd>${raeume.length}</dd></div>
         <div><dt>A&amp;A unterschrieben</dt><dd>${projekt.aundv_unterschrieben ? "ja" : "offen"}</dd></div>
       </dl>
+      ${(() => {
+        const bet = db.beteiligter.filter((b) => b.projekt_id === projekt.id);
+        if (!bet.length) return "";
+        const zeilen = bet.map((b) => `<tr><td>${esc(BETEILIGTER_ROLLE_DOSSIER[b.rolle] ?? b.rolle)}</td><td>${esc(b.name)}</td><td>${esc(b.telefon ?? "—")}</td></tr>`).join("");
+        return `<h2>Beteiligte</h2><table><thead><tr><th>Rolle</th><th>Name / Firma</th><th>Telefon</th></tr></thead><tbody>${zeilen}</tbody></table>`;
+      })()}
     </div>
 
     <div class="kap">
@@ -1119,6 +1125,12 @@ const TROCKNUNGSMETHODE_DOSSIER: Record<string, string> = {
 const ERSCHWERNIS_DOSSIER: Record<string, string> = {
   latex_dampfsperre: "Latex/Dampfsperre", kalksandstein: "Kalksandstein", fliesenspiegel: "Fliesenspiegel",
   estrich_dicht: "dichter Estrich", schwer_zugaenglich: "schwer zugänglich", historisch: "historische Bausubstanz",
+};
+
+const BETEILIGTER_ROLLE_DOSSIER: Record<string, string> = {
+  leckortung: "Leckortung", installateur: "Installateur", sanierer: "Sanierer", gutachter: "Gutachter",
+  gebaeude_vs: "Gebäudeversicherung", hausrat_vs: "Hausratversicherung", makler: "Makler/Verwaltung",
+  vn: "Versicherungsnehmer", mieter: "Mieter", eigentuemer: "Eigentümer/Vermieter", sonstige: "Sonstige",
 };
 
 const KOSTENTRAEGER_DOSSIER: Record<string, string> = {

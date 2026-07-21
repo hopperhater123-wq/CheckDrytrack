@@ -165,5 +165,6 @@ export function seedDB(): DryTrackDB {
     firmen_einstellung: [
       { schluessel: "freigabegrenze_eur", wert: "1500" },
     ],
+    beteiligter: [],
   };
 }

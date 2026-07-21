@@ -146,3 +146,11 @@ export const ERSCHWERNIS_OPTIONEN: { key: string; label: string }[] = [
 ];
 export const ERSCHWERNIS_LABEL: Record<string, string> =
   Object.fromEntries(ERSCHWERNIS_OPTIONEN.map((o) => [o.key, o.label]));
+
+// Beteiligte je Projekt (F3): Rollen der externen Parteien.
+export const BETEILIGTER_ROLLE_LABEL: Record<import("../domain/types").BeteiligterRolle, string> = {
+  leckortung: "Leckortung", installateur: "Installateur", sanierer: "Sanierer",
+  gutachter: "Gutachter", gebaeude_vs: "Gebäudeversicherung", hausrat_vs: "Hausratversicherung",
+  makler: "Makler / Verwaltung", vn: "Versicherungsnehmer", mieter: "Mieter",
+  eigentuemer: "Eigentümer / Vermieter", sonstige: "Sonstige",
+};

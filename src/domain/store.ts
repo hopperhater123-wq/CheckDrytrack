@@ -114,7 +114,7 @@ class Store {
       bodenaufbau_schicht: [], messpunkt: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
       ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [],
-      termin: [], trocknungsergebnis: [], firmen_einstellung: [],
+      termin: [], trocknungsergebnis: [], firmen_einstellung: [], beteiligter: [],
     };
     const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
     return { ...base, ...parsed } as DryTrackDB;
@@ -494,6 +494,21 @@ class Store {
       const p = db.projekt.find((x) => x.id === projekt_id);
       if (p) Object.assign(p, patch);
     });
+  }
+
+  /** Beteiligten (externe Partei) je Projekt anlegen (F3). */
+  addBeteiligter(params: { projekt_id: string; rolle: import("./types").BeteiligterRolle; name: string; telefon: string | null; notiz: string | null; erstellt_von: string }) {
+    this.commit((db) => {
+      db.beteiligter.push({
+        id: uid("bt"), projekt_id: params.projekt_id, rolle: params.rolle, name: params.name,
+        telefon: params.telefon, notiz: params.notiz,
+        erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
+      });
+    });
+  }
+
+  removeBeteiligter(id: string) {
+    this.commit((db) => { db.beteiligter = db.beteiligter.filter((b) => b.id !== id); });
   }
 
   /** Kostenträger-Klärung pflegen (F4, Büro): wer zahlt + Status + Notiz. */

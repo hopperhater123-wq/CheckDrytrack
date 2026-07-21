@@ -12,7 +12,7 @@ import { useNav } from "../app/nav";
 import { store } from "../domain/store";
 import {
   DOKUMENT_TYP_LABEL, FEED_KATEGORIE_LABEL, FEED_URSPRUNG_LABEL, KONTAMINATION_LABEL,
-  KOSTENTRAEGER_LABEL, KOSTENTRAEGER_STATUS_LABEL,
+  KOSTENTRAEGER_LABEL, KOSTENTRAEGER_STATUS_LABEL, BETEILIGTER_ROLLE_LABEL,
   PROJEKT_STATUS_LABEL, PROJEKT_STATUS_REIHENFOLGE,
 } from "../app/labels";
 import { fmtDatum, fmtDatumZeit, fmtZahl, relativZeit } from "../app/format";
@@ -351,6 +351,52 @@ function VollmachtModal({ projektId, userId, onClose }: { projektId: string; use
   );
 }
 
+// Beteiligte je Projekt (F3): externe Parteien mit Rolle + Telefon (direkt anrufbar).
+// Löst das „wer war noch mal der Installateur/Gutachter"-Telefon-Pingpong.
+const BETEILIGTER_ROLLEN: import("../domain/types").BeteiligterRolle[] =
+  ["leckortung", "installateur", "sanierer", "gutachter", "gebaeude_vs", "hausrat_vs", "makler", "vn", "mieter", "eigentuemer", "sonstige"];
+
+function BeteiligteCard({ projektId, canEdit, userId }: { projektId: string; canEdit: boolean; userId: string }) {
+  const db = useDB();
+  const liste = db.beteiligter.filter((b) => b.projekt_id === projektId)
+    .sort((a, b) => BETEILIGTER_ROLLEN.indexOf(a.rolle) - BETEILIGTER_ROLLEN.indexOf(b.rolle));
+  const [rolle, setRolle] = useState<import("../domain/types").BeteiligterRolle>("installateur");
+  const [name, setName] = useState("");
+  const [telefon, setTelefon] = useState("");
+
+  const hinzufuegen = () => {
+    if (!name.trim()) return;
+    store.addBeteiligter({ projekt_id: projektId, rolle, name: name.trim(), telefon: telefon.trim() || null, notiz: null, erstellt_von: userId });
+    setName(""); setTelefon("");
+  };
+
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Beteiligte <span className="count">{liste.length}</span></h2></div>
+      {liste.length === 0 && <p className="muted small">Noch keine Beteiligten. Leckortung, Installateur, Sanierer, Gutachter, Versicherung, Mieter … mit Telefon hinterlegen.</p>}
+      {liste.map((b) => (
+        <div key={b.id} className="listrow static">
+          <div className="listrow-main">
+            <span className="listrow-title">{b.name} <span className="chip small chip-neutral">{BETEILIGTER_ROLLE_LABEL[b.rolle]}</span></span>
+            {b.telefon && <a className="listrow-sub" href={`tel:${b.telefon.replace(/\s/g, "")}`}><Icon name="phone" size={12} /> {b.telefon}</a>}
+          </div>
+          {canEdit && <button className="foto-del" onClick={() => store.removeBeteiligter(b.id)} aria-label="Beteiligten entfernen"><Icon name="trash" size={14} /></button>}
+        </div>
+      ))}
+      {canEdit && (
+        <div className="beteiligter-add">
+          <select value={rolle} onChange={(e) => setRolle(e.target.value as import("../domain/types").BeteiligterRolle)} aria-label="Rolle">
+            {BETEILIGTER_ROLLEN.map((r) => <option key={r} value={r}>{BETEILIGTER_ROLLE_LABEL[r]}</option>)}
+          </select>
+          <input placeholder="Name / Firma" value={name} onChange={(e) => setName(e.target.value)} />
+          <input inputMode="tel" placeholder="Telefon (optional)" value={telefon} onChange={(e) => setTelefon(e.target.value)} />
+          <button className="btn btn-sm btn-primary" disabled={!name.trim()} onClick={hinzufuegen}><Icon name="plus" size={14} /> Beteiligten</button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function UebersichtTab(props: {
   projektId: string; status: import("../domain/types").ProjektStatus;
   kontamination: import("../domain/types").KontaminationArt | null; gefahr: boolean; erst: boolean;
@@ -388,6 +434,8 @@ function UebersichtTab(props: {
       </section>
 
       <ObjektdatenCard projektId={props.projektId} canEdit={props.canEdit} userId={props.userId} />
+
+      <BeteiligteCard projektId={props.projektId} canEdit={props.canEdit} userId={props.userId} />
 
       <section className="card">
         <div className="card-head"><h2>Räume</h2></div>

@@ -531,4 +531,21 @@ export interface DryTrackDB {
   termin: Termin[];
   trocknungsergebnis: Trocknungsergebnis[];
   firmen_einstellung: FirmenEinstellung[];
+  beteiligter: Beteiligter[];
+}
+
+// Beteiligte je Projekt (F3, 21.07.): externe Parteien mit Rolle + Telefon.
+export type BeteiligterRolle =
+  | "leckortung" | "installateur" | "sanierer" | "gutachter" | "gebaeude_vs"
+  | "hausrat_vs" | "makler" | "vn" | "mieter" | "eigentuemer" | "sonstige";
+
+export interface Beteiligter {
+  id: string;
+  projekt_id: string;
+  rolle: BeteiligterRolle;
+  name: string;
+  telefon: string | null;
+  notiz: string | null;
+  erstellt_von: string;
+  erstellt_am: string;
 }

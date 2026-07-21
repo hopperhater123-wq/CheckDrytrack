@@ -180,6 +180,9 @@ button { font-family: inherit; }
   margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .aundv-title { font-weight: 600; }
 .kostentraeger-block { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.beteiligter-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.beteiligter-add select { flex: 1 1 140px; }
+.beteiligter-add input { flex: 1 1 140px; }
 .card.warn { border-color: color-mix(in srgb, var(--warn) 40%, var(--border)); }
 
 /* Bento grid (Dashboard) */
