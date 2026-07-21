@@ -85,6 +85,9 @@ ok("Matrix bekommt heutige Spalte", await kueche.locator(".matrix-scroll thead t
 // Durch die restlichen Schritte zum Abschluss
 await page.locator(".besuch-fuss button", { hasText: "Weiter" }).click();
 await page.waitForTimeout(250);
+ok("Plan-Schritt (Grundriss/Schadensstelle)", await page.locator("h2", { hasText: "Grundriss" }).count() === 1);
+await page.locator(".besuch-fuss button", { hasText: "Weiter" }).click();
+await page.waitForTimeout(250);
 ok("Geräte-Schritt (Scan + Einsätze)", await page.locator("button", { hasText: "Gerät scannen" }).count() === 1);
 await page.locator(".besuch-fuss button", { hasText: "Weiter" }).click();
 await page.waitForTimeout(250);

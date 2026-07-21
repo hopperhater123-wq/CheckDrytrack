@@ -69,7 +69,7 @@ export type DokumentTyp =
   | "strombrief";
 
 export type Bewertungsmodell = "digit_grenzwert" | "vergleichsmessung" | "status_checkliste";
-export type Messverfahren = "widerstand" | "dielektrisch" | "hygrometer";
+export type Messverfahren = "widerstand" | "dielektrisch" | "hygrometer" | "kernfeuchte";
 export type Messanlass = "eingangsmessung" | "freimessung";
 
 // Bauteil-/Bodenaufbau-Schichten. Boden: Oberbelag › Estrich › Dämmung (006 Datenbank);

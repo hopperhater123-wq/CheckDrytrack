@@ -11,6 +11,7 @@ import { TrockenMoment } from "../ui/TrockenMoment";
 import { MessprotokollTab } from "./MessprotokollTab";
 import { EinsaetzeTab, FeedTab } from "./ProjektDetail";
 import { RaumFotos } from "./RaumDetailModal";
+import { GrundrissTab } from "./GrundrissTab";
 import { BerichtForm } from "./BerichteTab";
 
 // Geführter Besuch — der Arbeitsablauf des Trocknungstechnikers als Schrittfolge.
@@ -20,6 +21,7 @@ import { BerichtForm } from "./BerichteTab";
 const SCHRITTE: { key: string; label: string; icon: IconName }[] = [
   { key: "ankunft", label: "Ankunft", icon: "map" },
   { key: "messen", label: "Messen", icon: "gauge" },
+  { key: "plan", label: "Plan", icon: "pen" }, // Grundriss + Schadensstelle anzeichnen (PO 21.07.)
   { key: "geraete", label: "Geräte", icon: "wind" },
   { key: "doku", label: "Doku", icon: "camera" },
   { key: "abschluss", label: "Abschluss", icon: "fileText" },
@@ -101,6 +103,12 @@ export function BesuchFlow({ projektId, terminId }: { projektId: string; terminI
         >
           {schritt.key === "ankunft" && <AnkunftSchritt projektId={projektId} terminBeschreibung={termin?.beschreibung} angekommen={angekommen} onAnkommen={ankommen} />}
           {schritt.key === "messen" && <MessprotokollTab projektId={projektId} userId={user.id} />}
+          {schritt.key === "plan" && (
+            <>
+              <div className="schritt-hinweis">Grundriss/Skizze je Geschoss — Schadensstelle und Hinweise für Sanierer/Trockner anzeichnen.</div>
+              <GrundrissTab projektId={projektId} userId={user.id} />
+            </>
+          )}
           {schritt.key === "geraete" && (
             <>
               <div className="banner small" style={{ marginBottom: 14 }}>

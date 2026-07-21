@@ -180,6 +180,11 @@ button { font-family: inherit; }
   margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .aundv-title { font-weight: 600; }
 .kostentraeger-block { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-row .chip { cursor: pointer; border: 1px solid var(--border); }
+.chip-row .chip:hover { border-color: var(--accent); color: var(--accent); }
+.schritt-hinweis { font-size: .85rem; color: var(--muted); background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px; }
 .beteiligter-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .beteiligter-add select { flex: 1 1 140px; }
 .beteiligter-add input { flex: 1 1 140px; }

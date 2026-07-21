@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Modal, AnimatePresence } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
-import { BAUART_LABEL, GESCHOSSE, MESSANLASS_LABEL, MESSVERFAHREN_LABEL, SCHICHT_TYP_LABEL, WEITERE_BAUTEILE } from "../app/labels";
+import { BAUART_LABEL, GESCHOSSE, MESSANLASS_LABEL, MESSORT_VORSCHLAEGE, MESSVERFAHREN_LABEL, SCHICHT_TYP_LABEL, WEITERE_BAUTEILE } from "../app/labels";
 import { fmtDatum, fmtZahl } from "../app/format";
 import { BEWERTUNG_LABEL, GKG_RICHTWERT, absoluteFeuchteGKg, bewerteMessung, type Bewertung } from "../domain/mess";
 import { messprotokollHtml, printHtml } from "../domain/report";
@@ -377,6 +377,11 @@ function MesspunktForm({ raumId, onFertig }: { raumId: string; onFertig: () => v
       <div className="two-col">
         <label className="field"><span>Messort</span>
           <input value={messort} onChange={(e) => setMessort(e.target.value)} placeholder="z. B. Wand Nord, 30 cm über OKF" />
+          <div className="chip-row" style={{ marginTop: 6 }}>
+            {MESSORT_VORSCHLAEGE.map((v) => (
+              <button type="button" key={v} className="chip small chip-neutral" onClick={() => setMessort(v)}>{v}</button>
+            ))}
+          </div>
         </label>
         <label className="field"><span>Bohrtiefe cm</span>
           <input inputMode="decimal" value={tiefe} onChange={(e) => setTiefe(e.target.value)} placeholder="z. B. 4" />
@@ -667,6 +672,7 @@ function MessungForm({ raum, userId, vorMesspunkt, onClose, onTrocken }: {
           <select value={verfahren} onChange={(e) => wechsleVerfahren(e.target.value as Messverfahren)}>
             <option value="widerstand">{MESSVERFAHREN_LABEL.widerstand}</option>
             <option value="dielektrisch">{MESSVERFAHREN_LABEL.dielektrisch}</option>
+            <option value="kernfeuchte">{MESSVERFAHREN_LABEL.kernfeuchte}</option>
             <option value="hygrometer">{MESSVERFAHREN_LABEL.hygrometer}</option>
           </select>
         </label>

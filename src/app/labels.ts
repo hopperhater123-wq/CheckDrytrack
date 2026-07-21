@@ -81,8 +81,13 @@ export const GESCHOSSE = ["Keller", "EG", "1. OG", "2. OG", "3. OG", "DG"];
 
 export const MESSVERFAHREN_LABEL: Record<Messverfahren, string> = {
   widerstand: "Widerstand (maßgeblich)", dielektrisch: "Dielektrisch (Schätzung)",
-  hygrometer: "Hygrometer (Raumluft)",
+  hygrometer: "Hygrometer (Raumluft)", kernfeuchte: "Kernfeuchtemessung",
 };
+
+// Messort-Schnellwahl (PO 21.07.): häufige Hohlraum-/Messstellen ohne Tippen.
+export const MESSORT_VORSCHLAEGE: string[] = [
+  "Badewannen-Hohlraum", "Dusche-Hohlraum", "Schacht", "Randfuge", "Wand Nord", "Estrich",
+];
 
 export const MESSANLASS_LABEL: Record<Messanlass, string> = {
   eingangsmessung: "Eingangsmessung", freimessung: "Freimessung",
