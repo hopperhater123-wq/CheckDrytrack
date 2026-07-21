@@ -424,14 +424,19 @@ function MesspunktBereich({ raum, onMessen }: { raum: Raum; onMessen: (mp: Messp
       {punkte.map((mp) => {
         const mat = materialById(mp.material_id);
         const sub = [mat?.bezeichnung, mp.messort, mp.tiefe_cm != null ? `Tiefe ${fmtZahl(mp.tiefe_cm)} cm` : null].filter(Boolean).join(" · ");
+        // Letzte Messung an diesem Punkt → macht die Folgemessung sichtbar (F11, PO 21.07.).
+        const letzte = zugeordnet
+          .filter((m) => m.messpunkt_id === mp.id)
+          .sort((a, b) => (a.gemessen_am < b.gemessen_am ? 1 : -1))[0];
         return (
           <div key={mp.id} className="listrow static">
             <div className="listrow-main">
               <span className="listrow-title">{mp.bezeichnung}</span>
               {sub && <span className="listrow-sub">{sub}</span>}
+              {letzte && <span className="listrow-sub muted">Zuletzt {fmtDatum(letzte.gemessen_am)}: {zellWert(letzte)}</span>}
             </div>
             <div className="btn-row">
-              <button className="btn btn-sm btn-primary" onClick={() => onMessen(mp)}>Messen</button>
+              <button className="btn btn-sm btn-primary" onClick={() => onMessen(mp)}>{letzte ? "Erneut messen" : "Messen"}</button>
               <button className="iconbtn" onClick={() => store.removeMesspunkt(mp.id)} title="Messpunkt entfernen" aria-label="Messpunkt entfernen">
                 <Icon name="trash" size={15} />
               </button>
@@ -652,7 +657,14 @@ function MessungForm({ raum, userId, vorMesspunkt, onClose, onTrocken }: {
       if (mp.material_id === "mat-raumluft") setVerfahren("hygrometer");
     }
   };
-  const [anlass, setAnlass] = useState<Messanlass | "">(""); // Pflicht (FR-MESS-006)
+  // Anlass-Vorbelegung (F11, PO 21.07.): erste Messung im Raum = Eingangsmessung,
+  // jede spätere = Freimessung. Ebenso, wenn der gewählte Messpunkt schon eine
+  // Messung trägt (klare Folgemessung). Bleibt Pflichtfeld — der Vorschlag ist änderbar.
+  const raumMessungen = db.messung.filter((m) => m.raum_id === raum.id);
+  const hatEingang = raumMessungen.some((m) => m.anlass === "eingangsmessung");
+  const punktGemessen = vorMesspunkt ? raumMessungen.some((m) => m.messpunkt_id === vorMesspunkt.id) : false;
+  const anlassVorschlag: Messanlass = hatEingang || punktGemessen ? "freimessung" : "eingangsmessung";
+  const [anlass, setAnlass] = useState<Messanlass | "">(anlassVorschlag); // Pflicht (FR-MESS-006)
   const [digit, setDigit] = useState("");
   const [referenz, setReferenz] = useState("");
   const [checkliste, setCheckliste] = useState<MessStatusCheckliste>(LEERE_CHECKLISTE);
@@ -807,6 +819,13 @@ function MessungForm({ raum, userId, vorMesspunkt, onClose, onTrocken }: {
             <option value="freimessung">{MESSANLASS_LABEL.freimessung}</option>
           </select>
         </label>
+        {anlass === anlassVorschlag && (
+          <p className="muted small" style={{ margin: "-4px 0 8px" }}>
+            Vorgeschlagen: {anlassVorschlag === "eingangsmessung"
+              ? "erste Messung im Raum → Eingangsmessung"
+              : "Folgemessung → Freimessung"} · änderbar
+          </p>
+        )}
 
         {/* Bewertungsmodell-abhängige Eingabe (FR-MESS-001) */}
         {modell === "digit_grenzwert" && (
