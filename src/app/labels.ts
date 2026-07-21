@@ -123,3 +123,26 @@ export const KOSTENTRAEGER_LABEL: Record<import("../domain/types").Kostentraeger
 export const KOSTENTRAEGER_STATUS_LABEL: Record<import("../domain/types").KostentraegerStatus, string> = {
   offen: "offen", in_klaerung: "in Klärung", geklaert: "geklärt",
 };
+
+// Trocknungsmethode + Erschwernisse je Raum (F7).
+export const TROCKNUNGSMETHODE_OPTIONEN: { key: string; label: string }[] = [
+  { key: "raumtrocknung", label: "Raumtrocknung" },
+  { key: "adsorption_durchzug", label: "Adsorption mit Durchzug" },
+  { key: "folientunnel", label: "Folientunnel / Zeltverfahren" },
+  { key: "daemmschicht_unterdruck", label: "Dämmschicht (Unterdruck)" },
+  { key: "schacht_hohlraum", label: "Schacht-/Hohlraumtrocknung" },
+  { key: "sonstige", label: "Sonstige" },
+];
+export const TROCKNUNGSMETHODE_LABEL: Record<string, string> =
+  Object.fromEntries(TROCKNUNGSMETHODE_OPTIONEN.map((o) => [o.key, o.label]));
+
+export const ERSCHWERNIS_OPTIONEN: { key: string; label: string }[] = [
+  { key: "latex_dampfsperre", label: "Latexfarbe / Dampfsperre" },
+  { key: "kalksandstein", label: "Kalksandstein" },
+  { key: "fliesenspiegel", label: "Fliesenspiegel" },
+  { key: "estrich_dicht", label: "Dichter Estrich" },
+  { key: "schwer_zugaenglich", label: "Schwer zugänglich" },
+  { key: "historisch", label: "Historische Bausubstanz" },
+];
+export const ERSCHWERNIS_LABEL: Record<string, string> =
+  Object.fromEntries(ERSCHWERNIS_OPTIONEN.map((o) => [o.key, o.label]));

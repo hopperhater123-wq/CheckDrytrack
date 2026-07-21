@@ -7,7 +7,7 @@ import { komprimiereBild } from "../ui/foto";
 import { FotoAnnotator } from "../ui/FotoAnnotator";
 import { Pano360 } from "../ui/Pano360";
 import { Icon } from "../ui/Icon";
-import { GESCHOSSE, RAUMTYPEN } from "../app/labels";
+import { ERSCHWERNIS_OPTIONEN, GESCHOSSE, RAUMTYPEN, TROCKNUNGSMETHODE_OPTIONEN } from "../app/labels";
 import { AufbauEditor } from "./MessprotokollTab";
 import type { Raum, RaumFoto } from "../domain/types";
 
@@ -64,6 +64,30 @@ export function RaumDetailModal({ raumId, onClose }: { raumId: string; onClose: 
             <input type="checkbox" checked={raum.trocknung_schacht ?? false} onChange={(e) => set({ trocknung_schacht: e.target.checked })} />
             Schacht/Hohlraum
           </label>
+        </div>
+
+        {/* F7: WIE getrocknet wird + WARUM es zäh ist (rechtfertigt Dauer ggü. VS). */}
+        <label className="field" style={{ marginTop: 10 }}><span>Trocknungsmethode</span>
+          <select value={raum.trocknungsmethode ?? ""} onChange={(e) => set({ trocknungsmethode: e.target.value || null })}>
+            <option value="">— wählen —</option>
+            {TROCKNUNGSMETHODE_OPTIONEN.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </select>
+        </label>
+        <div className="field"><span>Erschwernisse <span className="muted small">(warum es länger dauert)</span></span>
+          <div className="checkgrid" style={{ marginTop: 4 }}>
+            {ERSCHWERNIS_OPTIONEN.map((o) => {
+              const an = (raum.erschwernisse ?? []).includes(o.key);
+              return (
+                <label key={o.key} className={`checkchip${an ? " on" : ""}`}>
+                  <input type="checkbox" checked={an} onChange={() => {
+                    const akt = raum.erschwernisse ?? [];
+                    set({ erschwernisse: an ? akt.filter((k) => k !== o.key) : [...akt, o.key] });
+                  }} />
+                  {o.label}
+                </label>
+              );
+            })}
+          </div>
         </div>
 
         <h3>Zustand bei Trocknungsbeginn</h3>

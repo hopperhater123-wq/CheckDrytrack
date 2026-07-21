@@ -954,6 +954,8 @@ export function projektDossierHtml(projekt: Projekt, db: DryTrackDB): string {
       return `<tr><td>${esc(mat(m.material_id)?.bezeichnung ?? "—")}</td><td class="b-${b.bewertung}">${BEWERTUNG_LABEL[b.bewertung]}</td><td>${d(m.gemessen_am)}</td></tr>`;
     }).join("");
     const zusatz = [r.geschoss, r.betroffene_flaeche_m2 != null ? `${r.betroffene_flaeche_m2} m²` : null,
+      r.trocknungsmethode ? TROCKNUNGSMETHODE_DOSSIER[r.trocknungsmethode] ?? null : null,
+      ...(r.erschwernisse ?? []).map((k) => ERSCHWERNIS_DOSSIER[k] ?? k),
       r.faekalschaden ? "Fäkalschaden" : null, r.sichtbarer_schimmel ? "Schimmel" : null].filter(Boolean).join(" · ");
     return `<section class="box"><div class="box-head"><h3>${esc(r.bezeichnung)}</h3><span class="erg erg-${erg}">${label}</span></div>
       ${zusatz ? `<p class="sub">${esc(zusatz)}</p>` : ""}
@@ -1108,6 +1110,16 @@ export function projektDossierHtml(projekt: Projekt, db: DryTrackDB): string {
     <footer>${gabSchaetzung ? "Stromverbrauch teilweise als Näherung (Tage × Geräteleistung) berechnet — ohne Gewähr (FR-EINSATZ-003). " : ""}Torrek · Projekt-Dossier ${esc(projekt.projektnummer)} · erstellt am ${new Date().toLocaleString("de-DE")}.</footer>
   </body></html>`;
 }
+
+const TROCKNUNGSMETHODE_DOSSIER: Record<string, string> = {
+  raumtrocknung: "Raumtrocknung", adsorption_durchzug: "Adsorption m. Durchzug",
+  folientunnel: "Folientunnel", daemmschicht_unterdruck: "Dämmschicht (Unterdruck)",
+  schacht_hohlraum: "Schacht-/Hohlraumtrocknung", sonstige: "Sonstige Methode",
+};
+const ERSCHWERNIS_DOSSIER: Record<string, string> = {
+  latex_dampfsperre: "Latex/Dampfsperre", kalksandstein: "Kalksandstein", fliesenspiegel: "Fliesenspiegel",
+  estrich_dicht: "dichter Estrich", schwer_zugaenglich: "schwer zugänglich", historisch: "historische Bausubstanz",
+};
 
 const KOSTENTRAEGER_DOSSIER: Record<string, string> = {
   gebaeude_vs: "Gebäudeversicherung", hausrat_vs: "Hausratversicherung",

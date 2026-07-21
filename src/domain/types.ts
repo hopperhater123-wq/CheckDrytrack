@@ -179,6 +179,11 @@ export interface Raum {
   freies_wasser: boolean | null;
   sichtbarer_schimmel: boolean | null;
   betroffene_flaeche_m2: number | null;
+  // Trocknungsmethode + Erschwernisse (F7, 21.07.): WIE getrocknet wird und WARUM
+  // es zäh ist (z. B. Latexfarbe = Dampfsperre, Kalksandstein). Rechtfertigt Dauer
+  // und Mehrkosten gegenüber der Versicherung.
+  trocknungsmethode?: string | null; // Schlüssel aus TROCKNUNGSMETHODE_OPTIONEN
+  erschwernisse?: string[]; // Schlüssel aus ERSCHWERNIS_OPTIONEN
 }
 
 // Herzstück der Plattform (10 · Einsätze)
