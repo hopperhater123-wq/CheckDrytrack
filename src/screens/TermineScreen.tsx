@@ -5,7 +5,7 @@ import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
 import { store } from "../domain/store";
 import { Icon } from "../ui/Icon";
-import { MITNEHMEN_OPTIONEN } from "../app/labels";
+import { MITNEHMEN_OPTIONEN, BEFUND_KAT_MAP } from "../app/labels";
 import { briefingStatus, hatBriefing } from "../domain/termin";
 import type { Termin } from "../domain/types";
 
@@ -339,10 +339,37 @@ function BriefingModal({ termin, userId, onClose }: { termin: Termin; userId: st
         <input value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="Kurztitel" />
       </label>
       <BriefingFelder briefing={briefing} setBriefing={setBriefing} mitnehmen={mitnehmen} setMitnehmen={setMitnehmen} />
+      <MassnahmenBriefingRef projektId={termin.projekt_id}
+        onUebernehmen={(t) => setBriefing((b) => (b.trim() ? `${b.trimEnd()}\n- ${t}` : `- ${t}`))} />
       <div className="modal-actions">
         <button className="btn" onClick={onClose}>Abbrechen</button>
         <button className="btn btn-primary" onClick={speichern}>Speichern &amp; Monteur informieren</button>
       </div>
     </Modal>
+  );
+}
+
+// Offene Maßnahmen des Projekts als Referenz beim Briefing (F15): antippen übernimmt
+// sie in den Auftragstext — so landen z. B. Gutachter-Auflagen direkt beim Monteur.
+function MassnahmenBriefingRef({ projektId, onUebernehmen }: { projektId: string; onUebernehmen: (text: string) => void }) {
+  const db = useDB();
+  const grIds = new Set(db.grundriss.filter((g) => g.projekt_id === projektId).map((g) => g.id));
+  const label = (kat?: string) => (kat && BEFUND_KAT_MAP[kat]?.label) || null;
+  const offen: string[] = [
+    ...db.grundriss_markierung.filter((m) => grIds.has(m.grundriss_id) && m.status !== "erledigt").map((m) => label(m.kategorie) ?? m.text),
+    ...db.massnahme.filter((m) => m.projekt_id === projektId && m.status !== "erledigt").map((m) => m.text),
+  ];
+  if (!offen.length) return null;
+  return (
+    <div className="field">
+      <span>Offene Maßnahmen <span className="muted small">(antippen → in den Auftrag übernehmen)</span></span>
+      <div className="chip-row" style={{ marginTop: 4 }}>
+        {offen.map((t, i) => (
+          <button key={i} type="button" className="chip small chip-neutral" style={{ cursor: "pointer" }} onClick={() => onUebernehmen(t)}>
+            <Icon name="plus" size={12} /> {t}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

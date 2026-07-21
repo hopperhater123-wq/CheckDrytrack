@@ -327,6 +327,21 @@ export type BefundGeometrie =
   | { form: "linie"; x1: number; y1: number; x2: number; y2: number }
   | { form: "punkt"; x: number; y: number };
 
+// Projektweite Maßnahme (F15): abzuarbeitende Tätigkeit — z. B. „Tür demontieren",
+// „malern + Iso". Ergänzt die am Grundriss gezeichneten Befunde um freie Text-Maßnahmen,
+// die es nicht nur in der Zeichnung, sondern projektweit (Karte + Dossier) zu vermerken gilt.
+export interface Massnahme {
+  id: string;
+  projekt_id: string;
+  raum_id: string | null;
+  kategorie?: string; // optional aus BEFUND_KATEGORIEN
+  text: string;
+  status: MarkierungStatus; // offen | erledigt (gleiche Semantik wie Befund)
+  erledigt_am: string | null;
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 // Ursachen-Chronik (F6): wer wann was zur Schadensursache festgestellt hat.
 // Die Beweiskette gegen das „wer-ist-schuld"-Pingpong (Leckortung → Installateur …).
 export type UrsacheQuelle = "leckortung" | "installateur" | "sanierer" | "gutachter" | "wir" | "sonstige";
@@ -564,6 +579,7 @@ export interface DryTrackDB {
   firmen_einstellung: FirmenEinstellung[];
   beteiligter: Beteiligter[];
   ursache_eintrag: UrsacheEintrag[];
+  massnahme: Massnahme[];
 }
 
 // Beteiligte je Projekt (F3, 21.07.): externe Parteien mit Rolle + Telefon.

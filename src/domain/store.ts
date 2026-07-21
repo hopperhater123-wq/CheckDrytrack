@@ -116,6 +116,7 @@ class Store {
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
       ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [],
       termin: [], trocknungsergebnis: [], firmen_einstellung: [], beteiligter: [], ursache_eintrag: [],
+      massnahme: [],
     };
     const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
     return { ...base, ...parsed } as DryTrackDB;
@@ -995,6 +996,30 @@ class Store {
   /** Markierung/Befund entfernen (Fehlerfassung auf dem Plan). */
   removeMarkierung(id: string) {
     this.commit((db) => { db.grundriss_markierung = db.grundriss_markierung.filter((m) => m.id !== id); });
+  }
+
+  /** Projektweite Maßnahme anlegen (F15): freie Tätigkeit ohne Zeichnung. */
+  addMassnahme(params: { projekt_id: string; raum_id: string | null; kategorie?: string; text: string; erstellt_von: string }) {
+    this.commit((db) => {
+      db.massnahme.push({
+        id: uid("ma"), projekt_id: params.projekt_id, raum_id: params.raum_id,
+        kategorie: params.kategorie, text: params.text, status: "offen", erledigt_am: null,
+        erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
+      });
+    });
+  }
+
+  /** Maßnahme-Status umschalten (offen ↔ erledigt). */
+  setMassnahmeStatus(id: string, status: import("./types").MarkierungStatus) {
+    this.commit((db) => {
+      const m = db.massnahme.find((x) => x.id === id);
+      if (m) { m.status = status; m.erledigt_am = status === "erledigt" ? new Date().toISOString() : null; }
+    });
+  }
+
+  /** Maßnahme entfernen. */
+  removeMassnahme(id: string) {
+    this.commit((db) => { db.massnahme = db.massnahme.filter((m) => m.id !== id); });
   }
 }
 

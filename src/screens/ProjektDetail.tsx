@@ -13,7 +13,7 @@ import { store } from "../domain/store";
 import {
   DOKUMENT_TYP_LABEL, FEED_KATEGORIE_LABEL, FEED_URSPRUNG_LABEL, KONTAMINATION_LABEL,
   KOSTENTRAEGER_LABEL, KOSTENTRAEGER_STATUS_LABEL, BETEILIGTER_ROLLE_LABEL, URSACHE_QUELLE_LABEL,
-  PROJEKT_STATUS_LABEL, PROJEKT_STATUS_REIHENFOLGE,
+  PROJEKT_STATUS_LABEL, PROJEKT_STATUS_REIHENFOLGE, BEFUND_KATEGORIEN, BEFUND_KAT_MAP,
 } from "../app/labels";
 import { fmtDatum, fmtDatumZeit, fmtZahl, relativZeit } from "../app/format";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "../domain/einsatz";
@@ -526,6 +526,111 @@ function UrsachenChronikCard({ projektId, userId }: { projektId: string; userId:
   );
 }
 
+// Projektweite Maßnahmenliste (F15): sammelt die am Grundriss gezeichneten Befunde
+// aller Geschosse ein UND erlaubt freie Text-Maßnahmen (z. B. „Tür demontieren"),
+// jede mit Status offen → erledigt. So sind Maßnahmen nicht nur in der Zeichnung,
+// sondern projektweit an einer Stelle vermerkt (fließt auch ins Dossier).
+function MassnahmenCard({ projektId, userId }: { projektId: string; userId: string }) {
+  const db = useDB();
+  const { can } = useSession();
+  const [text, setText] = useState("");
+  const [kategorie, setKategorie] = useState("");
+  const [raumId, setRaumId] = useState("");
+  const raeume = db.raum.filter((r) => r.projekt_id === projektId);
+  const raumName = (rid: string | null) => (rid ? db.raum.find((r) => r.id === rid)?.bezeichnung ?? "?" : "");
+  const grundrisse = db.grundriss.filter((g) => g.projekt_id === projektId);
+  const grIds = new Set(grundrisse.map((g) => g.id));
+  const geschossVon = (gid: string) => grundrisse.find((g) => g.id === gid)?.geschoss ?? "";
+  const farbe = (kat?: string) => (kat && BEFUND_KAT_MAP[kat]?.farbe) || "#334155";
+  const katLabel = (kat?: string) => (kat && BEFUND_KAT_MAP[kat]?.label) || null;
+
+  // Einheitliche Liste: gezeichnete Befunde (Plan) + freie Maßnahmen (Notiz).
+  type Item = { key: string; titel: string; sub: string; farbe: string; status: string; erledigt: boolean; toggle: () => void; remove?: () => void };
+  const gezeichnet: Item[] = db.grundriss_markierung
+    .filter((m) => grIds.has(m.grundriss_id))
+    .map((m) => ({
+      key: m.id,
+      titel: katLabel(m.kategorie) ?? m.text,
+      sub: `Plan${geschossVon(m.grundriss_id) ? " · " + geschossVon(m.grundriss_id) : ""}`,
+      farbe: farbe(m.kategorie),
+      status: m.status ?? "offen",
+      erledigt: m.status === "erledigt",
+      toggle: () => store.setMarkierungStatus(m.id, m.status === "erledigt" ? "offen" : "erledigt"),
+    }));
+  const frei: Item[] = db.massnahme
+    .filter((m) => m.projekt_id === projektId)
+    .map((m) => ({
+      key: m.id,
+      titel: m.text,
+      sub: [katLabel(m.kategorie), m.raum_id ? raumName(m.raum_id) : null, "Notiz"].filter(Boolean).join(" · "),
+      farbe: farbe(m.kategorie),
+      status: m.status,
+      erledigt: m.status === "erledigt",
+      toggle: () => store.setMassnahmeStatus(m.id, m.status === "erledigt" ? "offen" : "erledigt"),
+      remove: () => store.removeMassnahme(m.id),
+    }));
+  // Offene zuerst, dann erledigte.
+  const alle = [...frei, ...gezeichnet].sort((a, b) => Number(a.erledigt) - Number(b.erledigt));
+  const offen = alle.filter((x) => !x.erledigt).length;
+
+  const hinzufuegen = () => {
+    if (!text.trim()) return;
+    store.addMassnahme({ projekt_id: projektId, raum_id: raumId || null, kategorie: kategorie || undefined, text: text.trim(), erstellt_von: userId });
+    setText(""); setKategorie(""); setRaumId("");
+  };
+
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Maßnahmen <span className="count">{alle.length}</span></h2>
+        <span className="muted small">{alle.length ? `${offen} offen · ${alle.length - offen} erledigt` : "am Plan gezeichnet + freie Notizen"}</span>
+      </div>
+      {alle.length === 0
+        ? <p className="muted small">Abzuarbeitende Tätigkeiten — z. B. „Tür demontieren", „malern + Iso". Am Grundriss gezeichnete Befunde erscheinen hier automatisch; freie Maßnahmen unten hinzufügen.</p>
+        : alle.map((it) => (
+            <div key={it.key} className={`legende-row${it.erledigt ? " erledigt" : ""}`}>
+              <span className="legende-swatch" style={{ background: it.farbe }} aria-hidden />
+              <div className="legende-txt">
+                <div className="legende-titel">{it.titel}</div>
+                <div className="muted small">{it.sub}</div>
+              </div>
+              <button className={`legende-status${it.erledigt ? " on" : ""}`}
+                onClick={it.toggle} title={it.erledigt ? "Als offen markieren" : "Als erledigt markieren"}>
+                {it.erledigt ? <><Icon name="check" size={13} /> erledigt</> : "offen"}
+              </button>
+              {it.remove
+                ? <button className="iconbtn" onClick={it.remove} title="Entfernen" aria-label="Entfernen"><Icon name="trash" size={14} /></button>
+                : <span className="iconbtn" title="Am Grundriss gezeichnet — dort bearbeiten" style={{ opacity: 0.4 }}><Icon name="pen" size={13} /></span>}
+            </div>
+          ))}
+
+      {can.projektBearbeiten && (
+        <div className="massnahme-add" style={{ marginTop: 10 }}>
+          <label className="field"><span>Neue Maßnahme</span>
+            <input value={text} onChange={(e) => setText(e.target.value)} placeholder='z. B. "Tür Bad demontieren" / "Hängeschränke Küche abbauen"' />
+          </label>
+          <div className="two-col">
+            <label className="field"><span>Kategorie (optional)</span>
+              <select value={kategorie} onChange={(e) => setKategorie(e.target.value)}>
+                <option value="">— ohne —</option>
+                {BEFUND_KATEGORIEN.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
+              </select>
+            </label>
+            <label className="field"><span>Raum (optional)</span>
+              <select value={raumId} onChange={(e) => setRaumId(e.target.value)}>
+                <option value="">— ganzes Projekt —</option>
+                {raeume.map((r) => <option key={r.id} value={r.id}>{r.bezeichnung}</option>)}
+              </select>
+            </label>
+          </div>
+          <div className="btn-row">
+            <button className="btn btn-sm btn-primary" disabled={!text.trim()} onClick={hinzufuegen}><Icon name="plus" size={14} /> Maßnahme</button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function UebersichtTab(props: {
   projektId: string; status: import("../domain/types").ProjektStatus;
   kontamination: import("../domain/types").KontaminationArt | null; gefahr: boolean; erst: boolean;
@@ -569,6 +674,8 @@ function UebersichtTab(props: {
       <ObjektHistorieCard projektId={props.projektId} />
 
       <UrsachenChronikCard projektId={props.projektId} userId={props.userId} />
+
+      <MassnahmenCard projektId={props.projektId} userId={props.userId} />
 
       <section className="card">
         <div className="card-head"><h2>Räume</h2></div>

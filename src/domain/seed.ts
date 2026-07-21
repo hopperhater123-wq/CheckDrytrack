@@ -167,5 +167,6 @@ export function seedDB(): DryTrackDB {
     ],
     beteiligter: [],
     ursache_eintrag: [],
+    massnahme: [],
   };
 }
