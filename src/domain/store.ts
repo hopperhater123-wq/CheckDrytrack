@@ -22,6 +22,7 @@ const BILD_FELDER: Partial<Record<TabelleName, string[]>> = {
   grundriss: ["datei_referenz"],
   bemusterung: ["musterfoto_referenz"],
   einsatz: ["foto_start", "foto_ende"],
+  ursache_eintrag: ["foto"],
 };
 
 /** Kopie des Stands ohne die großen Bild-Data-URLs — nur für den localStorage-Abzug. */
@@ -114,7 +115,7 @@ class Store {
       bodenaufbau_schicht: [], messpunkt: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
       ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [],
-      termin: [], trocknungsergebnis: [], firmen_einstellung: [], beteiligter: [],
+      termin: [], trocknungsergebnis: [], firmen_einstellung: [], beteiligter: [], ursache_eintrag: [],
     };
     const base = parsed.benutzer?.length ? leer : seedDB(); // ganz leerer Stand → Seed
     return { ...base, ...parsed } as DryTrackDB;
@@ -509,6 +510,22 @@ class Store {
 
   removeBeteiligter(id: string) {
     this.commit((db) => { db.beteiligter = db.beteiligter.filter((b) => b.id !== id); });
+  }
+
+  /** Ursachen-Chronik-Eintrag anlegen (F6): wer/wann/was zur Schadensursache. */
+  addUrsacheEintrag(params: { projekt_id: string; datum: string; quelle: import("./types").UrsacheQuelle; text: string; foto: string | null; erstellt_von: string }) {
+    this.commit((db) => {
+      db.ursache_eintrag.push({
+        id: uid("uc"), projekt_id: params.projekt_id, datum: params.datum, quelle: params.quelle,
+        text: params.text, foto: params.foto, erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
+      });
+      db.feed_eintrag.push(autoFeed(params.projekt_id, null, "manuell", params.erstellt_von,
+        `Ursachen-Chronik: ${params.quelle} — ${params.text}`, "dispo"));
+    });
+  }
+
+  removeUrsacheEintrag(id: string) {
+    this.commit((db) => { db.ursache_eintrag = db.ursache_eintrag.filter((u) => u.id !== id); });
   }
 
   /** Kostenträger-Klärung pflegen (F4, Büro): wer zahlt + Status + Notiz. */
@@ -951,11 +968,11 @@ class Store {
   }
 
   /** Markierung auf dem Grundriss (FR-PROJ-025): Hinweis für Sanierer oder Trocknungsmonteur. */
-  addMarkierung(params: { grundriss_id: string; raum_id: string | null; zielgruppe: "sanierer" | "trocknungsmonteur"; text: string; erstellt_von: string }) {
+  addMarkierung(params: { grundriss_id: string; raum_id: string | null; zielgruppe: "sanierer" | "trocknungsmonteur"; art?: import("./types").MarkierungArt; text: string; erstellt_von: string }) {
     this.commit((db) => {
       db.grundriss_markierung.push({
         id: uid("gm"), grundriss_id: params.grundriss_id, raum_id: params.raum_id,
-        zielgruppe: params.zielgruppe, text: params.text, erstellt_von: params.erstellt_von,
+        zielgruppe: params.zielgruppe, art: params.art ?? "hinweis", text: params.text, erstellt_von: params.erstellt_von,
         erstellt_am: new Date().toISOString(),
       });
     });

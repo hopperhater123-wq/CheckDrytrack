@@ -166,5 +166,6 @@ export function seedDB(): DryTrackDB {
       { schluessel: "freigabegrenze_eur", wert: "1500" },
     ],
     beteiligter: [],
+    ursache_eintrag: [],
   };
 }

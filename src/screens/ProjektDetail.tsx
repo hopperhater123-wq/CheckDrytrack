@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AnimatePresence, motion, EASE, Modal } from "../ui/motion";
 import { QrCode } from "../ui/QrCode";
 import {
@@ -12,7 +12,7 @@ import { useNav } from "../app/nav";
 import { store } from "../domain/store";
 import {
   DOKUMENT_TYP_LABEL, FEED_KATEGORIE_LABEL, FEED_URSPRUNG_LABEL, KONTAMINATION_LABEL,
-  KOSTENTRAEGER_LABEL, KOSTENTRAEGER_STATUS_LABEL, BETEILIGTER_ROLLE_LABEL,
+  KOSTENTRAEGER_LABEL, KOSTENTRAEGER_STATUS_LABEL, BETEILIGTER_ROLLE_LABEL, URSACHE_QUELLE_LABEL,
   PROJEKT_STATUS_LABEL, PROJEKT_STATUS_REIHENFOLGE,
 } from "../app/labels";
 import { fmtDatum, fmtDatumZeit, fmtZahl, relativZeit } from "../app/format";
@@ -25,6 +25,7 @@ import { RaumDetailModal } from "./RaumDetailModal";
 import { BerichteTab } from "./BerichteTab";
 import { GrundrissTab } from "./GrundrissTab";
 import { Icon } from "../ui/Icon";
+import { komprimiereBild } from "../ui/foto";
 
 type Tab = "uebersicht" | "einsaetze" | "messung" | "grundriss" | "berichte" | "feed" | "dokumente";
 
@@ -442,6 +443,89 @@ function ObjektHistorieCard({ projektId }: { projektId: string }) {
   );
 }
 
+// Ursachen-Chronik (F6): zeitliche Beweiskette „wer wann was zur Schadensursache
+// festgestellt hat" — gegen das Verantwortungs-Pingpong (Leckortung → Installateur …).
+const URSACHE_QUELLEN: import("../domain/types").UrsacheQuelle[] = ["leckortung", "installateur", "sanierer", "gutachter", "wir", "sonstige"];
+
+function UrsachenChronikCard({ projektId, userId }: { projektId: string; userId: string }) {
+  const db = useDB();
+  const { can } = useSession();
+  const eintraege = db.ursache_eintrag
+    .filter((u) => u.projekt_id === projektId)
+    .sort((a, b) => (a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : (a.erstellt_am < b.erstellt_am ? -1 : 1)));
+  const benutzerName = (id: string) => db.benutzer.find((b) => b.id === id)?.name ?? "?";
+  const [datum, setDatum] = useState(new Date().toISOString().slice(0, 10));
+  const [quelle, setQuelle] = useState<import("../domain/types").UrsacheQuelle>("leckortung");
+  const [text, setText] = useState("");
+  const [foto, setFoto] = useState<string | null>(null);
+  const [gross, setGross] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const fotoWaehlen = async (liste: FileList | null) => {
+    if (!liste?.length) return;
+    try { setFoto(await komprimiereBild(liste[0])); } catch { /* ignorieren */ }
+    finally { if (inputRef.current) inputRef.current.value = ""; }
+  };
+  const hinzufuegen = () => {
+    if (!text.trim()) return;
+    store.addUrsacheEintrag({ projekt_id: projektId, datum, quelle, text: text.trim(), foto, erstellt_von: userId });
+    setText(""); setFoto(null); setQuelle("leckortung");
+  };
+
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Ursachen-Chronik <span className="count">{eintraege.length}</span></h2>
+        <span className="muted small">Beweiskette zur Schadensursache</span>
+      </div>
+      {eintraege.length === 0
+        ? <p className="muted small">Wer hat wann was zur Ursache festgestellt? Leckortung, Installateur, Sanierer, Gutachter … — hält den Verlauf gegenüber der Versicherung fest.</p>
+        : <div className="chronik">
+            {eintraege.map((u) => (
+              <div key={u.id} className="chronik-eintrag">
+                <div className="chronik-datum">{fmtDatum(u.datum)}</div>
+                <div className="chronik-inhalt">
+                  <div className="chronik-kopf"><span className="chip small chip-neutral">{URSACHE_QUELLE_LABEL[u.quelle]}</span>
+                    <span className="muted small">{benutzerName(u.erstellt_von)}</span>
+                    {can.projektBearbeiten && <button className="foto-del" style={{ position: "static", marginLeft: "auto" }} onClick={() => store.removeUrsacheEintrag(u.id)} aria-label="Eintrag löschen"><Icon name="trash" size={13} /></button>}
+                  </div>
+                  <div className="chronik-text">{u.text}</div>
+                  {u.foto && <button className="chronik-foto" onClick={() => setGross(u.foto)}><img src={u.foto} alt="Beleg" loading="lazy" /></button>}
+                </div>
+              </div>
+            ))}
+          </div>}
+
+      {can.projektBearbeiten && (
+        <div className="chronik-add">
+          <div className="two-col">
+            <label className="field"><span>Datum</span><input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} /></label>
+            <label className="field"><span>Wer hat festgestellt?</span>
+              <select value={quelle} onChange={(e) => setQuelle(e.target.value as import("../domain/types").UrsacheQuelle)}>
+                {URSACHE_QUELLEN.map((q) => <option key={q} value={q}>{URSACHE_QUELLE_LABEL[q]}</option>)}
+              </select>
+            </label>
+          </div>
+          <label className="field"><span>Feststellung</span>
+            <input value={text} onChange={(e) => setText(e.target.value)} placeholder='z. B. "Leck in der Küche geortet" / "Bad nebenan nass → zweite Ursache"' />
+          </label>
+          <input ref={inputRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => void fotoWaehlen(e.target.files)} />
+          <div className="btn-row">
+            <button className="btn btn-sm" onClick={() => inputRef.current?.click()}><Icon name="camera" size={15} /> {foto ? "Beleg ✓" : "Beleg-Foto"}</button>
+            <button className="btn btn-sm btn-primary" disabled={!text.trim()} onClick={hinzufuegen}><Icon name="plus" size={14} /> Eintrag</button>
+          </div>
+        </div>
+      )}
+
+      <AnimatePresence>{gross && (
+        <Modal onClose={() => setGross(null)}>
+          <img src={gross} alt="Beleg" style={{ width: "100%", borderRadius: 12, display: "block" }} />
+          <div className="modal-actions"><button className="btn btn-primary" onClick={() => setGross(null)}>Schließen</button></div>
+        </Modal>
+      )}</AnimatePresence>
+    </section>
+  );
+}
+
 function UebersichtTab(props: {
   projektId: string; status: import("../domain/types").ProjektStatus;
   kontamination: import("../domain/types").KontaminationArt | null; gefahr: boolean; erst: boolean;
@@ -483,6 +567,8 @@ function UebersichtTab(props: {
       <BeteiligteCard projektId={props.projektId} canEdit={props.canEdit} userId={props.userId} />
 
       <ObjektHistorieCard projektId={props.projektId} />
+
+      <UrsachenChronikCard projektId={props.projektId} userId={props.userId} />
 
       <section className="card">
         <div className="card-head"><h2>Räume</h2></div>

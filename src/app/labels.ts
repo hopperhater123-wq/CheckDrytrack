@@ -152,6 +152,16 @@ export const ERSCHWERNIS_OPTIONEN: { key: string; label: string }[] = [
 export const ERSCHWERNIS_LABEL: Record<string, string> =
   Object.fromEntries(ERSCHWERNIS_OPTIONEN.map((o) => [o.key, o.label]));
 
+// Ursachen-Chronik (F6): wer hat die Feststellung gemacht.
+export const URSACHE_QUELLE_LABEL: Record<import("../domain/types").UrsacheQuelle, string> = {
+  leckortung: "Leckortung", installateur: "Installateur", sanierer: "Sanierer",
+  gutachter: "Gutachter", wir: "Wir (Torrek)", sonstige: "Sonstige",
+};
+// Art der Grundriss-Markierung (F6): Ursache (wo das Wasser herkommt) vs. Feuchtestelle.
+export const MARKIERUNG_ART_LABEL: Record<import("../domain/types").MarkierungArt, string> = {
+  schadensursache: "Schadensursache", feuchtestelle: "Feuchtestelle", hinweis: "Hinweis",
+};
+
 // Beteiligte je Projekt (F3): Rollen der externen Parteien.
 export const BETEILIGTER_ROLLE_LABEL: Record<import("../domain/types").BeteiligterRolle, string> = {
   leckortung: "Leckortung", installateur: "Installateur", sanierer: "Sanierer",

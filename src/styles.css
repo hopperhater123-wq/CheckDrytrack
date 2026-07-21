@@ -215,6 +215,20 @@ button { font-family: inherit; }
 .raum-chev.auf { transform: rotate(90deg); }
 .raum-akk.offen { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
 
+/* Ursachen-Chronik (F6): zeitliche Beweiskette zur Schadensursache. */
+.chronik { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+.chronik-eintrag { display: flex; gap: 12px; padding: 8px 0; border-left: 2px solid var(--border); padding-left: 12px; margin-left: 4px; }
+.chronik-datum { font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 74px; padding-top: 2px; }
+.chronik-inhalt { flex: 1; min-width: 0; }
+.chronik-kopf { display: flex; align-items: center; gap: 8px; }
+.chronik-text { font-size: 0.9rem; margin-top: 3px; overflow-wrap: anywhere; }
+.chronik-foto { display: block; margin-top: 6px; padding: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer; background: none; }
+.chronik-foto img { display: block; max-height: 120px; }
+.chronik-add { border-top: 1px solid var(--hairline); padding-top: 12px; }
+/* Markierungs-Pins nach Art (F6). KEINE Ampelfarben: Ursache dunkel, Feuchtestelle Teal. */
+.mark-pin.art-schadensursache { background: var(--text); color: var(--surface); }
+.mark-pin.art-feuchtestelle { background: var(--accent); color: var(--on-accent, #fff); }
+
 .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip-row .chip { cursor: pointer; border: 1px solid var(--border); }
 .chip-row .chip:hover { border-color: var(--accent); color: var(--accent); }

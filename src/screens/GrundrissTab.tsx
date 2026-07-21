@@ -3,7 +3,7 @@ import { Modal, AnimatePresence } from "../ui/motion";
 import { useDB } from "../app/useStore";
 import { store } from "../domain/store";
 import { fmtDatum, fmtZahl } from "../app/format";
-import { GESCHOSSE } from "../app/labels";
+import { GESCHOSSE, MARKIERUNG_ART_LABEL } from "../app/labels";
 import { Icon } from "../ui/Icon";
 import { komprimiereBild } from "../ui/foto";
 import { FotoAnnotator } from "../ui/FotoAnnotator";
@@ -201,10 +201,15 @@ function GeschossBlock({ projektId, geschoss, grundrisse, raeume, panoRaumIds, m
           {markierungen.length === 0 && <p className="muted small">Hinweise für Sanierer/Trocknungsmonteur hier verorten (FR-PROJ-025).</p>}
           {markierungen.map((m) => (
             <div key={m.id} className="mark">
-              <span className={`mark-pin ${m.zielgruppe}`}>{m.zielgruppe === "sanierer" ? "S" : "T"}</span>
+              <span className={`mark-pin art-${m.art ?? "hinweis"} ${m.zielgruppe}`}>
+                {m.art === "schadensursache" ? "U" : m.art === "feuchtestelle" ? "F" : (m.zielgruppe === "sanierer" ? "S" : "T")}
+              </span>
               <div>
                 <div style={{ fontWeight: 600, fontSize: ".9rem" }}>{m.text}</div>
-                <div className="muted small">{raumName(m.raum_id)} · für {m.zielgruppe === "sanierer" ? "Sanierer" : "Trocknungsmonteur"} · {benutzerName(m.erstellt_von)}</div>
+                <div className="muted small">
+                  {m.art && m.art !== "hinweis" ? `${MARKIERUNG_ART_LABEL[m.art]} · ` : ""}
+                  {raumName(m.raum_id)} · für {m.zielgruppe === "sanierer" ? "Sanierer" : "Trocknungsmonteur"} · {benutzerName(m.erstellt_von)}
+                </div>
               </div>
             </div>
           ))}
@@ -218,18 +223,27 @@ function MarkierungForm({ grundrissId, raeume, userId, onClose }: {
   grundrissId: string; raeume: Raum[]; userId: string; onClose: () => void;
 }) {
   const [zielgruppe, setZielgruppe] = useState<"sanierer" | "trocknungsmonteur">("trocknungsmonteur");
+  const [art, setArt] = useState<import("../domain/types").MarkierungArt>("hinweis");
   const [raumId, setRaumId] = useState("");
   const [text, setText] = useState("");
 
   const speichern = () => {
     if (!text.trim()) return;
-    store.addMarkierung({ grundriss_id: grundrissId, raum_id: raumId || null, zielgruppe, text: text.trim(), erstellt_von: userId });
+    store.addMarkierung({ grundriss_id: grundrissId, raum_id: raumId || null, zielgruppe, art, text: text.trim(), erstellt_von: userId });
     onClose();
   };
 
   return (
     <Modal onClose={onClose}>
         <h2>Markierung hinzufügen</h2>
+        <label className="field"><span>Art</span>
+          <div className="segmented" style={{ display: "flex" }}>
+            <button type="button" className={art === "schadensursache" ? "seg active" : "seg"} onClick={() => setArt("schadensursache")}>Schadensursache</button>
+            <button type="button" className={art === "feuchtestelle" ? "seg active" : "seg"} onClick={() => setArt("feuchtestelle")}>Feuchtestelle</button>
+            <button type="button" className={art === "hinweis" ? "seg active" : "seg"} onClick={() => setArt("hinweis")}>Hinweis</button>
+          </div>
+          <span className="muted small" style={{ marginTop: 4 }}>Ursache = wo das Wasser herkommt · Feuchtestelle = wo es ankommt/nass ist.</span>
+        </label>
         <label className="field"><span>Für wen?</span>
           <div className="segmented" style={{ display: "flex" }}>
             <button type="button" className={zielgruppe === "trocknungsmonteur" ? "seg active" : "seg"} onClick={() => setZielgruppe("trocknungsmonteur")}>Trocknungsmonteur</button>

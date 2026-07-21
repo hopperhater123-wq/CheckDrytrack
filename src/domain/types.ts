@@ -305,7 +305,25 @@ export interface GrundrissMarkierung {
   grundriss_id: string;
   raum_id: string | null;
   zielgruppe: "sanierer" | "trocknungsmonteur";
+  // Art der Markierung (F6): Schadensursache (wo das Wasser herkommt) vs.
+  // Feuchtestelle (wo es ankommt/nass ist) vs. allgemeiner Hinweis.
+  art?: MarkierungArt;
   text: string;
+  erstellt_von: string;
+  erstellt_am: string;
+}
+export type MarkierungArt = "schadensursache" | "feuchtestelle" | "hinweis";
+
+// Ursachen-Chronik (F6): wer wann was zur Schadensursache festgestellt hat.
+// Die Beweiskette gegen das „wer-ist-schuld"-Pingpong (Leckortung → Installateur …).
+export type UrsacheQuelle = "leckortung" | "installateur" | "sanierer" | "gutachter" | "wir" | "sonstige";
+export interface UrsacheEintrag {
+  id: string;
+  projekt_id: string;
+  datum: string; // ISO-Date der Feststellung
+  quelle: UrsacheQuelle;
+  text: string;
+  foto: string | null; // optionale komprimierte Data-URL
   erstellt_von: string;
   erstellt_am: string;
 }
@@ -532,6 +550,7 @@ export interface DryTrackDB {
   trocknungsergebnis: Trocknungsergebnis[];
   firmen_einstellung: FirmenEinstellung[];
   beteiligter: Beteiligter[];
+  ursache_eintrag: UrsacheEintrag[];
 }
 
 // Beteiligte je Projekt (F3, 21.07.): externe Parteien mit Rolle + Telefon.
