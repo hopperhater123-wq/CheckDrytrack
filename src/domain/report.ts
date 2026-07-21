@@ -1267,7 +1267,27 @@ export function merkblattHochwasserHtml(projekt: Projekt): string {
   `);
 }
 
+// Report in einem neuen Tab zur ANSICHT öffnen (kein Auto-Druck mehr): oben eine
+// Leiste mit „Als PDF speichern / Drucken". Der Nutzer sieht das Dokument zuerst und
+// entscheidet selbst — auf dem Handy wie am Desktop landet man über den Druckdialog
+// bei „Als PDF speichern". Fällt das Öffnen aus (Popup-Blocker), wird gedruckt.
 export function printHtml(html: string) {
+  const bar = `<div class="tk-report-bar" style="position:sticky;top:0;z-index:2147483647;display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:10px 14px;background:#0f3d4a;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+    <span style="margin-right:auto;color:#cfe0e4;font-size:13px">Tipp: „Als PDF speichern“ als Druckziel wählen →</span>
+    <button type="button" onclick="window.print()" style="background:#16a394;color:#fff;border:0;border-radius:8px;padding:9px 16px;font-weight:600;font-size:14px;cursor:pointer">Als PDF speichern / Drucken</button>
+  </div>`;
+  const printCss = "<style>@media print{.tk-report-bar{display:none!important}}</style>";
+  const mitCss = html.includes("</head>") ? html.replace("</head>", `${printCss}</head>`) : printCss + html;
+  const mitBar = /<body[^>]*>/i.test(mitCss) ? mitCss.replace(/<body[^>]*>/i, (m) => `${m}${bar}`) : bar + mitCss;
+
+  const w = window.open("", "_blank");
+  if (w) {
+    w.document.open();
+    w.document.write(mitBar);
+    w.document.close();
+    return;
+  }
+  // Fallback: Popup blockiert → wie bisher direkt über ein iframe drucken.
   const iframe = document.createElement("iframe");
   iframe.style.position = "fixed";
   iframe.style.right = "0"; iframe.style.bottom = "0";

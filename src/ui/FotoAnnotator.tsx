@@ -42,11 +42,12 @@ export function FotoAnnotator({ src, titel, onSave, onClose }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
-  const zeichne = () => {
+  const zeichne = (mitVorschau = true) => {
     const c = canvasRef.current, img = imgRef.current;
     if (!c || !img) return;
     const ctx = c.getContext("2d");
     if (!ctx) return;
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic"; ctx.globalAlpha = 1;
     ctx.drawImage(img, 0, 0, c.width, c.height);
     const dicke = Math.max(3, Math.round(c.width / 220));
     const alle = aktuelleRef.current ? [...opsRef.current, aktuelleRef.current] : opsRef.current;
@@ -80,6 +81,31 @@ export function FotoAnnotator({ src, titel, onSave, onClose }: {
         ctx.fillText(op.text, op.punkte[0].x, op.punkte[0].y);
       }
     }
+    // Live-Vorschau des gerade eingetippten Textes (mittig, halbtransparent), bis er
+    // per Tippen aufs Bild oder Enter gesetzt wird — sonst sieht man beim Schreiben nichts.
+    if (mitVorschau && werkzeug === "text" && text.trim()) {
+      const groesse = Math.max(18, Math.round(c.width / 26));
+      ctx.font = `700 ${groesse}px system-ui, sans-serif`;
+      ctx.lineWidth = Math.max(3, Math.round(groesse / 6));
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.globalAlpha = 0.6;
+      ctx.strokeStyle = "rgba(0,0,0,0.65)"; ctx.fillStyle = farbe;
+      ctx.strokeText(text.trim(), c.width / 2, c.height / 2);
+      ctx.fillText(text.trim(), c.width / 2, c.height / 2);
+      ctx.globalAlpha = 1; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    }
+  };
+
+  // Vorschau live aktualisieren, während getippt/Werkzeug/Farbe gewechselt wird.
+  useEffect(() => { if (bereit) zeichne(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, werkzeug, farbe, bereit]);
+
+  // Text an einer Stelle festsetzen (Tippen aufs Bild oder Enter → Bildmitte).
+  const platziereText = (p: Punkt) => {
+    if (!text.trim()) return;
+    opsRef.current.push({ werkzeug: "text", farbe, punkte: [p], text: text.trim() });
+    setAnzahl(opsRef.current.length);
+    setText("");
+    zeichne();
   };
 
   const pos = (e: React.PointerEvent): Punkt => {
@@ -93,13 +119,7 @@ export function FotoAnnotator({ src, titel, onSave, onClose }: {
     e.preventDefault();
     try { (e.target as HTMLElement).setPointerCapture(e.pointerId); } catch { /* Maus ohne Capture ist ok */ }
     const p = pos(e);
-    if (werkzeug === "text") {
-      if (!text.trim()) return;
-      opsRef.current.push({ werkzeug: "text", farbe, punkte: [p], text: text.trim() });
-      setAnzahl(opsRef.current.length);
-      zeichne();
-      return;
-    }
+    if (werkzeug === "text") { platziereText(p); return; }
     aktuelleRef.current = { werkzeug, farbe, punkte: [p] };
   };
 
@@ -132,6 +152,9 @@ export function FotoAnnotator({ src, titel, onSave, onClose }: {
   const speichern = () => {
     const c = canvasRef.current;
     if (!c) return;
+    // Noch nicht gesetzten Text vor dem Speichern in die Mitte übernehmen.
+    if (werkzeug === "text" && text.trim()) platziereText({ x: c.width / 2, y: c.height / 2 });
+    zeichne(false); // ohne Vorschau ins Bild einbrennen
     onSave(c.toDataURL("image/jpeg", 0.85));
   };
 
@@ -160,7 +183,12 @@ export function FotoAnnotator({ src, titel, onSave, onClose }: {
       </div>
       {werkzeug === "text" && (
         <div className="anno-textzeile">
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Text eingeben, dann aufs Bild tippen" />
+          <input value={text} onChange={(e) => setText(e.target.value)} autoFocus
+            onKeyDown={(e) => {
+              const c = canvasRef.current;
+              if (e.key === "Enter" && c) { e.preventDefault(); platziereText({ x: c.width / 2, y: c.height / 2 }); }
+            }}
+            placeholder="Text eingeben → Enter oder aufs Bild tippen" />
         </div>
       )}
 
@@ -173,7 +201,7 @@ export function FotoAnnotator({ src, titel, onSave, onClose }: {
 
       <div className="anno-fuss">
         <button className="btn" onClick={onClose}>Abbrechen</button>
-        <button className="btn btn-primary" onClick={speichern} disabled={!bereit || anzahl === 0}>
+        <button className="btn btn-primary" onClick={speichern} disabled={!bereit || (anzahl === 0 && !text.trim())}>
           <Icon name="check" size={15} /> Markierungen speichern
         </button>
       </div>

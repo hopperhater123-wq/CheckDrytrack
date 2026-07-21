@@ -925,7 +925,9 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
 .anno-farbe { width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); cursor: pointer; padding: 0; }
 .anno-farbe.aktiv { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.25); }
 .anno-textzeile { padding: 0 14px 10px; }
-.anno-textzeile input { width: 100%; background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+.anno-textzeile input { width: 100%; background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.35);
+  border-radius: 8px; padding: 10px 12px; font-size: 16px; }
+.anno-textzeile input::placeholder { color: rgba(255,255,255,.55); }
 .anno-canvas-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0 8px; }
 .anno-canvas { max-width: 100%; max-height: 100%; touch-action: none; border-radius: 8px; background: #222; }
 .anno-fuss { display: flex; justify-content: space-between; gap: 10px;
