@@ -102,3 +102,15 @@ export const DOKUMENT_TYP_LABEL: Record<DokumentTyp, string> = {
 export const ABNAHME_STATUS_LABEL: Record<import("../domain/types").AbnahmeStatus, string> = {
   ohne_mangel: "Abnahme ohne Mängel", mit_mangel: "Abnahme mit Mängeln", verweigert: "Abnahme verweigert",
 };
+
+// Auftrags-Briefing (F1/F9, 21.07.): Mitnehm-Checkliste, die das Büro je Termin anhakt.
+// „ausweis" adressiert direkt den Handwerkerausweis-Ärger (F9) — vor der Abfahrt sichtbar.
+export const MITNEHMEN_OPTIONEN: { key: string; label: string }[] = [
+  { key: "ausweis", label: "Handwerkerausweis" },
+  { key: "schluessel", label: "Kundenschlüssel" },
+  { key: "material", label: "Material (lt. Gutachter)" },
+  { key: "werkzeug", label: "Spezialwerkzeug" },
+  { key: "geraete", label: "Zusatzgeräte" },
+];
+export const MITNEHMEN_LABEL: Record<string, string> =
+  Object.fromEntries(MITNEHMEN_OPTIONEN.map((o) => [o.key, o.label]));

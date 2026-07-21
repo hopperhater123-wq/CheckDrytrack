@@ -266,6 +266,16 @@ button { font-family: inherit; }
 .chip.small { font-size: 0.68rem; padding: 2px 8px; }
 .chip-danger { background: var(--danger-soft); color: var(--danger); }
 .chip-warn { background: var(--warn-soft); color: var(--warn); }
+
+/* Auftrags-Briefing in „Mein Tag" (F1): Detail-Auftrag + Mitnehm-Checkliste vom Büro. */
+.briefing { margin-top: 10px; padding: 10px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface-2); }
+.briefing-alarm { border-color: var(--warn); background: var(--warn-soft); }
+.briefing-kopf { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.briefing-titel { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.briefing-text { margin: 6px 0 0; font-size: .9rem; line-height: 1.4; white-space: pre-wrap; }
+.briefing-mitnehmen { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
 .chip-live { background: var(--ok-soft); color: var(--ok); }
 .chip-neutral { background: var(--surface-2); color: var(--muted); }
 .chip::before.dotc { content: ""; }

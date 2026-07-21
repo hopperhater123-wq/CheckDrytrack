@@ -336,6 +336,13 @@ export interface Termin {
   mitarbeiter_id: string | null; // FK benutzer, null = noch nicht zugewiesen
   beschreibung: string; // z. B. "TRO Abbau / CeraVogue setzen / WH aufnehmen"
   erledigt: boolean;
+  // Auftrags-Briefing (F1, 21.07.): Büro pflegt Detail-Auftrag + Mitnehm-Checkliste,
+  // Monteur sieht es in „Mein Tag" vor der Abfahrt. briefing_stand/-quittiert steuern
+  // den „Auftrag geändert/neu"-Hinweis (stand = letzte Büro-Änderung, quittiert = gesehen).
+  briefing?: string | null;
+  mitnehmen?: string[]; // Schlüssel aus MITNEHMEN_OPTIONEN (z. B. "ausweis")
+  briefing_stand?: string | null; // ISO-Zeitpunkt der letzten Büro-Änderung
+  briefing_quittiert?: string | null; // ISO-Zeitpunkt „vom Monteur zur Kenntnis genommen"
   erstellt_von: string;
   erstellt_am: string;
 }

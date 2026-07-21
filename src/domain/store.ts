@@ -802,13 +802,21 @@ class Store {
     return id;
   }
 
-  /** Termin anlegen (Wochenplanung, Backlog ③). */
-  addTermin(params: { projekt_id: string; datum: string; uhrzeit: string | null; mitarbeiter_id: string | null; beschreibung: string; erstellt_von: string }) {
+  /** Termin anlegen (Wochenplanung, Backlog ③; F1: optionales Briefing + Mitnehm-Liste). */
+  addTermin(params: {
+    projekt_id: string; datum: string; uhrzeit: string | null; mitarbeiter_id: string | null;
+    beschreibung: string; erstellt_von: string; briefing?: string | null; mitnehmen?: string[];
+  }) {
     this.commit((db) => {
+      const jetzt = new Date().toISOString();
+      const hatBriefing = !!(params.briefing?.trim() || params.mitnehmen?.length);
       db.termin.push({
         id: uid("t"), projekt_id: params.projekt_id, datum: params.datum, uhrzeit: params.uhrzeit,
         mitarbeiter_id: params.mitarbeiter_id, beschreibung: params.beschreibung,
-        erledigt: false, erstellt_von: params.erstellt_von, erstellt_am: new Date().toISOString(),
+        erledigt: false,
+        briefing: params.briefing?.trim() || null, mitnehmen: params.mitnehmen ?? [],
+        briefing_stand: hatBriefing ? jetzt : null, briefing_quittiert: null,
+        erstellt_von: params.erstellt_von, erstellt_am: jetzt,
       });
     });
   }
@@ -817,6 +825,29 @@ class Store {
     this.commit((db) => {
       const t = db.termin.find((x) => x.id === termin_id);
       if (t) t.erledigt = erledigt;
+    });
+  }
+
+  /** Auftrags-Briefing pflegen (Büro, F1). Setzt briefing_stand neu → in „Mein Tag"
+   *  erscheint der „Auftrag geändert/neu"-Hinweis, bis der Monteur ihn quittiert. */
+  setTerminBriefing(termin_id: string, params: { beschreibung?: string; briefing: string | null; mitnehmen: string[]; autor_id: string }) {
+    this.commit((db) => {
+      const t = db.termin.find((x) => x.id === termin_id);
+      if (!t) return;
+      if (params.beschreibung !== undefined && params.beschreibung.trim()) t.beschreibung = params.beschreibung.trim();
+      t.briefing = params.briefing?.trim() || null;
+      t.mitnehmen = params.mitnehmen;
+      t.briefing_stand = new Date().toISOString();
+      db.feed_eintrag.push(autoFeed(t.projekt_id, null, "manuell", params.autor_id,
+        `Auftrag/Briefing für den Termin am ${new Date(t.datum).toLocaleDateString("de-DE")} aktualisiert.`, "dispo"));
+    });
+  }
+
+  /** Monteur nimmt das (geänderte) Briefing zur Kenntnis → Hinweis verschwindet. */
+  quittiereTerminBriefing(termin_id: string) {
+    this.commit((db) => {
+      const t = db.termin.find((x) => x.id === termin_id);
+      if (t) t.briefing_quittiert = new Date().toISOString();
     });
   }
 

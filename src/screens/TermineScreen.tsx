@@ -5,6 +5,8 @@ import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
 import { store } from "../domain/store";
 import { Icon } from "../ui/Icon";
+import { MITNEHMEN_OPTIONEN } from "../app/labels";
+import { briefingStatus, hatBriefing } from "../domain/termin";
 import type { Termin } from "../domain/types";
 
 // Termin-Wochenansicht (Alt-System "Terminübersicht", Backlog ③).
@@ -28,6 +30,9 @@ export function TermineScreen() {
   const [woche, setWoche] = useState(0);
   const [nurMeine, setNurMeine] = useState(user.rolle === "monteur");
   const [neu, setNeu] = useState(false);
+  const [briefingFuer, setBriefingFuer] = useState<Termin | null>(null);
+  // Auftrag/Briefing pflegt nur das Büro (F1). Der Monteur sieht es in „Mein Tag", ändert es nicht.
+  const darfBriefing = user.rolle !== "monteur";
   // Plantafel-light (Roadmap 011 „Büro & Kommunikation", PO 18.07.): Woche × Mitarbeiter,
   // Termine per Ziehen umplanen. Bewusst klein gehalten — kein ERP, keine Kapazitätsplanung.
   const [ansicht, setAnsicht] = useState<"liste" | "tafel">("liste");
@@ -88,7 +93,7 @@ export function TermineScreen() {
               {tagIso === heuteIso && <span className="chip small">Heute</span>}
             </div>
             {termine.length === 0 && <p className="muted small" style={{ margin: 0 }}>Keine Termine.</p>}
-            {termine.map((t) => <TerminZeile key={t.id} termin={t} projektNr={projekt(t.projekt_id)?.projektnummer} projektName={projekt(t.projekt_id)?.bezeichnung} mitarbeiter={mitarbeiter(t.mitarbeiter_id)} onOpen={() => nav({ name: "projekt", id: t.projekt_id })} />)}
+            {termine.map((t) => <TerminZeile key={t.id} termin={t} projektNr={projekt(t.projekt_id)?.projektnummer} projektName={projekt(t.projekt_id)?.bezeichnung} mitarbeiter={mitarbeiter(t.mitarbeiter_id)} onOpen={() => nav({ name: "projekt", id: t.projekt_id })} onBriefing={darfBriefing ? () => setBriefingFuer(t) : undefined} />)}
           </motion.section>
         );
       })}
@@ -96,6 +101,7 @@ export function TermineScreen() {
       )}
 
       <AnimatePresence>{neu && <TerminForm userId={user.id} onClose={() => setNeu(false)} />}</AnimatePresence>
+      <AnimatePresence>{briefingFuer && <BriefingModal termin={briefingFuer} userId={user.id} onClose={() => setBriefingFuer(null)} />}</AnimatePresence>
     </div>
   );
 }
@@ -187,9 +193,10 @@ function PlantafelZeile({ zeile, tagIsos, heuteIso, zelle, ueber, setUeber, able
   );
 }
 
-function TerminZeile({ termin, projektNr, projektName, mitarbeiter, onOpen }: {
-  termin: Termin; projektNr?: string; projektName?: string; mitarbeiter: string | null; onOpen: () => void;
+function TerminZeile({ termin, projektNr, projektName, mitarbeiter, onOpen, onBriefing }: {
+  termin: Termin; projektNr?: string; projektName?: string; mitarbeiter: string | null; onOpen: () => void; onBriefing?: () => void;
 }) {
+  const status = briefingStatus(termin);
   return (
     <motion.div layout className={`termin${termin.erledigt ? " erledigt" : ""}`}>
       <button
@@ -205,8 +212,16 @@ function TerminZeile({ termin, projektNr, projektName, mitarbeiter, onOpen }: {
           <b>{termin.beschreibung}</b>
           <span className="muted small">{projektNr} · {projektName}{mitarbeiter ? ` · ${mitarbeiter}` : " · nicht zugewiesen"}</span>
         </span>
+        {hatBriefing(termin) && (
+          <span className={`chip small ${status === "aktuell" ? "chip-neutral" : "chip-warn"}`} title="Auftrags-Briefing hinterlegt">
+            {status === "neu" ? "neu" : status === "geaendert" ? "geändert" : status === "aktuell" ? "gesehen" : "Auftrag"}
+          </span>
+        )}
         <Icon name="chevronRight" size={16} />
       </button>
+      {onBriefing && (
+        <button className="iconbtn" onClick={onBriefing} title="Auftrag/Briefing bearbeiten" aria-label="Auftrag bearbeiten"><Icon name="pen" size={15} /></button>
+      )}
     </motion.div>
   );
 }
@@ -219,6 +234,8 @@ function TerminForm({ userId, onClose }: { userId: string; onClose: () => void }
   const [uhrzeit, setUhrzeit] = useState("08:00");
   const [mitarbeiterId, setMitarbeiterId] = useState("");
   const [beschreibung, setBeschreibung] = useState("");
+  const [briefing, setBriefing] = useState("");
+  const [mitnehmen, setMitnehmen] = useState<string[]>([]);
 
   const gueltig = projektId && datum && beschreibung.trim();
   const speichern = () => {
@@ -226,6 +243,7 @@ function TerminForm({ userId, onClose }: { userId: string; onClose: () => void }
     store.addTermin({
       projekt_id: projektId, datum, uhrzeit: uhrzeit || null,
       mitarbeiter_id: mitarbeiterId || null, beschreibung: beschreibung.trim(), erstellt_von: userId,
+      briefing: briefing.trim() || null, mitnehmen,
     });
     onClose();
   };
@@ -255,10 +273,66 @@ function TerminForm({ userId, onClose }: { userId: string; onClose: () => void }
         <label className="field"><span>Was ist zu tun? *</span>
           <input value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="z. B. TRO Abbau / WH aufnehmen" />
         </label>
+
+        <BriefingFelder briefing={briefing} setBriefing={setBriefing} mitnehmen={mitnehmen} setMitnehmen={setMitnehmen} />
+
         <div className="modal-actions">
           <button className="btn" onClick={onClose}>Abbrechen</button>
           <button className="btn btn-primary" onClick={speichern} disabled={!gueltig}>Anlegen</button>
         </div>
       </Modal>
+  );
+}
+
+// Gemeinsame Felder für das Auftrags-Briefing (F1): Detail-Auftrag + Mitnehm-Checkliste.
+function BriefingFelder({ briefing, setBriefing, mitnehmen, setMitnehmen }: {
+  briefing: string; setBriefing: (s: string) => void; mitnehmen: string[]; setMitnehmen: (m: string[]) => void;
+}) {
+  const umschalten = (key: string) =>
+    setMitnehmen(mitnehmen.includes(key) ? mitnehmen.filter((k) => k !== key) : [...mitnehmen, key]);
+  return (
+    <>
+      <label className="field"><span>Auftrag / Briefing fürs Feld <span className="muted small">(optional — sieht der Monteur in „Mein Tag")</span></span>
+        <textarea rows={3} value={briefing} onChange={(e) => setBriefing(e.target.value)}
+          placeholder={"z. B. Gutachter-Auflage: Hängeschränke Küche demontieren, Trocknung im Flur erweitern (Folientunnel)."} />
+      </label>
+      <div className="field"><span>Mitnehmen</span>
+        <div className="checkgrid" style={{ marginTop: 4 }}>
+          {MITNEHMEN_OPTIONEN.map((o) => (
+            <label key={o.key} className={`checkchip${mitnehmen.includes(o.key) ? " on" : ""}`}>
+              <input type="checkbox" checked={mitnehmen.includes(o.key)} onChange={() => umschalten(o.key)} />
+              {o.key === "ausweis" ? "🪪 " : ""}{o.label}
+            </label>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Büro bearbeitet das Briefing eines bestehenden Termins (z. B. nach dem Gutachter).
+// Beim Speichern erscheint beim Monteur der „GEÄNDERT"-Hinweis in „Mein Tag".
+function BriefingModal({ termin, userId, onClose }: { termin: Termin; userId: string; onClose: () => void }) {
+  const [beschreibung, setBeschreibung] = useState(termin.beschreibung);
+  const [briefing, setBriefing] = useState(termin.briefing ?? "");
+  const [mitnehmen, setMitnehmen] = useState<string[]>(termin.mitnehmen ?? []);
+
+  const speichern = () => {
+    store.setTerminBriefing(termin.id, { beschreibung, briefing: briefing.trim() || null, mitnehmen, autor_id: userId });
+    onClose();
+  };
+  return (
+    <Modal onClose={onClose}>
+      <h2>Auftrag bearbeiten</h2>
+      <p className="muted small">Der Monteur bekommt in „Mein Tag" den Hinweis „Auftrag geändert", bis er ihn zur Kenntnis genommen hat.</p>
+      <label className="field"><span>Was ist zu tun?</span>
+        <input value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="Kurztitel" />
+      </label>
+      <BriefingFelder briefing={briefing} setBriefing={setBriefing} mitnehmen={mitnehmen} setMitnehmen={setMitnehmen} />
+      <div className="modal-actions">
+        <button className="btn" onClick={onClose}>Abbrechen</button>
+        <button className="btn btn-primary" onClick={speichern}>Speichern &amp; Monteur informieren</button>
+      </div>
+    </Modal>
   );
 }

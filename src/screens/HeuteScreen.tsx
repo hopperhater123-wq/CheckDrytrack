@@ -6,6 +6,8 @@ import { useNav } from "../app/nav";
 import { store } from "../domain/store";
 import { Icon } from "../ui/Icon";
 import { spiele } from "../ui/sound";
+import { MITNEHMEN_LABEL } from "../app/labels";
+import { briefingStatus, hatBriefing } from "../domain/termin";
 import type { Termin } from "../domain/types";
 
 // „Mein Tag" — Startpunkt des Monteurs. Der Tag ist die Route: Termine in
@@ -99,6 +101,10 @@ export function HeuteScreen() {
                     </div>
                     {t.mitarbeiter_id === null && <span className="chip small chip-warn">nicht zugewiesen</span>}
                   </div>
+
+                  {/* Auftrags-Briefing (F1): was das Büro vorgibt — vor der Abfahrt sichtbar. */}
+                  <BriefingBlock termin={t} />
+
                   {p && (
                     <a className="tour-adresse" href={`https://www.google.com/maps?q=${encodeURIComponent(p.adresse)}`} target="_blank" rel="noreferrer">
                       <Icon name="map" size={14} /> {p.adresse}
@@ -124,6 +130,7 @@ export function HeuteScreen() {
         </Stagger>
       )}
 
+      {/* Morgen-Vorschau: Briefing schon heute Abend sichtbar, damit man vorbereitet losfährt. */}
       {termineMorgen.length > 0 && (
         <section className="card" style={{ marginTop: 18 }}>
           <div className="card-head"><h2>Morgen <span className="count">{termineMorgen.length}</span></h2></div>
@@ -133,13 +140,50 @@ export function HeuteScreen() {
               <button key={t.id} className="listrow" onClick={() => nav({ name: "projekt", id: t.projekt_id })}>
                 <div className="listrow-main">
                   <span className="listrow-title">{t.uhrzeit ?? "—"} · {t.beschreibung}</span>
-                  <span className="listrow-sub">{p ? `${p.projektnummer} · ${p.bezeichnung}` : ""}</span>
+                  <span className="listrow-sub">
+                    {p ? `${p.projektnummer} · ${p.bezeichnung}` : ""}
+                    {hatBriefing(t) ? " · Auftrag hinterlegt" : ""}
+                  </span>
                 </div>
                 <Icon name="chevronRight" size={16} />
               </button>
             );
           })}
         </section>
+      )}
+    </div>
+  );
+}
+
+// Auftrags-Briefing des Büros je Termin (F1/F9): Detail-Auftrag + Mitnehm-Checkliste.
+// „NEU/GEÄNDERT" hebt hervor, dass sich der Umfang geändert hat — genau der Fall,
+// bei dem der Monteur sonst erst vor Ort merkt, dass mehr zu tun ist.
+function BriefingBlock({ termin }: { termin: Termin }) {
+  if (!hatBriefing(termin)) return null;
+  const status = briefingStatus(termin);
+  const mitnehmen = termin.mitnehmen ?? [];
+  return (
+    <div className={`briefing${status === "neu" || status === "geaendert" ? " briefing-alarm" : ""}`}>
+      <div className="briefing-kopf">
+        <span className="briefing-titel"><Icon name="fileText" size={13} /> Auftrag vom Büro</span>
+        {status === "neu" && <span className="chip small chip-warn">NEU</span>}
+        {status === "geaendert" && <span className="chip small chip-warn">GEÄNDERT</span>}
+      </div>
+      {termin.briefing && <p className="briefing-text">{termin.briefing}</p>}
+      {mitnehmen.length > 0 && (
+        <div className="briefing-mitnehmen">
+          <span className="muted small">Mitnehmen:</span>
+          {mitnehmen.map((k) => (
+            <span key={k} className={`chip small ${k === "ausweis" ? "chip-warn" : "chip-neutral"}`}>
+              {k === "ausweis" ? "🪪 " : ""}{MITNEHMEN_LABEL[k] ?? k}
+            </span>
+          ))}
+        </div>
+      )}
+      {(status === "neu" || status === "geaendert") && (
+        <button className="btn btn-sm" style={{ marginTop: 8 }} onClick={() => store.quittiereTerminBriefing(termin.id)}>
+          <Icon name="check" size={14} /> Verstanden
+        </button>
       )}
     </div>
   );
