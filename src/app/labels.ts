@@ -114,3 +114,12 @@ export const MITNEHMEN_OPTIONEN: { key: string; label: string }[] = [
 ];
 export const MITNEHMEN_LABEL: Record<string, string> =
   Object.fromEntries(MITNEHMEN_OPTIONEN.map((o) => [o.key, o.label]));
+
+// Kostenträger-Klärung (F4): wer zahlt.
+export const KOSTENTRAEGER_LABEL: Record<import("../domain/types").Kostentraeger, string> = {
+  gebaeude_vs: "Gebäudeversicherung", hausrat_vs: "Hausratversicherung",
+  verursacher: "Verursacher / Installateur", privat: "Privat / Selbstzahler", ungeklaert: "Ungeklärt",
+};
+export const KOSTENTRAEGER_STATUS_LABEL: Record<import("../domain/types").KostentraegerStatus, string> = {
+  offen: "offen", in_klaerung: "in Klärung", geklaert: "geklärt",
+};

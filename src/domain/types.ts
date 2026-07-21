@@ -25,6 +25,10 @@ export type ProjektStatus =
 
 export type KontaminationArt = "sauber" | "faekalien" | "heizoel" | "schimmel" | "sonstige";
 
+// Kostenträger-Klärung (F4): wer zahlt den Schaden? Bis geklärt bleibt es offen.
+export type Kostentraeger = "gebaeude_vs" | "hausrat_vs" | "verursacher" | "privat" | "ungeklaert";
+export type KostentraegerStatus = "offen" | "in_klaerung" | "geklaert";
+
 export type DaemmstoffStatus = "unbekannt" | "verdacht" | "bestaetigt";
 
 // Feed-Eintrag (FR-KOMM-001/005)
@@ -131,6 +135,12 @@ export interface Projekt {
   kontamination_art: KontaminationArt | null;
   gefaehrdungsbeurteilung_abgeschlossen: boolean;
   versicherung_id: string | null;
+  // Kostenträger-Klärung (F4, 21.07.): „Wer zahlt?" ist oft lange unklar
+  // (Hausrat- vs. Gebäude-VS, Verursacher/Installateur, privat). Bis geklärt
+  // warnt ein Banner im Projekt.
+  kostentraeger?: Kostentraeger | null;
+  kostentraeger_status?: KostentraegerStatus; // offen | in_klaerung | geklaert
+  kostentraeger_notiz?: string | null;
   // Objektdaten (Alt-System-Analyse 13.07.2026, Backlog ④)
   baujahr: number | null;
   geschosse: number | null;

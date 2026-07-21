@@ -1073,6 +1073,7 @@ export function projektDossierHtml(projekt: Projekt, db: DryTrackDB): string {
         <div><dt>Geschosse</dt><dd>${projekt.geschosse ?? "—"}</dd></div>
         <div><dt>Bauweise</dt><dd>${esc(projekt.bauweise ?? "—")}</dd></div>
         <div><dt>Kontamination</dt><dd>${projekt.kontamination_art ?? "—"}</dd></div>
+        <div><dt>Kostenträger</dt><dd>${esc(KOSTENTRAEGER_DOSSIER[projekt.kostentraeger ?? ""] ?? "—")}${projekt.kostentraeger_status && projekt.kostentraeger_status !== "geklaert" ? ` (${projekt.kostentraeger_status === "in_klaerung" ? "in Klärung" : "offen"})` : ""}</dd></div>
         <div><dt>Räume erfasst</dt><dd>${raeume.length}</dd></div>
         <div><dt>A&amp;A unterschrieben</dt><dd>${projekt.aundv_unterschrieben ? "ja" : "offen"}</dd></div>
       </dl>
@@ -1107,6 +1108,11 @@ export function projektDossierHtml(projekt: Projekt, db: DryTrackDB): string {
     <footer>${gabSchaetzung ? "Stromverbrauch teilweise als Näherung (Tage × Geräteleistung) berechnet — ohne Gewähr (FR-EINSATZ-003). " : ""}Torrek · Projekt-Dossier ${esc(projekt.projektnummer)} · erstellt am ${new Date().toLocaleString("de-DE")}.</footer>
   </body></html>`;
 }
+
+const KOSTENTRAEGER_DOSSIER: Record<string, string> = {
+  gebaeude_vs: "Gebäudeversicherung", hausrat_vs: "Hausratversicherung",
+  verursacher: "Verursacher / Installateur", privat: "Privat / Selbstzahler", ungeklaert: "Ungeklärt",
+};
 
 const DOSSIER_DOK_LABEL: Record<string, string> = {
   strombrief: "Strombrief", abschlussbericht: "Abschlussbericht", kva: "Kostenvoranschlag (KVA)",

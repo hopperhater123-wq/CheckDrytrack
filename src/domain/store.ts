@@ -496,6 +496,19 @@ class Store {
     });
   }
 
+  /** Kostenträger-Klärung pflegen (F4, Büro): wer zahlt + Status + Notiz. */
+  setKostentraeger(projekt_id: string, patch: Partial<Pick<Projekt, "kostentraeger" | "kostentraeger_status" | "kostentraeger_notiz">>, autor_id: string) {
+    this.commit((db) => {
+      const p = db.projekt.find((x) => x.id === projekt_id);
+      if (!p) return;
+      Object.assign(p, patch);
+      if (patch.kostentraeger_status === "geklaert") {
+        db.feed_eintrag.push(autoFeed(projekt_id, null, "manuell", autor_id,
+          `Kostenträger geklärt: ${p.kostentraeger ?? "—"}.`, "dispo"));
+      }
+    });
+  }
+
   addRaum(projekt_id: string, bezeichnung: string): Raum {
     const raum: Raum = {
       id: uid("r"), projekt_id, bezeichnung, daemmstoff_status: "unbekannt", daemmstoff_material_id: null,

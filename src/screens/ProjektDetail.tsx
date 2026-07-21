@@ -12,11 +12,12 @@ import { useNav } from "../app/nav";
 import { store } from "../domain/store";
 import {
   DOKUMENT_TYP_LABEL, FEED_KATEGORIE_LABEL, FEED_URSPRUNG_LABEL, KONTAMINATION_LABEL,
+  KOSTENTRAEGER_LABEL, KOSTENTRAEGER_STATUS_LABEL,
   PROJEKT_STATUS_LABEL, PROJEKT_STATUS_REIHENFOLGE,
 } from "../app/labels";
 import { fmtDatum, fmtDatumZeit, fmtZahl, relativZeit } from "../app/format";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "../domain/einsatz";
-import type { Einsatz, FeedKategorie } from "../domain/types";
+import type { Einsatz, FeedKategorie, Projekt } from "../domain/types";
 import { AbbauModal } from "./AbbauModal";
 import { KorrekturModal } from "./KorrekturModal";
 import { MessprotokollTab } from "./MessprotokollTab";
@@ -79,6 +80,14 @@ export function ProjektDetail({ id }: { id: string }) {
       {p.kontamination_art && p.kontamination_art !== "sauber" && !p.gefaehrdungsbeurteilung_abgeschlossen && (
         <div className="banner danger">
           ⚠ Kontamination: {KONTAMINATION_LABEL[p.kontamination_art]} — Gefährdungsbeurteilung noch nicht abgeschlossen (FR-PROJ-022).
+        </div>
+      )}
+
+      {/* Kostenträger-Warnung (F4): solange nicht geklärt, ist unklar, wer zahlt. */}
+      {(p.kostentraeger_status ?? "offen") !== "geklaert" && (
+        <div className="banner">
+          💶 Kostenträger {KOSTENTRAEGER_STATUS_LABEL[p.kostentraeger_status ?? "offen"]}
+          {p.kostentraeger && p.kostentraeger !== "ungeklaert" ? ` — voraussichtlich ${KOSTENTRAEGER_LABEL[p.kostentraeger]}` : " — wer zahlt, ist noch nicht geklärt"}.
         </div>
       )}
 
@@ -186,6 +195,37 @@ function ObjektdatenCard({ projektId, canEdit, userId }: { projektId: string; ca
           <div><dt>Telefon</dt><dd>{p.telefon ? <a href={`tel:${p.telefon.replace(/\s/g, "")}`}>{p.telefon}</a> : "—"}</dd></div>
         </dl>
       )}
+
+      {/* Kostenträger-Klärung (F4): wer zahlt? — Büro pflegt, sonst nur lesen. */}
+      <div className="kostentraeger-block">
+        <span className="aundv-title">Kostenträger <span className="muted small">(wer zahlt?)</span></span>
+        {canEdit ? (
+          <>
+            <div className="two-col" style={{ marginTop: 6 }}>
+              <label className="field"><span>Träger</span>
+                <select value={p.kostentraeger ?? ""} onChange={(e) => store.setKostentraeger(p.id, { kostentraeger: (e.target.value || null) as Projekt["kostentraeger"] }, userId)}>
+                  <option value="">— nicht gewählt —</option>
+                  {(Object.keys(KOSTENTRAEGER_LABEL) as (keyof typeof KOSTENTRAEGER_LABEL)[]).map((k) => <option key={k} value={k}>{KOSTENTRAEGER_LABEL[k]}</option>)}
+                </select>
+              </label>
+              <label className="field"><span>Status</span>
+                <select value={p.kostentraeger_status ?? "offen"} onChange={(e) => store.setKostentraeger(p.id, { kostentraeger_status: e.target.value as Projekt["kostentraeger_status"] }, userId)}>
+                  {(Object.keys(KOSTENTRAEGER_STATUS_LABEL) as (keyof typeof KOSTENTRAEGER_STATUS_LABEL)[]).map((s) => <option key={s} value={s}>{KOSTENTRAEGER_STATUS_LABEL[s]}</option>)}
+                </select>
+              </label>
+            </div>
+            <label className="field"><span>Notiz zur Klärung</span>
+              <input defaultValue={p.kostentraeger_notiz ?? ""} placeholder="z. B. Hausrat meldet sich nicht, Gutachter am 25.7."
+                onBlur={(e) => store.setKostentraeger(p.id, { kostentraeger_notiz: e.target.value.trim() || null }, userId)} />
+            </label>
+          </>
+        ) : (
+          <div className="muted small" style={{ marginTop: 4 }}>
+            {p.kostentraeger ? KOSTENTRAEGER_LABEL[p.kostentraeger] : "noch nicht gewählt"} · {KOSTENTRAEGER_STATUS_LABEL[p.kostentraeger_status ?? "offen"]}
+            {p.kostentraeger_notiz ? ` · ${p.kostentraeger_notiz}` : ""}
+          </div>
+        )}
+      </div>
 
       {/* Auftrag & Abtretungserklärung (A&A) — Unterschrift direkt am Projekt. */}
       <div className="aundv-row">

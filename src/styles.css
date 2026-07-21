@@ -179,6 +179,7 @@ button { font-family: inherit; }
 .aundv-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
   margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .aundv-title { font-weight: 600; }
+.kostentraeger-block { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .card.warn { border-color: color-mix(in srgb, var(--warn) 40%, var(--border)); }
 
 /* Bento grid (Dashboard) */
