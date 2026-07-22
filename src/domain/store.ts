@@ -114,7 +114,7 @@ class Store {
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messpunkt: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
-      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [],
+      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [], erstbericht: [],
       termin: [], trocknungsergebnis: [], firmen_einstellung: [], beteiligter: [], ursache_eintrag: [],
       massnahme: [],
     };
@@ -817,6 +817,24 @@ class Store {
         `Notdienst-Einsatzbericht vom ${new Date(params.datum).toLocaleDateString("de-DE")} erstellt.`));
     });
     return id;
+  }
+
+  /** Erstbericht speichern (Alt-System „sprint. Erstbericht"): ein Bericht je Projekt,
+   *  bis zur Abgabe editierbar — Upsert statt Neuanlage. */
+  upsertErstbericht(projekt_id: string, daten: Omit<import("./types").Erstbericht, "id" | "projekt_id" | "erstellt_von" | "erstellt_am">, autor_id: string) {
+    this.commit((db) => {
+      const bestehend = db.erstbericht.find((e) => e.projekt_id === projekt_id);
+      if (bestehend) {
+        Object.assign(bestehend, daten);
+      } else {
+        db.erstbericht.push({
+          id: uid("eb"), projekt_id, ...daten,
+          erstellt_von: autor_id, erstellt_am: new Date().toISOString(),
+        });
+        db.feed_eintrag.push(autoFeed(projekt_id, null, "manuell", autor_id,
+          "Erstbericht erstellt (Gebäude, Schaden, Maßnahmen, Kostenschätzung).", "dispo"));
+      }
+    });
   }
 
   /** Stundenlohnbericht anlegen (Regie-/Stundenlohnarbeiten: Stunden + Material + Unterschriften). */

@@ -1273,6 +1273,86 @@ export function merkblattHochwasserHtml(projekt: Projekt): string {
 // Leiste mit „Als PDF speichern / Drucken". Der Nutzer sieht das Dokument zuerst und
 // entscheidet selbst — auf dem Handy wie am Desktop landet man über den Druckdialog
 // bei „Als PDF speichern". Fällt das Öffnen aus (Popup-Blocker), wird gedruckt.
+// Erstbericht (Alt-System "sprint. Erstbericht"): erster Besuch → Bericht an die
+// Versicherung. Layout folgt den PO-Fotos vom 22.07.: Gebäude/Baustoffe, betroffene
+// Räume, Schadenangaben, erforderliche Maßnahmen, Gerätebedarf, Kostenschätzung.
+export function erstberichtHtml(e: import("./types").Erstbericht, projekt: Projekt, db: DryTrackDB): string {
+  const cb = (an: boolean) => (an ? "☑" : "☐");
+  const vs = db.versicherung.find((v) => v.id === projekt.versicherung_id)?.name ?? "—";
+  const raeume = db.raum.filter((r) => r.projekt_id === projekt.id)
+    .map((r) => esc([r.bezeichnung, r.geschoss].filter(Boolean).join(" · "))).join(", ") || "—";
+  const feld = (l: string, w: string | null | undefined) => `<div><dt>${esc(l)}</dt><dd>${esc(w || "Keine Angabe")}</dd></div>`;
+  const VERURSACHUNG: Record<string, string> = { anwendungsfehler: "Anwendungsfehler VN/Mieter", handwerkerfehler: "Handwerkerfehler", garantie: "Garantie", nachbar: "Nachbar" };
+  const ABWASSER: Record<string, string> = { installationsfehler: "Installationsfehler", verstopfung: "Verstopfung", rueckstau: "Rückstau", muffenversatz: "Muffenversatz", wurzeleinwachs: "Wurzeleinwachs" };
+  const MASSN: Record<string, string> = { leckortung: "Leckortung", reparatur: "Reparatur", trocknung: "Trocknung", wiederherstellung: "Wiederherstellung" };
+  const DURCH: Record<string, string> = { wir: "uns", andere_firma: "andere Firma", vn_eigenleistung: "VN (Eigenleistung)" };
+  const GERAETE: Record<string, string> = { adsorber: "Adsorber", kondensation: "Kondensationstrockner", pumpe: "mit/ohne Pumpe", turbine: "Turbine", kombi: "Kombis", ventilator: "Ventilator", ir_platten: "IR-Platten" };
+  const KOSTEN: Record<string, string> = { leckortung: "Leckortung", installateur: "Installateur", bodenbelaege: "Bodenbeläge", abbruch: "Abbrucharbeiten", trocknung: "Trocknung", maler: "Malerarbeiten", fliesen: "Fliesenarbeiten", trockenbau: "Trockenbau/Schreiner", sonstiges: "Sonstiges", kva: "gem. KVA-Angebot" };
+  const summe = Object.values(e.kosten ?? {}).reduce((a, b) => a + (Number(b) || 0), 0);
+  const eur = (n: number) => `${n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+
+  const massnZeilen = Object.entries(MASSN).map(([k, l]) => {
+    const m = e.massnahmen?.[k];
+    return `<tr><td>${l}</td><td>${cb(!!m?.noetig)} erforderlich</td><td>${m?.noetig && m.durch ? esc(DURCH[m.durch] ?? m.durch) : "—"}</td></tr>`;
+  }).join("");
+  const geraeteZellen = Object.entries(GERAETE).map(([k, l]) => `<tr><td>${l}</td><td style="text-align:right">${e.geraete?.[k] ?? 0} St</td></tr>`).join("");
+  const kostenZeilen = Object.entries(KOSTEN).map(([k, l]) => `<tr><td>${l}</td><td style="text-align:right">${eur(Number(e.kosten?.[k]) || 0)}</td></tr>`).join("");
+
+  return einfachesDokument("Erstbericht", projekt, `
+    <p style="margin:0 0 10px"><b>Versicherung:</b> ${esc(vs)} · <b>Einsatz am:</b> ${new Date(e.datum).toLocaleDateString("de-DE")}
+      ${projekt.ansprechpartner ? ` · <b>VN/Kontakt:</b> ${esc(projekt.ansprechpartner)}` : ""}</p>
+
+    <h3>Angaben zum Gebäude und zu den Baustoffen im Schadenbereich</h3>
+    <dl class="facts" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 18px;margin:6px 0">
+      ${feld("Baujahr", e.baujahr)}${feld("Anzahl Geschosse", e.geschosse)}${feld("Objekttyp", e.objekttyp)}
+      ${feld("Bauweise", e.bauweise)}${feld("Gebäudedämmung", e.gebaeudedaemmung)}${feld("Außenwandkonstruktion", e.aussenwand)}
+      ${feld("Deckenkonstruktion", e.deckenkonstruktion)}${feld("Deckenverkleidung", e.deckenverkleidung)}${feld("Wandkonstruktion", e.wandkonstruktion)}
+      ${feld("Wandaufbau", e.wandaufbau)}${feld("Estrichart", e.estrichart)}${feld("Dämmung Estrich", e.daemmung_estrich)}
+    </dl>
+    ${e.gebaeude_sonstiges ? `<p><b>Sonstige Angaben:</b> ${esc(e.gebaeude_sonstiges)}</p>` : ""}
+
+    <h3>Betroffene Räume</h3>
+    <p>${raeume}</p>
+
+    <h3>Angaben zum Schaden</h3>
+    <p><b>Schadenursache:</b> ${esc(e.schadenursache || "—")}</p>
+    <p>${cb(e.massnahmen_getroffen)} Maßnahmen zur Schadensminderung bereits getroffen &nbsp;·&nbsp;
+       ${cb(e.ursache_beseitigt)} Schadenursache bereits beseitigt</p>
+    <p><b>Anwesende bei Schadenfeststellung:</b> ${esc(e.anwesende || "—")} ·
+       <b>Zustand der Leitungen:</b> ${e.leitungszustand != null ? `${e.leitungszustand} (1 = gut … 5 = schlecht)` : "—"} ·
+       <b>Ursache:</b> ${e.ursache_ort === "innerhalb" ? "innerhalb des Gebäudes" : e.ursache_ort === "ausserhalb" ? "außerhalb des Gebäudes" : "—"}</p>
+    <p><b>Verursachung durch:</b> ${Object.entries(VERURSACHUNG).map(([k, l]) => `${cb((e.verursachung ?? []).includes(k))} ${l}`).join(" &nbsp; ")}</p>
+    <p><b>Abwasserschaden durch:</b> ${Object.entries(ABWASSER).map(([k, l]) => `${cb((e.abwasser ?? []).includes(k))} ${l}`).join(" &nbsp; ")}</p>
+    ${e.schaden_sonstiges ? `<p><b>Sonstiges/Bemerkung:</b> ${esc(e.schaden_sonstiges)}</p>` : ""}
+
+    <h3>Erforderliche Maßnahmen</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="text-align:left"><th>Maßnahme</th><th>Erforderlich</th><th>Ausführung durch</th></tr></thead>
+      <tbody>${massnZeilen}</tbody>
+    </table>
+
+    <h3>Vorbereitung Trocknung — Gerätebedarf</h3>
+    <table style="width:48%;border-collapse:collapse;font-size:12px;display:inline-table;vertical-align:top">
+      <tbody>${geraeteZellen}</tbody>
+    </table>
+    ${e.trocknung_hinweise ? `<p><b>Ergänzende Angaben zur Trocknung:</b> ${esc(e.trocknung_hinweise)}</p>` : ""}
+
+    <h3>Sonstige Angaben</h3>
+    <p>${cb(e.schimmel)} Schimmelpilzbefall &nbsp; ${cb(e.faekalien)} Fäkalien &nbsp; ${cb(e.desinfektion)} Desinfektion erforderlich</p>
+    <p><b>Ersatzfliesen vorhanden:</b> ${e.ersatzfliesen_vorhanden} Stück · <b>Fliesen zerstörungsfrei entfernt:</b> ${e.fliesen_zerstoerungsfrei} Stück · <b>Fliesen zerstört:</b> ${e.fliesen_zerstoert} Stück</p>
+    ${e.weitere_infos ? `<p><b>Weitere Infos:</b> ${esc(e.weitere_infos)}</p>` : ""}
+
+    <h3>Kostenschätzung</h3>
+    <table style="width:60%;border-collapse:collapse;font-size:12px">
+      <tbody>${kostenZeilen}
+        <tr style="font-weight:700;border-top:2px solid #0b0d12"><td>Gesamtsumme</td><td style="text-align:right">${eur(summe)}</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:10px;color:#667085">Einschränkung zur Kostenschätzung: Die Aufwendungen der o. g. Kosten wurden überschlägig zum
+    Zeitpunkt des Termins ermittelt. Die Kostenschätzung kann keinesfalls als verbindliches Angebot angesetzt werden.</p>
+  `);
+}
+
 export function printHtml(html: string) {
   const bar = `<div class="tk-report-bar" style="position:sticky;top:0;z-index:2147483647;display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:10px 14px;background:#0f3d4a;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
     <span style="margin-right:auto;color:#cfe0e4;font-size:13px">Tipp: „Als PDF speichern“ als Druckziel wählen →</span>

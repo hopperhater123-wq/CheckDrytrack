@@ -499,6 +499,59 @@ export interface Notdiensteinsatzbericht {
   erstellt_am: string;
 }
 
+// Erstbericht (Alt-System „sprint. Erstbericht", PO-Fotos 22.07.): das Dokument des
+// ersten Besuchs für die Versicherung — Gebäude/Baustoffe im Schadenbereich,
+// Schadenangaben, erforderliche Maßnahmen (+ wer ausführt), Gerätebedarf und
+// überschlägige Kostenschätzung. Ein Bericht je Projekt, bis zur Abgabe editierbar.
+export type ErstMassnahmeDurch = "wir" | "andere_firma" | "vn_eigenleistung";
+export interface ErstMassnahme { noetig: boolean; durch: ErstMassnahmeDurch | null }
+export interface Erstbericht {
+  id: string;
+  projekt_id: string;
+  datum: string; // ISO-Date
+  // Gebäude & Baustoffe im Schadenbereich
+  baujahr: string | null;
+  geschosse: string | null;
+  objekttyp: string | null;
+  gebaeudedaemmung: string | null;
+  bauweise: string | null;
+  aussenwand: string | null;
+  deckenkonstruktion: string | null;
+  deckenverkleidung: string | null;
+  wandkonstruktion: string | null;
+  wandaufbau: string | null;
+  estrichart: string | null;
+  daemmung_estrich: string | null;
+  gebaeude_sonstiges: string | null; // z. B. letzte Sanierung im Jahr …
+  // Angaben zum Schaden
+  schadenursache: string | null;
+  massnahmen_getroffen: boolean; // Maßnahmen zur Schadensminderung schon getroffen?
+  ursache_beseitigt: boolean;
+  anwesende: string | null; // bei der Schadenfeststellung
+  leitungszustand: number | null; // 1 (gut) – 5 (schlecht)
+  ursache_ort: "innerhalb" | "ausserhalb" | null;
+  verursachung: string[]; // anwendungsfehler | handwerkerfehler | garantie | nachbar
+  abwasser: string[]; // installationsfehler | verstopfung | rueckstau | muffenversatz | wurzeleinwachs
+  schaden_sonstiges: string | null;
+  // Erforderliche Maßnahmen (je: nötig? + Ausführung durch)
+  massnahmen: Record<string, ErstMassnahme>; // leckortung | reparatur | trocknung | wiederherstellung
+  // Gerätebedarf (Stückzahlen)
+  geraete: Record<string, number>; // adsorber | kondensation | pumpe | turbine | kombi | ventilator | ir_platten
+  trocknung_hinweise: string | null;
+  // Sonstige Angaben
+  schimmel: boolean;
+  faekalien: boolean;
+  desinfektion: boolean;
+  ersatzfliesen_vorhanden: number;
+  fliesen_zerstoerungsfrei: number;
+  fliesen_zerstoert: number;
+  weitere_infos: string | null;
+  // Kostenschätzung in € (überschlägig, kein verbindliches Angebot)
+  kosten: Record<string, number>; // leckortung | installateur | bodenbelaege | abbruch | trocknung | maler | fliesen | trockenbau | sonstiges | kva
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 // Kundenzufriedenheit (Alt-System): Bewertung der Leistung durch den Kunden (1–5) + Unterschrift.
 export interface Kundenzufriedenheit {
   id: string;
@@ -579,6 +632,7 @@ export interface DryTrackDB {
   ersatzfliesenbericht: Ersatzfliesenbericht[];
   kundenzufriedenheit: Kundenzufriedenheit[];
   notdiensteinsatzbericht: Notdiensteinsatzbericht[];
+  erstbericht: Erstbericht[];
   stundenlohnbericht: Stundenlohnbericht[];
   termin: Termin[];
   trocknungsergebnis: Trocknungsergebnis[];

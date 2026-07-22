@@ -5,7 +5,7 @@ import { useSession } from "../app/session";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
-import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, printHtml } from "../domain/report";
+import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, erstberichtHtml, printHtml } from "../domain/report";
 import { ABNAHME_STATUS_LABEL, BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
 import { Icon } from "../ui/Icon";
@@ -53,6 +53,8 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
 
   return (
     <>
+      <ErstberichtCard projektId={projektId} userId={userId} />
+
       {/* Besuchsberichte und Stundenlohnberichte gehören zusammen (PO 18.07.):
           beides ist Stundennachweis — deshalb EINE Karte mit zwei Bereichen. */}
       <section className="card">
@@ -822,5 +824,234 @@ export function BerichtForm({ projektId, userId, onClose }: { projektId: string;
           <button className="btn btn-primary" onClick={speichern} disabled={!gueltig}>Speichern</button>
         </div>
       </Modal>
+  );
+}
+
+// --- Erstbericht (Alt-System "sprint. Erstbericht", PO-Fotos 22.07.) ---------
+// Das Dokument des ERSTEN Besuchs für die Versicherung: Gebäude/Baustoffe,
+// Schadenangaben, erforderliche Maßnahmen, Gerätebedarf, Kostenschätzung.
+// Ein Bericht je Projekt, bis zur Abgabe editierbar (Upsert).
+
+const EB_VERURSACHUNG = [
+  { key: "anwendungsfehler", label: "Anwendungsfehler VN/Mieter" },
+  { key: "handwerkerfehler", label: "Handwerkerfehler" },
+  { key: "garantie", label: "Garantie" },
+  { key: "nachbar", label: "Nachbar" },
+];
+const EB_ABWASSER = [
+  { key: "installationsfehler", label: "Installationsfehler" },
+  { key: "verstopfung", label: "Verstopfung" },
+  { key: "rueckstau", label: "Rückstau" },
+  { key: "muffenversatz", label: "Muffenversatz" },
+  { key: "wurzeleinwachs", label: "Wurzeleinwachs" },
+];
+const EB_MASSNAHMEN = [
+  { key: "leckortung", label: "Leckortung" },
+  { key: "reparatur", label: "Reparatur" },
+  { key: "trocknung", label: "Trocknung" },
+  { key: "wiederherstellung", label: "Wiederherstellung" },
+];
+const EB_GERAETE = [
+  { key: "adsorber", label: "Adsorber" },
+  { key: "kondensation", label: "Kondensationstrockner" },
+  { key: "pumpe", label: "mit/ohne Pumpe" },
+  { key: "turbine", label: "Turbine" },
+  { key: "kombi", label: "Kombis" },
+  { key: "ventilator", label: "Ventilator" },
+  { key: "ir_platten", label: "IR-Platten" },
+];
+const EB_KOSTEN = [
+  { key: "leckortung", label: "Leckortung" },
+  { key: "installateur", label: "Installateur" },
+  { key: "bodenbelaege", label: "Bodenbeläge" },
+  { key: "abbruch", label: "Abbrucharbeiten" },
+  { key: "trocknung", label: "Trocknung" },
+  { key: "maler", label: "Malerarbeiten" },
+  { key: "fliesen", label: "Fliesenarbeiten" },
+  { key: "trockenbau", label: "Trockenbau/Schreiner" },
+  { key: "sonstiges", label: "Sonstiges" },
+  { key: "kva", label: "gem. KVA-Angebot" },
+];
+
+function ErstberichtCard({ projektId, userId }: { projektId: string; userId: string }) {
+  const db = useDB();
+  const [offen, setOffen] = useState(false);
+  const projekt = db.projekt.find((p) => p.id === projektId);
+  const bericht = db.erstbericht.find((e) => e.projekt_id === projektId);
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Erstbericht</h2>
+        <div className="btn-row">
+          {bericht && projekt && (
+            <button className="btn btn-sm" onClick={() => printHtml(erstberichtHtml(bericht, projekt, db))}>
+              <Icon name="fileText" size={14} /> PDF
+            </button>
+          )}
+          <button className="btn btn-sm btn-primary" onClick={() => setOffen(true)}>{bericht ? "Bearbeiten" : "+ Erstbericht"}</button>
+        </div>
+      </div>
+      {bericht
+        ? <p className="muted small">Erstbericht vom {fmtDatum(bericht.datum)} — Gebäude, Schaden, Maßnahmen, Gerätebedarf, Kostenschätzung.</p>
+        : <p className="muted">Der Bericht des ersten Besuchs für die Versicherung: Gebäude/Baustoffe, Schadenangaben, erforderliche Maßnahmen und Kostenschätzung.</p>}
+      <AnimatePresence>{offen && <ErstberichtForm projektId={projektId} userId={userId} onClose={() => setOffen(false)} />}</AnimatePresence>
+    </section>
+  );
+}
+
+function ErstberichtForm({ projektId, userId, onClose }: { projektId: string; userId: string; onClose: () => void }) {
+  const db = useDB();
+  const projekt = db.projekt.find((p) => p.id === projektId);
+  const vorhanden = db.erstbericht.find((e) => e.projekt_id === projektId);
+  type Werte = Omit<import("../domain/types").Erstbericht, "id" | "projekt_id" | "erstellt_von" | "erstellt_am">;
+  // Objektdaten des Projekts als Startwerte — die App weiß schon einiges.
+  const [w, setW] = useState<Werte>(() => vorhanden
+    ? { ...vorhanden }
+    : {
+      datum: new Date().toISOString().slice(0, 10),
+      baujahr: projekt?.baujahr != null ? String(projekt.baujahr) : null,
+      geschosse: projekt?.geschosse != null ? String(projekt.geschosse) : null,
+      objekttyp: null, gebaeudedaemmung: null, bauweise: projekt?.bauweise ?? null,
+      aussenwand: null, deckenkonstruktion: null, deckenverkleidung: null,
+      wandkonstruktion: null, wandaufbau: null, estrichart: null, daemmung_estrich: null,
+      gebaeude_sonstiges: null,
+      schadenursache: null, massnahmen_getroffen: false, ursache_beseitigt: false,
+      anwesende: null, leitungszustand: null, ursache_ort: null, verursachung: [], abwasser: [],
+      schaden_sonstiges: null,
+      massnahmen: { leckortung: { noetig: false, durch: null }, reparatur: { noetig: false, durch: null }, trocknung: { noetig: true, durch: "wir" }, wiederherstellung: { noetig: false, durch: null } },
+      geraete: {}, trocknung_hinweise: null,
+      schimmel: false, faekalien: false, desinfektion: false,
+      ersatzfliesen_vorhanden: 0, fliesen_zerstoerungsfrei: 0, fliesen_zerstoert: 0,
+      weitere_infos: null,
+      kosten: {},
+    });
+  const set = <K extends keyof Werte>(k: K, v: Werte[K]) => setW((x) => ({ ...x, [k]: v }));
+  const toggleIn = (k: "verursachung" | "abwasser", key: string) =>
+    set(k, w[k].includes(key) ? w[k].filter((x) => x !== key) : [...w[k], key]);
+  const num = (s: string) => { const n = parseFloat(s.replace(",", ".")); return Number.isFinite(n) ? n : 0; };
+  const summe = EB_KOSTEN.reduce((a, k) => a + (Number(w.kosten[k.key]) || 0), 0);
+
+  const speichern = () => {
+    store.upsertErstbericht(projektId, w, userId);
+    onClose();
+  };
+
+  const txt = (label: string, k: keyof Werte, platz = "") => (
+    <label className="field"><span>{label}</span>
+      <input value={(w[k] as string | null) ?? ""} onChange={(e) => set(k, (e.target.value || null) as never)} placeholder={platz} />
+    </label>
+  );
+
+  return (
+    <Modal onClose={onClose}>
+      <h2>Erstbericht</h2>
+      <label className="field"><span>Einsatz am</span>
+        <input type="date" value={w.datum} onChange={(e) => set("datum", e.target.value)} />
+      </label>
+
+      <h3>Gebäude &amp; Baustoffe im Schadenbereich</h3>
+      <div className="two-col">{txt("Baujahr", "baujahr")}{txt("Anzahl Geschosse", "geschosse")}</div>
+      <div className="two-col">{txt("Objekttyp", "objekttyp", "z. B. EFH, MFH, Gewerbe")}{txt("Bauweise", "bauweise", "z. B. Massiv")}</div>
+      <div className="two-col">{txt("Gebäudedämmung", "gebaeudedaemmung")}{txt("Außenwandkonstruktion", "aussenwand")}</div>
+      <div className="two-col">{txt("Deckenkonstruktion", "deckenkonstruktion")}{txt("Deckenverkleidung", "deckenverkleidung")}</div>
+      <div className="two-col">{txt("Wandkonstruktion", "wandkonstruktion")}{txt("Wandaufbau", "wandaufbau")}</div>
+      <div className="two-col">{txt("Estrichart", "estrichart")}{txt("Dämmung Estrich", "daemmung_estrich")}</div>
+      {txt("Sonstige Angaben (z. B. letzte Sanierung im Jahr …)", "gebaeude_sonstiges")}
+
+      <h3>Angaben zum Schaden</h3>
+      {txt("Schadenursache", "schadenursache", 'z. B. "Leck an der Küchenzeile"')}
+      <label className="toggle"><input type="checkbox" checked={w.massnahmen_getroffen} onChange={(e) => set("massnahmen_getroffen", e.target.checked)} /> Maßnahmen zur Schadensminderung bereits getroffen</label>
+      <label className="toggle"><input type="checkbox" checked={w.ursache_beseitigt} onChange={(e) => set("ursache_beseitigt", e.target.checked)} /> Schadenursache bereits beseitigt</label>
+      {txt("Anwesende bei Schadenfeststellung", "anwesende", "Name, Vorname …")}
+      <label className="field"><span>Zustand der Leitungen (1 = gut … 5 = schlecht)</span>
+        <div className="segmented" style={{ display: "flex" }}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button key={n} type="button" className={w.leitungszustand === n ? "seg active" : "seg"} onClick={() => set("leitungszustand", w.leitungszustand === n ? null : n)}>{n}</button>
+          ))}
+        </div>
+      </label>
+      <label className="field"><span>Schadenursache liegt …</span>
+        <div className="segmented" style={{ display: "flex" }}>
+          <button type="button" className={w.ursache_ort === "innerhalb" ? "seg active" : "seg"} onClick={() => set("ursache_ort", w.ursache_ort === "innerhalb" ? null : "innerhalb")}>innerhalb des Gebäudes</button>
+          <button type="button" className={w.ursache_ort === "ausserhalb" ? "seg active" : "seg"} onClick={() => set("ursache_ort", w.ursache_ort === "ausserhalb" ? null : "ausserhalb")}>außerhalb</button>
+        </div>
+      </label>
+      <div className="field"><span>Verursachung durch</span>
+        <div className="checkgrid" style={{ marginTop: 4 }}>
+          {EB_VERURSACHUNG.map((o) => (
+            <label key={o.key} className={`checkchip${w.verursachung.includes(o.key) ? " on" : ""}`}>
+              <input type="checkbox" checked={w.verursachung.includes(o.key)} onChange={() => toggleIn("verursachung", o.key)} />{o.label}
+            </label>
+          ))}
+        </div>
+      </div>
+      <div className="field"><span>Abwasserschaden durch</span>
+        <div className="checkgrid" style={{ marginTop: 4 }}>
+          {EB_ABWASSER.map((o) => (
+            <label key={o.key} className={`checkchip${w.abwasser.includes(o.key) ? " on" : ""}`}>
+              <input type="checkbox" checked={w.abwasser.includes(o.key)} onChange={() => toggleIn("abwasser", o.key)} />{o.label}
+            </label>
+          ))}
+        </div>
+      </div>
+      {txt("Sonstiges / Bemerkung", "schaden_sonstiges")}
+
+      <h3>Erforderliche Maßnahmen</h3>
+      {EB_MASSNAHMEN.map((m) => {
+        const e = w.massnahmen[m.key] ?? { noetig: false, durch: null };
+        return (
+          <div key={m.key} className="two-col" style={{ alignItems: "center" }}>
+            <label className="toggle" style={{ margin: 0 }}>
+              <input type="checkbox" checked={e.noetig} onChange={(ev) => set("massnahmen", { ...w.massnahmen, [m.key]: { ...e, noetig: ev.target.checked } })} /> {m.label}
+            </label>
+            <select value={e.durch ?? ""} disabled={!e.noetig}
+              onChange={(ev) => set("massnahmen", { ...w.massnahmen, [m.key]: { ...e, durch: (ev.target.value || null) as never } })}>
+              <option value="">— Ausführung durch —</option>
+              <option value="wir">uns</option>
+              <option value="andere_firma">andere Firma</option>
+              <option value="vn_eigenleistung">VN (Eigenleistung)</option>
+            </select>
+          </div>
+        );
+      })}
+
+      <h3>Gerätebedarf (Stück)</h3>
+      {EB_GERAETE.map((g) => (
+        <div key={g.key} className="two-col" style={{ alignItems: "center" }}>
+          <span className="muted small">{g.label}</span>
+          <input inputMode="numeric" value={w.geraete[g.key] ?? ""} placeholder="0"
+            onChange={(e) => set("geraete", { ...w.geraete, [g.key]: Math.max(0, Math.round(num(e.target.value))) })} />
+        </div>
+      ))}
+      {txt("Ergänzende Angaben zur Trocknung", "trocknung_hinweise")}
+
+      <h3>Sonstige Angaben</h3>
+      <label className="toggle"><input type="checkbox" checked={w.schimmel} onChange={(e) => set("schimmel", e.target.checked)} /> Schimmelpilzbefall</label>
+      <label className="toggle"><input type="checkbox" checked={w.faekalien} onChange={(e) => set("faekalien", e.target.checked)} /> Fäkalien</label>
+      <label className="toggle"><input type="checkbox" checked={w.desinfektion} onChange={(e) => set("desinfektion", e.target.checked)} /> Desinfektion erforderlich</label>
+      <div className="two-col">
+        <label className="field"><span>Ersatzfliesen vorhanden (Stück)</span>
+          <input inputMode="numeric" value={w.ersatzfliesen_vorhanden || ""} placeholder="0" onChange={(e) => set("ersatzfliesen_vorhanden", Math.max(0, Math.round(num(e.target.value))))} /></label>
+        <label className="field"><span>Fliesen zerstörungsfrei entfernt</span>
+          <input inputMode="numeric" value={w.fliesen_zerstoerungsfrei || ""} placeholder="0" onChange={(e) => set("fliesen_zerstoerungsfrei", Math.max(0, Math.round(num(e.target.value))))} /></label>
+      </div>
+      <label className="field"><span>Fliesen zerstört (Stück)</span>
+        <input inputMode="numeric" value={w.fliesen_zerstoert || ""} placeholder="0" onChange={(e) => set("fliesen_zerstoert", Math.max(0, Math.round(num(e.target.value))))} /></label>
+      {txt("Weitere Infos", "weitere_infos")}
+
+      <h3>Kostenschätzung (überschlägig, kein Angebot)</h3>
+      {EB_KOSTEN.map((k) => (
+        <div key={k.key} className="two-col" style={{ alignItems: "center" }}>
+          <span className="muted small">{k.label}</span>
+          <input inputMode="decimal" value={w.kosten[k.key] ?? ""} placeholder="0,00 €"
+            onChange={(e) => set("kosten", { ...w.kosten, [k.key]: num(e.target.value) })} />
+        </div>
+      ))}
+      <p style={{ fontWeight: 700 }}>Gesamtsumme: {summe.toLocaleString("de-DE", { minimumFractionDigits: 2 })} €</p>
+
+      <div className="modal-actions">
+        <button className="btn" onClick={onClose}>Abbrechen</button>
+        <button className="btn btn-primary" onClick={speichern}>Speichern</button>
+      </div>
+    </Modal>
   );
 }
