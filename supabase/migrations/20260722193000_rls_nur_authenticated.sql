@@ -1,9 +1,9 @@
 -- RLS scharf: Zugriff nur noch für eingeloggte Nutzer (Pilot-Zugangssperre, 22.07.2026).
 --
--- ⚠️ NOCH NICHT ANGEWANDT. Diese Migration wird ERST bei der Scharfschaltung eingespielt —
--- zusammen mit dem Deploy der App mit VITE_AUTH_REQUIRED=true UND nachdem ein geteiltes
--- Login-Konto in Supabase (Auth → Users) angelegt wurde. Andernfalls verliert die laufende
--- App (die bis dahin mit dem anon-Key arbeitet) schlagartig jeden Datenzugriff.
+-- ✅ ANGEWANDT am 22.07.2026 (nach erfolgreichem Login-Test). Verifiziert: 36 Policies
+-- nur noch für authenticated, 0 mit anon, 0 anon-Grants auf App-Tabellen. Der anon-Key
+-- im öffentlichen Bundle ist damit wertlos. Der eingeloggte Client arbeitet als
+-- authenticated (JWT) und synct normal weiter.
 --
 -- Wirkung: Jede „demo_vollzugriff"-Policy der Haupt-App wird von „anon, authenticated" auf
 -- „authenticated" umgestellt und die anon-Grants entzogen. Damit ist der öffentliche anon-Key
