@@ -554,6 +554,56 @@ export interface Erstbericht {
   erstellt_am: string;
 }
 
+// Ergänzende Gefährdungsbeurteilung (Alt-System sprint., PO-Fotos 22.07.):
+// Arbeitsschutz je Projekt — Asbest (TRGS 519: BT-Tätigkeiten, Stoffe, Schutz),
+// KMF (TRGS 521), sonstige Gefährdungen (Absturz TRBS 2121, enge Räume DGUV 113-004,
+// Spannungsfreiheit/PRCDS) + Neubewertungen. Eine je Projekt, Upsert.
+export type GefahrBefund = "ja" | "nein" | "verdacht";
+export interface GbNeubewertung {
+  datum: string;
+  bearbeiter: string;
+  asbest: GefahrBefund | null;
+  bt_taetigkeiten: string[];
+  stoffe: string[];
+  schutz: string[];
+  notiz: string | null;
+}
+export interface Gefaehrdungsbeurteilung {
+  id: string;
+  projekt_id: string;
+  datum: string; // ISO-Date des Ersteintrags
+  autor: string | null;
+  bauleiter: string | null; // weisungsbefugter Bauleiter
+  anmerkungen: string | null; // z. B. "Trocknung und Sanierung nach Wasserschaden"
+  baujahr: string | null;
+  // Asbest (TRGS 519)
+  asbest: GefahrBefund | null;
+  aufsicht_person: string | null; // Aufsichtsführende Person
+  arbeitsbereich: string | null;
+  bt_taetigkeiten: string[]; // Schlüssel aus GB_BT_TAETIGKEITEN
+  stoffe: string[]; // Schlüssel aus GB_STOFFE
+  stoffe_sonstiges: string | null;
+  schutz: string[]; // Schlüssel aus GB_SCHUTZ
+  schutz_sonstiges: string | null;
+  // KMF (TRGS 521)
+  kmf: GefahrBefund | null;
+  kmf_wo: string | null;
+  kmf_schutz: string | null;
+  // Sonstige Gefährdungen
+  absturz: boolean;
+  absturz_wo: string | null;
+  absturz_schutz: string | null;
+  enge_raeume: boolean;
+  enge_wo: string | null;
+  enge_schutz: string | null;
+  spannung_frei: boolean; // Spannungsfreiheit hergestellt/geprüft
+  prcds: boolean; // PRCD-S im Einsatz
+  spannung_schutz: string | null;
+  neubewertungen: GbNeubewertung[];
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 // Kundenzufriedenheit (Alt-System): Bewertung der Leistung durch den Kunden (1–5) + Unterschrift.
 export interface Kundenzufriedenheit {
   id: string;
@@ -635,6 +685,7 @@ export interface DryTrackDB {
   kundenzufriedenheit: Kundenzufriedenheit[];
   notdiensteinsatzbericht: Notdiensteinsatzbericht[];
   erstbericht: Erstbericht[];
+  gefaehrdungsbeurteilung: Gefaehrdungsbeurteilung[];
   stundenlohnbericht: Stundenlohnbericht[];
   termin: Termin[];
   trocknungsergebnis: Trocknungsergebnis[];

@@ -1,7 +1,7 @@
 // PDF-Export via Druckdialog. Der Report wird in ein isoliertes iframe geschrieben
 // und dort gedruckt (sandbox-sicher) — der Browser bietet „Als PDF speichern" an.
 import type { Abnahmeprotokoll, Besuchsbericht, DryTrackDB, Einsatz, Ersatzfliesenbericht, Kundenzufriedenheit, Notdiensteinsatzbericht, Projekt, Stundenlohnbericht } from "./types";
-import { BEFUND_KAT_MAP, befundBereich } from "../app/labels";
+import { BEFUND_KAT_MAP, befundBereich, GB_BT_TAETIGKEITEN, GB_STOFFE, GB_SCHUTZ } from "../app/labels";
 import { bewerteMessung, BEWERTUNG_LABEL } from "./mess";
 import { arbeitszeitMin, minutenZuText } from "./zeit";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "./einsatz";
@@ -1319,6 +1319,62 @@ export function einwilligungBefragungHtml(projekt: Projekt): string {
       <div></div>
     </div>
     <p style="font-size:10px;color:#98a1b0;margin-top:12px">Vorlage nach Alt-System-Muster — Inhalte (inkl. verantwortliche Stelle/Datenschutzbeauftragter) vor dem Echteinsatz juristisch prüfen und ergänzen.</p>
+  `);
+}
+
+// Ergänzende Gefährdungsbeurteilung (Alt-System sprint., 8 Seiten): Asbest/KMF,
+// sonstige Gefährdungen, Neubewertungen + Unterweisungsnachweis.
+export function gefaehrdungsbeurteilungHtml(g: import("./types").Gefaehrdungsbeurteilung, projekt: Projekt, db: DryTrackDB): string {
+  const cb = (an: boolean) => (an ? "☑" : "☐");
+  const befund = (b: string | null) => `${cb(b === "ja")} Ja &nbsp; ${cb(b === "nein")} Nein &nbsp; ${cb(b === "verdacht")} Verdacht`;
+  const checkliste = (alle: { key: string; label: string }[], aktiv: string[]) =>
+    alle.map((o) => `<p style="margin:2px 0">${cb(aktiv.includes(o.key))} ${esc(o.label)}</p>`).join("");
+  const asbestBlock = (titel: string, b: { asbest: string | null; bt_taetigkeiten: string[]; stoffe: string[]; schutz: string[] }, kopf: string) => `
+    <h3>${esc(titel)}</h3>${kopf}
+    <p><b>Liegt im zu sanierenden Bereich Asbest vor?</b> &nbsp; ${befund(b.asbest)}</p>
+    <p style="margin-bottom:2px"><b>Beschreibung der Tätigkeiten (TRGS 519):</b></p>
+    ${checkliste(GB_BT_TAETIGKEITEN, b.bt_taetigkeiten)}
+    <p style="margin-bottom:2px"><b>Tätigkeiten an potentiell asbesthaltigen Stoffen:</b></p>
+    ${checkliste(GB_STOFFE, b.stoffe)}
+    <p style="margin-bottom:2px"><b>Schutzmaßnahmen:</b></p>
+    ${checkliste(GB_SCHUTZ, b.schutz)}`;
+  // Unterweisungsnachweis: Monteure vorbefüllt + Leerzeilen.
+  const monteure = db.benutzer.filter((b) => b.rolle === "monteur").map((b) => b.name);
+  const zeilen = [...monteure, "", "", ""].map((n) =>
+    `<tr><td style="width:35%">${esc(n)}</td><td style="border-bottom:1px solid #98a1b0"></td></tr>`).join("");
+
+  return einfachesDokument("Ergänzende Gefährdungsbeurteilung", projekt, `
+    <p><b>Autor:</b> ${esc(g.autor ?? "—")} · <b>Datum (Ersteintrag):</b> ${new Date(g.datum).toLocaleDateString("de-DE")} ·
+       <b>Weisungsbefugter Bauleiter:</b> ${esc(g.bauleiter ?? "—")} · <b>Baujahr:</b> ${esc(g.baujahr ?? "—")}</p>
+    ${g.anmerkungen ? `<p><b>Anmerkungen zum Objekt:</b> ${esc(g.anmerkungen)}</p>` : ""}
+    <p style="font-size:11px;color:#667085">Hinweis: Für die Bearbeitung von Brandschäden, PAK-haltigen Klebern, PCB-haltigen
+    Baumaterialien etc. ist die Gefährdungsbeurteilung im Arbeits- und Sicherheitsplan für kontaminierte Bereiche zu verwenden.
+    Alle relevanten Informationen zum Umgang mit Asbest sind der TRGS 519 zu entnehmen; Arbeiten an asbesthaltigen Materialien
+    sind mit Arbeitsplan gemäß Anlage 1.4 der TRGS 519 auszuführen, ggf. mit Anzeige an die zuständige Behörde.</p>
+    <p><b>Aufsichtsführende Person:</b> ${esc(g.aufsicht_person ?? "—")} ·
+       <b>Arbeitsbereich für die Sanierungstätigkeiten:</b> ${esc(g.arbeitsbereich ?? "—")}</p>
+    ${asbestBlock("Erstbesuch — Asbest (TRGS 519)", g, "")}
+    ${g.stoffe_sonstiges ? `<p><b>Sonstiges (Stoffe):</b> ${esc(g.stoffe_sonstiges)}</p>` : ""}
+    ${g.schutz_sonstiges ? `<p><b>Sonstiges (Schutz):</b> ${esc(g.schutz_sonstiges)}</p>` : ""}
+
+    ${(g.neubewertungen ?? []).map((n, i) => asbestBlock(`Neubewertung ${String(i + 1).padStart(2, "0")}`, n,
+      `<p><b>Datum:</b> ${n.datum ? new Date(n.datum).toLocaleDateString("de-DE") : "—"} · <b>Bearbeiter:</b> ${esc(n.bearbeiter || "—")}${n.notiz ? ` · ${esc(n.notiz)}` : ""}</p>`)).join("")}
+
+    <h3>KMF (künstliche Mineralfasern, TRGS 521)</h3>
+    <p>${befund(g.kmf)} &nbsp; · &nbsp; <b>Wo:</b> ${esc(g.kmf_wo ?? "—")} · <b>Schutzmaßnahmen:</b> ${esc(g.kmf_schutz ?? "—")}</p>
+
+    <h3>Sonstige Gefährdungen</h3>
+    <p><b>Absturz / Einsturz (TRBS 2121):</b> ${cb(g.absturz)} Ja &nbsp; ${cb(!g.absturz)} Nein · <b>Wo:</b> ${esc(g.absturz_wo ?? "—")} · <b>Schutzmaßnahmen:</b> ${esc(g.absturz_schutz ?? "—")}</p>
+    <p><b>Enge Räume / Behälter (DGUV Regel 113-004):</b> ${cb(g.enge_raeume)} Ja &nbsp; ${cb(!g.enge_raeume)} Nein · <b>Wo:</b> ${esc(g.enge_wo ?? "—")} · <b>Schutzmaßnahmen:</b> ${esc(g.enge_schutz ?? "—")}</p>
+    <p><b>Spannungsfreiheit:</b> ${cb(g.spannung_frei)} hergestellt/geprüft &nbsp; · &nbsp; ${cb(g.prcds)} PRCD-S im Einsatz · <b>Schutzmaßnahmen:</b> ${esc(g.spannung_schutz ?? "—")}</p>
+
+    <h3>Unterweisungsnachweis</h3>
+    <p>Die nachfolgend genannten Beteiligten wurden über die Gefährdungen und Schutzmaßnahmen unterwiesen.</p>
+    <table style="width:100%;border-collapse:separate;border-spacing:0 10px;font-size:12px">
+      <thead><tr style="text-align:left"><th>Name</th><th>Unterschrift</th></tr></thead>
+      <tbody>${zeilen}</tbody>
+    </table>
+    <p style="font-size:10px;color:#98a1b0">Vorlage nach Alt-System-Muster — ersetzt keine Fachkunde nach TRGS 519; Inhalte vor dem Echteinsatz durch die Fachkraft für Arbeitssicherheit prüfen.</p>
   `);
 }
 

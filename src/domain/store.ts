@@ -114,7 +114,7 @@ class Store {
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messpunkt: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
-      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [], erstbericht: [],
+      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [], erstbericht: [], gefaehrdungsbeurteilung: [],
       termin: [], trocknungsergebnis: [], firmen_einstellung: [], beteiligter: [], ursache_eintrag: [],
       massnahme: [],
     };
@@ -834,6 +834,26 @@ class Store {
         db.feed_eintrag.push(autoFeed(projekt_id, null, "manuell", autor_id,
           "Erstbericht erstellt (Gebäude, Schaden, Maßnahmen, Kostenschätzung).", "dispo"));
       }
+    });
+  }
+
+  /** Ergänzende Gefährdungsbeurteilung speichern (eine je Projekt, Upsert).
+   *  Setzt beim Projekt das Flag „Gefährdungsbeurteilung abgeschlossen". */
+  upsertGefaehrdungsbeurteilung(projekt_id: string, daten: Omit<import("./types").Gefaehrdungsbeurteilung, "id" | "projekt_id" | "erstellt_von" | "erstellt_am">, autor_id: string) {
+    this.commit((db) => {
+      const bestehend = db.gefaehrdungsbeurteilung.find((g) => g.projekt_id === projekt_id);
+      if (bestehend) {
+        Object.assign(bestehend, daten);
+      } else {
+        db.gefaehrdungsbeurteilung.push({
+          id: uid("gb"), projekt_id, ...daten,
+          erstellt_von: autor_id, erstellt_am: new Date().toISOString(),
+        });
+        db.feed_eintrag.push(autoFeed(projekt_id, null, "manuell", autor_id,
+          "Ergänzende Gefährdungsbeurteilung erstellt (Asbest/KMF, sonstige Gefährdungen).", "hinweis"));
+      }
+      const p = db.projekt.find((x) => x.id === projekt_id);
+      if (p) p.gefaehrdungsbeurteilung_abgeschlossen = true;
     });
   }
 

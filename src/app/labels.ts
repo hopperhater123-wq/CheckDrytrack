@@ -93,6 +93,51 @@ export const MESSANLASS_LABEL: Record<Messanlass, string> = {
   eingangsmessung: "Eingangsmessung", freimessung: "Freimessung",
 };
 
+// Ergänzende Gefährdungsbeurteilung (Alt-System sprint., TRGS 519): Checklisten.
+export const GB_BT_TAETIGKEITEN: { key: string; label: string }[] = [
+  { key: "bt11", label: "BT 11 · Ausbau von asbesthaltigen Vinylplatten („Flexplatten“)" },
+  { key: "bt30", label: "BT 30 · Bohren in Wände/Decken mit asbesthaltiger Bekleidung — Bohrverfahren mit Direktabsaugung" },
+  { key: "bt31", label: "BT 31 · Ausstanzen von asbesthaltigen Wand-/Deckenbekleidungen in Kunststoffbeutel als Schleuse („Stanzverfahren“)" },
+  { key: "bt32", label: "BT 32 · Ausstemmen von asbesthaltigen Wand-/Deckenbekleidungen in Kunststoffbeutel als Schleuse („Stemmverfahren“)" },
+  { key: "bt43", label: "BT 43 · Entfernen asbesthaltiger Wandbekleidungen" },
+  { key: "bt44", label: "BT 44 · Entfernen asbesthaltiger Deckenbekleidungen" },
+  { key: "bt55", label: "BT 55 · Kernbohrungen zur Probenahme in asbesthaltigen Fußbodenaufbauten mit spezieller Absaugvorrichtung" },
+  { key: "probenahme", label: "Probenahme von potentiell asbesthaltigen Materialien unter Berücksichtigung der TRGS 519" },
+  { key: "absaugen", label: "Absaugen aller Oberflächen mit baumustergeprüftem Industriestaubsauger" },
+  { key: "luftreiniger", label: "Aufstellen eines Luftreinigers gemäß TRGS 519 Anlage 7.2" },
+  { key: "sachverstaendiger", label: "Sachverständigen für Probenahme einschalten" },
+  { key: "faserstaub", label: "Probenahme von abgelagerten Faserstäuben gemäß VDI 3877 Blatt 1" },
+  { key: "raumluft", label: "Messen von Innenraumluftverunreinigungen gemäß VDI 3492" },
+  { key: "anzeige", label: "Anzeige an die Behörde gemäß TRGS 519" },
+];
+export const GB_STOFFE: { key: string; label: string }[] = [
+  { key: "estrich", label: "Estrich" },
+  { key: "bitumenkleber", label: "Bitumenkleber" },
+  { key: "floorflex", label: "Floorflexplatten" },
+  { key: "cushioned_vinyl", label: "Cushioned Vinyl" },
+  { key: "fensterbaenke", label: "Fensterbänke" },
+  { key: "rohrisolierung", label: "Rohrisolierungen" },
+  { key: "putze", label: "Putzen" },
+  { key: "spachtelmasse", label: "Spachtelmasse" },
+  { key: "fliesenkleber", label: "Fliesenkleber" },
+  { key: "asbestzement", label: "Asbestzementplatte" },
+  { key: "leichtbauplatten", label: "Leichtbauplatten (Promabestplatten)" },
+  { key: "duennbettmoertel", label: "Dünnbettmörtel" },
+  { key: "pappen", label: "Asbesthaltige Pappen" },
+  { key: "schaumstoff", label: "Asbesthaltiger Schaumstoff" },
+];
+export const GB_SCHUTZ: { key: string; label: string }[] = [
+  { key: "staubschutztuer", label: "Abschottung mit Staubschutztür" },
+  { key: "folienschott", label: "Abschottung mit Folienschott" },
+  { key: "overall", label: "Einwegoverall Kat. III Typ 5+6" },
+  { key: "ffp3", label: "FFP3-Einwegmaske mit Ausatemventil" },
+  { key: "halbmaske", label: "Halbmaske mit P3-Filter" },
+  { key: "warnschilder", label: "Warnschilder gemäß TRGS 519 Anlage 2" },
+];
+export const GEFAHR_BEFUND_LABEL: Record<import("../domain/types").GefahrBefund, string> = {
+  ja: "Ja", nein: "Nein", verdacht: "Verdacht",
+};
+
 // Kontrolltermin-Entscheidung (F8): das Gate am Ende von „in 2 Wochen schauen".
 export const KONTROLL_ERGEBNIS_LABEL: Record<import("../domain/types").KontrollErgebnis, string> = {
   erfolg: "Erfolg — trocken", verlaengern: "Verlängern", methode_aendern: "Methode ändern",

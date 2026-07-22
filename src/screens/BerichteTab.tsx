@@ -5,8 +5,8 @@ import { useSession } from "../app/session";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
-import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, erstberichtHtml, printHtml } from "../domain/report";
-import { ABNAHME_STATUS_LABEL, BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL } from "../app/labels";
+import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, erstberichtHtml, gefaehrdungsbeurteilungHtml, printHtml } from "../domain/report";
+import { ABNAHME_STATUS_LABEL, BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL, GB_BT_TAETIGKEITEN, GB_STOFFE, GB_SCHUTZ } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
 import { Icon } from "../ui/Icon";
 import { SignaturPad } from "../ui/SignaturPad";
@@ -54,6 +54,8 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
   return (
     <>
       <ErstberichtCard projektId={projektId} userId={userId} />
+
+      <GefaehrdungsbeurteilungCard projektId={projektId} userId={userId} />
 
       {/* Besuchsberichte und Stundenlohnberichte gehören zusammen (PO 18.07.):
           beides ist Stundennachweis — deshalb EINE Karte mit zwei Bereichen. */}
@@ -1047,6 +1049,174 @@ function ErstberichtForm({ projektId, userId, onClose }: { projektId: string; us
         </div>
       ))}
       <p style={{ fontWeight: 700 }}>Gesamtsumme: {summe.toLocaleString("de-DE", { minimumFractionDigits: 2 })} €</p>
+
+      <div className="modal-actions">
+        <button className="btn" onClick={onClose}>Abbrechen</button>
+        <button className="btn btn-primary" onClick={speichern}>Speichern</button>
+      </div>
+    </Modal>
+  );
+}
+
+// --- Ergänzende Gefährdungsbeurteilung (Alt-System sprint., PO-Fotos 22.07.) --
+// Arbeitsschutz je Projekt: Asbest (TRGS 519), KMF, sonstige Gefährdungen,
+// Neubewertungen. Speichern setzt das Projekt-Flag „GB abgeschlossen".
+
+function GefaehrdungsbeurteilungCard({ projektId, userId }: { projektId: string; userId: string }) {
+  const db = useDB();
+  const [offen, setOffen] = useState(false);
+  const projekt = db.projekt.find((p) => p.id === projektId);
+  const gb = db.gefaehrdungsbeurteilung.find((g) => g.projekt_id === projektId);
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Gefährdungsbeurteilung</h2>
+        <div className="btn-row">
+          {gb && projekt && (
+            <button className="btn btn-sm" onClick={() => printHtml(gefaehrdungsbeurteilungHtml(gb, projekt, db))}>
+              <Icon name="fileText" size={14} /> PDF
+            </button>
+          )}
+          <button className="btn btn-sm btn-primary" onClick={() => setOffen(true)}>{gb ? "Bearbeiten" : "+ Gefährdungsbeurteilung"}</button>
+        </div>
+      </div>
+      {gb
+        ? <p className="muted small">Ergänzende Gefährdungsbeurteilung vom {fmtDatum(gb.datum)}{gb.neubewertungen?.length ? ` · ${gb.neubewertungen.length} Neubewertung(en)` : ""} — Asbest: {gb.asbest ?? "—"}.</p>
+        : <p className="muted">Arbeitsschutz vor dem ersten Eingriff: Asbest (TRGS 519), KMF, Absturz, enge Räume, Spannungsfreiheit. Speichern setzt „Gefährdungsbeurteilung abgeschlossen" am Projekt.</p>}
+      <AnimatePresence>{offen && <GbForm projektId={projektId} userId={userId} onClose={() => setOffen(false)} />}</AnimatePresence>
+    </section>
+  );
+}
+
+function GbChecks({ titel, alle, aktiv, onToggle }: { titel: string; alle: { key: string; label: string }[]; aktiv: string[]; onToggle: (k: string) => void }) {
+  return (
+    <div className="field"><span>{titel}</span>
+      <div className="checkgrid" style={{ marginTop: 4 }}>
+        {alle.map((o) => (
+          <label key={o.key} className={`checkchip${aktiv.includes(o.key) ? " on" : ""}`}>
+            <input type="checkbox" checked={aktiv.includes(o.key)} onChange={() => onToggle(o.key)} />{o.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GbBefund({ wert, onChange }: { wert: import("../domain/types").GefahrBefund | null; onChange: (b: import("../domain/types").GefahrBefund | null) => void }) {
+  return (
+    <div className="segmented" style={{ display: "flex" }}>
+      {(["ja", "nein", "verdacht"] as const).map((b) => (
+        <button key={b} type="button" className={wert === b ? "seg active" : "seg"} onClick={() => onChange(wert === b ? null : b)}>
+          {b === "ja" ? "Ja" : b === "nein" ? "Nein" : "Verdacht"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function GbForm({ projektId, userId, onClose }: { projektId: string; userId: string; onClose: () => void }) {
+  const db = useDB();
+  const projekt = db.projekt.find((p) => p.id === projektId);
+  const vorhanden = db.gefaehrdungsbeurteilung.find((g) => g.projekt_id === projektId);
+  const benutzer = db.benutzer.find((b) => b.id === userId);
+  type Werte = Omit<import("../domain/types").Gefaehrdungsbeurteilung, "id" | "projekt_id" | "erstellt_von" | "erstellt_am">;
+  const [w, setW] = useState<Werte>(() => vorhanden ? { ...vorhanden } : {
+    datum: new Date().toISOString().slice(0, 10),
+    autor: benutzer?.name ?? null, bauleiter: null,
+    anmerkungen: "Trocknung und Sanierung nach Wasserschaden",
+    baujahr: projekt?.baujahr != null ? String(projekt.baujahr) : null,
+    asbest: null, aufsicht_person: null, arbeitsbereich: null,
+    bt_taetigkeiten: [], stoffe: [], stoffe_sonstiges: null, schutz: [], schutz_sonstiges: null,
+    kmf: null, kmf_wo: null, kmf_schutz: null,
+    absturz: false, absturz_wo: null, absturz_schutz: null,
+    enge_raeume: false, enge_wo: null, enge_schutz: null,
+    spannung_frei: false, prcds: false, spannung_schutz: null,
+    neubewertungen: [],
+  });
+  const set = <K extends keyof Werte>(k: K, v: Werte[K]) => setW((x) => ({ ...x, [k]: v }));
+  const toggleIn = (k: "bt_taetigkeiten" | "stoffe" | "schutz", key: string) =>
+    set(k, w[k].includes(key) ? w[k].filter((x) => x !== key) : [...w[k], key]);
+  const txt = (label: string, k: keyof Werte, platz = "") => (
+    <label className="field"><span>{label}</span>
+      <input value={(w[k] as string | null) ?? ""} onChange={(e) => set(k, (e.target.value || null) as never)} placeholder={platz} />
+    </label>
+  );
+  const nbAendern = (i: number, patch: Partial<import("../domain/types").GbNeubewertung>) =>
+    set("neubewertungen", w.neubewertungen.map((n, j) => (j === i ? { ...n, ...patch } : n)));
+  const nbToggle = (i: number, k: "bt_taetigkeiten" | "stoffe" | "schutz", key: string) => {
+    const n = w.neubewertungen[i];
+    nbAendern(i, { [k]: n[k].includes(key) ? n[k].filter((x) => x !== key) : [...n[k], key] } as never);
+  };
+
+  const speichern = () => {
+    store.upsertGefaehrdungsbeurteilung(projektId, w, userId);
+    onClose();
+  };
+
+  return (
+    <Modal onClose={onClose}>
+      <h2>Ergänzende Gefährdungsbeurteilung</h2>
+      <div className="two-col">
+        <label className="field"><span>Datum (Ersteintrag)</span>
+          <input type="date" value={w.datum} onChange={(e) => set("datum", e.target.value)} /></label>
+        {txt("Autor", "autor")}
+      </div>
+      <div className="two-col">{txt("Weisungsbefugter Bauleiter", "bauleiter")}{txt("Baujahr des Objektes", "baujahr")}</div>
+      {txt("Anmerkungen zum Objekt", "anmerkungen")}
+
+      <h3>Asbest (TRGS 519)</h3>
+      <p className="muted small">Arbeiten an asbesthaltigen Materialien nur mit Arbeitsplan gemäß Anlage 1.4 der TRGS 519; ggf. Anzeige an die Behörde.</p>
+      <label className="field"><span>Liegt im zu sanierenden Bereich Asbest vor?</span>
+        <GbBefund wert={w.asbest} onChange={(b) => set("asbest", b)} />
+      </label>
+      <div className="two-col">{txt("Aufsichtsführende Person", "aufsicht_person")}{txt("Arbeitsbereich für die Sanierungstätigkeiten", "arbeitsbereich")}</div>
+      <GbChecks titel="Beschreibung der Tätigkeiten" alle={GB_BT_TAETIGKEITEN} aktiv={w.bt_taetigkeiten} onToggle={(k) => toggleIn("bt_taetigkeiten", k)} />
+      <GbChecks titel="Tätigkeiten an potentiell asbesthaltigen Stoffen" alle={GB_STOFFE} aktiv={w.stoffe} onToggle={(k) => toggleIn("stoffe", k)} />
+      {txt("Sonstiges (Stoffe)", "stoffe_sonstiges", "z. B. Gebäude, Putz, Kleber, Spachtelmassen ggf. Bodenbelag")}
+      <GbChecks titel="Schutzmaßnahmen" alle={GB_SCHUTZ} aktiv={w.schutz} onToggle={(k) => toggleIn("schutz", k)} />
+      {txt("Sonstiges (Schutzmaßnahmen)", "schutz_sonstiges")}
+
+      <h3>KMF — künstliche Mineralfasern (TRGS 521)</h3>
+      <label className="field"><span>Liegen KMF vor?</span>
+        <GbBefund wert={w.kmf} onChange={(b) => set("kmf", b)} />
+      </label>
+      <div className="two-col">{txt("Wo?", "kmf_wo")}{txt("Schutzmaßnahmen", "kmf_schutz")}</div>
+
+      <h3>Sonstige Gefährdungen</h3>
+      <label className="toggle"><input type="checkbox" checked={w.absturz} onChange={(e) => set("absturz", e.target.checked)} /> Absturz / Einsturz (TRBS 2121)</label>
+      {w.absturz && <div className="two-col">{txt("Wo?", "absturz_wo")}{txt("Schutzmaßnahmen", "absturz_schutz")}</div>}
+      <label className="toggle"><input type="checkbox" checked={w.enge_raeume} onChange={(e) => set("enge_raeume", e.target.checked)} /> Enge Räume / Behälter (DGUV Regel 113-004)</label>
+      {w.enge_raeume && <div className="two-col">{txt("Wo?", "enge_wo")}{txt("Schutzmaßnahmen", "enge_schutz")}</div>}
+      <label className="toggle"><input type="checkbox" checked={w.spannung_frei} onChange={(e) => set("spannung_frei", e.target.checked)} /> Spannungsfreiheit hergestellt/geprüft</label>
+      <label className="toggle"><input type="checkbox" checked={w.prcds} onChange={(e) => set("prcds", e.target.checked)} /> PRCD-S im Einsatz</label>
+      {txt("Schutzmaßnahmen (elektrisch)", "spannung_schutz")}
+
+      <h3>Neubewertungen <span className="count">{w.neubewertungen.length}</span></h3>
+      <p className="muted small">Ändert sich die Lage (Befund, neue Tätigkeiten), wird neu bewertet statt überschrieben — der Verlauf bleibt nachvollziehbar.</p>
+      {w.neubewertungen.map((n, i) => (
+        <div key={i} className="box" style={{ border: "1px solid var(--hairline)", borderRadius: 10, padding: "8px 12px", marginBottom: 10 }}>
+          <div className="card-head"><h3 style={{ margin: 0 }}>Neubewertung {String(i + 1).padStart(2, "0")}</h3>
+            <button className="iconbtn" onClick={() => set("neubewertungen", w.neubewertungen.filter((_, j) => j !== i))} aria-label="Neubewertung entfernen"><Icon name="trash" size={14} /></button>
+          </div>
+          <div className="two-col">
+            <label className="field"><span>Datum</span>
+              <input type="date" value={n.datum} onChange={(e) => nbAendern(i, { datum: e.target.value })} /></label>
+            <label className="field"><span>Bearbeiter</span>
+              <input value={n.bearbeiter} onChange={(e) => nbAendern(i, { bearbeiter: e.target.value })} /></label>
+          </div>
+          <label className="field"><span>Asbest?</span>
+            <GbBefund wert={n.asbest} onChange={(b) => nbAendern(i, { asbest: b })} />
+          </label>
+          <GbChecks titel="Tätigkeiten" alle={GB_BT_TAETIGKEITEN} aktiv={n.bt_taetigkeiten} onToggle={(k) => nbToggle(i, "bt_taetigkeiten", k)} />
+          <GbChecks titel="Stoffe" alle={GB_STOFFE} aktiv={n.stoffe} onToggle={(k) => nbToggle(i, "stoffe", k)} />
+          <GbChecks titel="Schutzmaßnahmen" alle={GB_SCHUTZ} aktiv={n.schutz} onToggle={(k) => nbToggle(i, "schutz", k)} />
+          <label className="field"><span>Notiz</span>
+            <input value={n.notiz ?? ""} onChange={(e) => nbAendern(i, { notiz: e.target.value || null })} /></label>
+        </div>
+      ))}
+      <button className="btn btn-sm" onClick={() => set("neubewertungen", [...w.neubewertungen, {
+        datum: new Date().toISOString().slice(0, 10), bearbeiter: benutzer?.name ?? "", asbest: null,
+        bt_taetigkeiten: [], stoffe: [], schutz: [], notiz: null,
+      }])}><Icon name="plus" size={14} /> Neubewertung</button>
 
       <div className="modal-actions">
         <button className="btn" onClick={onClose}>Abbrechen</button>
