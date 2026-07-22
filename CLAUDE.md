@@ -34,6 +34,8 @@ in diesem Projekt gearbeitet wird. Es gilt für alle KI-Agenten und menschlichen
   pushen. GitHub Pages liefert `hosting/` aus. Niemals von Hand in `hosting/` editieren.
 - **Supabase:** Schema-Änderungen nur additiv als Migration (`ADD COLUMN IF NOT EXISTS`,
   neue Tabellen mit Text-PK, GRANT + RLS-Policy + Realtime-Publication). Seed-/Demo-Daten
-  nicht ohne Grund verändern.
+  nicht ohne Grund verändern. **Jede neue Migration zusätzlich als Datei nach
+  `supabase/migrations/<version>_<name>.sql` schreiben** (Repo-Kopie zur Wiederherstellung,
+  siehe `supabase/migrations/README.md`).
 - **Doku-Pflicht:** Nach jedem nennenswerten Arbeitspaket einen Tagebuch-Eintrag in Notion
   (fortlaufende Nummer) und betroffene Docs (Testing, Roadmap …) aktualisieren.
