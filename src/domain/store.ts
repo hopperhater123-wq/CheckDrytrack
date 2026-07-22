@@ -114,7 +114,7 @@ class Store {
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messpunkt: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
-      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [], erstbericht: [], gefaehrdungsbeurteilung: [], schadenmeldung: [],
+      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [], erstbericht: [], gefaehrdungsbeurteilung: [], schadenmeldung: [], leistungsposition: [],
       termin: [], trocknungsergebnis: [], firmen_einstellung: [], beteiligter: [], ursache_eintrag: [],
       massnahme: [],
     };
@@ -872,6 +872,26 @@ class Store {
           "Schadenmeldung erfasst (Hergang, Wohnungen, externe Nummern).", "dispo"));
       }
     });
+  }
+
+  /** Leistungsposition (Aufmaß) anlegen — Positionsauflistung, bewusst ohne Preise. */
+  addLeistungsposition(params: Omit<import("./types").Leistungsposition, "id" | "erstellt_am">) {
+    this.commit((db) => {
+      db.leistungsposition.push({ ...params, id: uid("lp"), erstellt_am: new Date().toISOString() });
+    });
+  }
+
+  /** Leistungsposition ändern (Modal-Bearbeitung). */
+  updateLeistungsposition(id: string, patch: Partial<import("./types").Leistungsposition>) {
+    this.commit((db) => {
+      const p = db.leistungsposition.find((x) => x.id === id);
+      if (p) Object.assign(p, patch);
+    });
+  }
+
+  /** Leistungsposition entfernen. */
+  removeLeistungsposition(id: string) {
+    this.commit((db) => { db.leistungsposition = db.leistungsposition.filter((x) => x.id !== id); });
   }
 
   /** Stundenlohnbericht anlegen (Regie-/Stundenlohnarbeiten: Stunden + Material + Unterschriften). */

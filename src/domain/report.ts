@@ -1284,6 +1284,42 @@ export function schadenmeldungHtml(m: import("./types").Schadenmeldung, projekt:
   `);
 }
 
+// Positionsauflistung über ausgeführte Leistungen (Alt-System sprint., PO-Fotos 22.07.):
+// Aufmaß/Mengengerüst je Projekt, gruppiert nach Gewerk. BEWUSST OHNE PREISE (kein ERP).
+export function positionsauflistungHtml(projekt: Projekt, db: DryTrackDB, erstelltVon: string): string {
+  const positionen = db.leistungsposition.filter((p) => p.projekt_id === projekt.id);
+  const raumName = (rid: string | null) => (rid ? db.raum.find((r) => r.id === rid)?.bezeichnung ?? "" : "");
+  const gewerke = [...new Set(positionen.map((p) => p.gewerk || "Sonstiges"))];
+  const zeilen = gewerke.map((g, gi) => {
+    const gruppe = positionen.filter((p) => (p.gewerk || "Sonstiges") === g);
+    const kopf = `<tr style="background:#eef2f4;font-weight:700"><td>${String(gi + 1).padStart(3, "0")}</td><td colspan="6">${esc(g)}</td></tr>`;
+    const rows = gruppe.map((p) => {
+      const aufmass = (p.aufmass_zeilen ?? [])
+        .map((z) => `${z.bezug ? `${esc(z.bezug)}: ` : ""}${esc(z.formel)}`).join("<br>");
+      return `<tr>
+        <td>${esc(p.artikel_nr ?? "")}</td>
+        <td><b>${esc(p.kurztext)}</b></td>
+        <td style="font-size:11px;color:#475569">${esc(p.langtext ?? "")}</td>
+        <td>${esc(raumName(p.raum_id))}</td>
+        <td style="font-family:monospace;font-size:11px">${aufmass}</td>
+        <td>${esc(p.einheit ?? "")}</td>
+        <td style="text-align:right">${p.menge != null ? p.menge.toLocaleString("de-DE") : ""}</td>
+      </tr>`;
+    }).join("");
+    return kopf + rows;
+  }).join("");
+  return einfachesDokument("Positionsauflistung über ausgeführte Leistungen", projekt, `
+    <p><b>Erstellt von:</b> ${esc(erstelltVon)} · <b>Erstellt am:</b> ${new Date().toLocaleDateString("de-DE")}</p>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="text-align:left">
+        <th>Artikel-Nr</th><th>Kurztext</th><th>Langtext</th><th>Raum</th><th>Aufmaß</th><th>Einheit</th><th style="text-align:right">Menge</th>
+      </tr></thead>
+      <tbody>${zeilen}</tbody>
+    </table>
+    <p style="font-size:10px;color:#98a1b0;margin-top:10px">Mengennachweis der ausgeführten Leistungen — ohne Preise; die Bewertung erfolgt in der Abrechnung des Büros.</p>
+  `);
+}
+
 // Auftrag zur Schadenbeseitigung (Alt-System-Hefter, PO-Fotos 22.07.): der VN
 // beauftragt die Versicherung mit der Beseitigung des Schadens; die Versicherung
 // darf Fachfirmen einschalten. Checkboxen/Zeilen werden auf dem Ausdruck vor Ort

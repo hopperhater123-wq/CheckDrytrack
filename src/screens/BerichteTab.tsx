@@ -5,9 +5,10 @@ import { useSession } from "../app/session";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
-import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, erstberichtHtml, gefaehrdungsbeurteilungHtml, schadenmeldungHtml, printHtml } from "../domain/report";
-import { ABNAHME_STATUS_LABEL, BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL, GB_BT_TAETIGKEITEN, GB_STOFFE, GB_SCHUTZ } from "../app/labels";
+import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, erstberichtHtml, gefaehrdungsbeurteilungHtml, schadenmeldungHtml, positionsauflistungHtml, printHtml } from "../domain/report";
+import { ABNAHME_STATUS_LABEL, BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL, GB_BT_TAETIGKEITEN, GB_STOFFE, GB_SCHUTZ, LEISTUNGSKATALOG } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
+import { berechneAufmass, summeAufmass } from "../domain/aufmass";
 import { Icon } from "../ui/Icon";
 import { SignaturPad } from "../ui/SignaturPad";
 import type { AbnahmeStatus, BemusterungArt, Bestellstatus } from "../domain/types";
@@ -58,6 +59,8 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
       <ErstberichtCard projektId={projektId} userId={userId} />
 
       <GefaehrdungsbeurteilungCard projektId={projektId} userId={userId} />
+
+      <PositionsauflistungCard projektId={projektId} userId={userId} />
 
       {/* Besuchsberichte und Stundenlohnberichte gehören zusammen (PO 18.07.):
           beides ist Stundennachweis — deshalb EINE Karte mit zwei Bereichen. */}
@@ -1344,6 +1347,173 @@ function SchadenmeldungForm({ projektId, userId, onClose }: { projektId: string;
       <div className="modal-actions">
         <button className="btn" onClick={onClose}>Abbrechen</button>
         <button className="btn btn-primary" onClick={speichern}>Speichern</button>
+      </div>
+    </Modal>
+  );
+}
+
+// --- Positionsauflistung / Aufmaß (Alt-System sprint., PO-Fotos 22.07.) -------
+// Mengengerüst der ausgeführten Leistungen: Position je Gewerk mit Aufmaß-Formeln
+// ("(3,97*3,77)+(1,55*2,15)"), Einheit und Menge. BEWUSST OHNE PREISE (kein ERP).
+
+const LP_GEWERKE = ["Trocknung", "Malerarbeiten", "Abbruch/Demontage", "Baustelleneinrichtung", "Sonstiges"];
+const LP_EINHEITEN = ["Stck", "qm", "lfm", "Std", "cbm"];
+
+function PositionsauflistungCard({ projektId, userId }: { projektId: string; userId: string }) {
+  const db = useDB();
+  const [neu, setNeu] = useState(false);
+  const [bearbeite, setBearbeite] = useState<import("../domain/types").Leistungsposition | null>(null);
+  const projekt = db.projekt.find((p) => p.id === projektId);
+  const benutzerName = (id: string) => db.benutzer.find((u) => u.id === id)?.name ?? "—";
+  const positionen = db.leistungsposition.filter((p) => p.projekt_id === projektId);
+  const gewerke = [...new Set(positionen.map((p) => p.gewerk || "Sonstiges"))];
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Positionsauflistung (Aufmaß) <span className="count">{positionen.length}</span></h2>
+        <div className="btn-row">
+          {positionen.length > 0 && projekt && (
+            <button className="btn btn-sm" onClick={() => printHtml(positionsauflistungHtml(projekt, db, benutzerName(userId)))}>
+              <Icon name="fileText" size={14} /> PDF
+            </button>
+          )}
+          <button className="btn btn-sm btn-primary" onClick={() => setNeu(true)}>+ Position</button>
+        </div>
+      </div>
+      {positionen.length === 0 && <p className="muted">Mengennachweis der ausgeführten Leistungen — Position je Gewerk mit Aufmaß-Formel (z. B. „(3,97*3,77)+(1,55*2,15)"). Bewusst ohne Preise.</p>}
+      {gewerke.map((g) => (
+        <div key={g}>
+          <h3 style={{ margin: "10px 0 4px" }}>{g}</h3>
+          {positionen.filter((p) => (p.gewerk || "Sonstiges") === g).map((p) => (
+            <div key={p.id} className="listrow static">
+              <div className="listrow-main">
+                <span className="listrow-title">{p.artikel_nr ? `${p.artikel_nr} · ` : ""}{p.kurztext}</span>
+                <span className="listrow-sub">
+                  {[p.raum_id ? db.raum.find((r) => r.id === p.raum_id)?.bezeichnung : null,
+                    p.aufmass_zeilen?.length ? p.aufmass_zeilen.map((z) => z.formel).join(" + ") : null]
+                    .filter(Boolean).join(" · ")}
+                </span>
+              </div>
+              <span className="chip small chip-neutral">{p.menge != null ? p.menge.toLocaleString("de-DE") : "—"} {p.einheit ?? ""}</span>
+              <button className="iconbtn" onClick={() => setBearbeite(p)} title="Bearbeiten" aria-label="Bearbeiten"><Icon name="pen" size={14} /></button>
+              <button className="iconbtn" onClick={() => store.removeLeistungsposition(p.id)} title="Entfernen" aria-label="Entfernen"><Icon name="trash" size={14} /></button>
+            </div>
+          ))}
+        </div>
+      ))}
+      <AnimatePresence>
+        {(neu || bearbeite) && (
+          <LeistungspositionForm projektId={projektId} userId={userId} vorhanden={bearbeite}
+            onClose={() => { setNeu(false); setBearbeite(null); }} />
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
+
+function LeistungspositionForm({ projektId, userId, vorhanden, onClose }: {
+  projektId: string; userId: string; vorhanden: import("../domain/types").Leistungsposition | null; onClose: () => void;
+}) {
+  const db = useDB();
+  const raeume = db.raum.filter((r) => r.projekt_id === projektId);
+  const [gewerk, setGewerk] = useState(vorhanden?.gewerk ?? "Trocknung");
+  const [artikelNr, setArtikelNr] = useState(vorhanden?.artikel_nr ?? "");
+  const [kurztext, setKurztext] = useState(vorhanden?.kurztext ?? "");
+  const [langtext, setLangtext] = useState(vorhanden?.langtext ?? "");
+  const [raumId, setRaumId] = useState(vorhanden?.raum_id ?? "");
+  const [einheit, setEinheit] = useState(vorhanden?.einheit ?? "qm");
+  const [zeilen, setZeilen] = useState<import("../domain/types").AufmassZeile[]>(vorhanden?.aufmass_zeilen?.length ? vorhanden.aufmass_zeilen : [{ bezug: "", formel: "" }]);
+  const [mengeManuell, setMengeManuell] = useState<string>(vorhanden?.menge != null ? String(vorhanden.menge).replace(".", ",") : "");
+  const [bemerkung, setBemerkung] = useState(vorhanden?.bemerkung ?? "");
+
+  const summe = summeAufmass(zeilen.map((z) => z.formel));
+  const num = (s: string) => { const n = parseFloat(s.replace(",", ".")); return Number.isFinite(n) ? n : null; };
+  // Menge: manuelle Eingabe gewinnt, sonst Formel-Summe.
+  const menge = mengeManuell.trim() ? num(mengeManuell) : summe;
+
+  const speichern = () => {
+    if (!kurztext.trim()) return;
+    const daten = {
+      projekt_id: projektId, gewerk: gewerk || null, artikel_nr: artikelNr.trim() || null,
+      kurztext: kurztext.trim(), langtext: langtext.trim() || null, raum_id: raumId || null,
+      einheit: einheit || null, aufmass_zeilen: zeilen.filter((z) => z.formel.trim() || z.bezug.trim()),
+      menge, bemerkung: bemerkung.trim() || null, erstellt_von: userId,
+    };
+    if (vorhanden) store.updateLeistungsposition(vorhanden.id, daten);
+    else store.addLeistungsposition(daten);
+    onClose();
+  };
+
+  return (
+    <Modal onClose={onClose}>
+      <h2>{vorhanden ? "Position bearbeiten" : "Neue Position"}</h2>
+      <div className="two-col">
+        <label className="field"><span>Gewerk</span>
+          <select value={gewerk} onChange={(e) => setGewerk(e.target.value)}>
+            {LP_GEWERKE.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </label>
+        <label className="field"><span>Artikel-Nr (optional)</span>
+          <input value={artikelNr} onChange={(e) => setArtikelNr(e.target.value)} placeholder="z. B. 001.010" />
+        </label>
+      </div>
+      <label className="field"><span>Aus dem Leistungskatalog <span className="muted small">(optional — füllt den Kurztext vor)</span></span>
+        <select value="" onChange={(e) => { if (e.target.value) setKurztext(e.target.value); }}>
+          <option value="">— Position wählen —</option>
+          {LEISTUNGSKATALOG.map((g) => (
+            <optgroup key={g.key} label={g.label}>
+              {g.positionen.map((p) => <option key={p} value={p}>{p}</option>)}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+      <label className="field"><span>Kurztext *</span>
+        <input value={kurztext} onChange={(e) => setKurztext(e.target.value)} placeholder='z. B. "Raum-Trocknung 10–35 qm"' />
+      </label>
+      <label className="field"><span>Langtext (optional)</span>
+        <textarea rows={2} value={langtext} onChange={(e) => setLangtext(e.target.value)} />
+      </label>
+      <div className="two-col">
+        <label className="field"><span>Raum (optional)</span>
+          <select value={raumId} onChange={(e) => setRaumId(e.target.value)}>
+            <option value="">— ganzes Projekt —</option>
+            {raeume.map((r) => <option key={r.id} value={r.id}>{r.bezeichnung}</option>)}
+          </select>
+        </label>
+        <label className="field"><span>Einheit</span>
+          <select value={einheit} onChange={(e) => setEinheit(e.target.value)}>
+            {LP_EINHEITEN.map((e2) => <option key={e2} value={e2}>{e2}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <div className="field"><span>Aufmaß-Zeilen <span className="muted small">(Formeln wie „(3,97*3,77)+(1,55*2,15)")</span></span></div>
+      {zeilen.map((z, i) => {
+        const wert = berechneAufmass(z.formel);
+        return (
+          <div key={i} className="two-col" style={{ alignItems: "center" }}>
+            <input value={z.bezug} onChange={(e) => setZeilen(zeilen.map((y, j) => (j === i ? { ...y, bezug: e.target.value } : y)))} placeholder='Bezug, z. B. "Decke"' />
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <input style={{ flex: 1 }} value={z.formel} onChange={(e) => setZeilen(zeilen.map((y, j) => (j === i ? { ...y, formel: e.target.value } : y)))} placeholder="(3,97*3,77)+(1,55*2,15)" />
+              <span className="muted small" style={{ whiteSpace: "nowrap" }}>{z.formel.trim() ? (wert != null ? `= ${wert.toLocaleString("de-DE", { maximumFractionDigits: 2 })}` : "⚠") : ""}</span>
+              <button className="iconbtn" onClick={() => setZeilen(zeilen.filter((_, j) => j !== i))} aria-label="Zeile entfernen"><Icon name="trash" size={13} /></button>
+            </div>
+          </div>
+        );
+      })}
+      <button className="btn btn-sm" style={{ marginBottom: 10 }} onClick={() => setZeilen([...zeilen, { bezug: "", formel: "" }])}><Icon name="plus" size={14} /> Aufmaß-Zeile</button>
+
+      <div className="two-col">
+        <label className="field"><span>Menge {summe != null ? <span className="muted small">(aus Formeln: {summe.toLocaleString("de-DE")})</span> : ""}</span>
+          <input inputMode="decimal" value={mengeManuell} onChange={(e) => setMengeManuell(e.target.value)} placeholder={summe != null ? summe.toLocaleString("de-DE") : "manuell"} />
+        </label>
+        <label className="field"><span>Bemerkung</span>
+          <input value={bemerkung} onChange={(e) => setBemerkung(e.target.value)} />
+        </label>
+      </div>
+
+      <div className="modal-actions">
+        <button className="btn" onClick={onClose}>Abbrechen</button>
+        <button className="btn btn-primary" onClick={speichern} disabled={!kurztext.trim()}>Speichern</button>
       </div>
     </Modal>
   );

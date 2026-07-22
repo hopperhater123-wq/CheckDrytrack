@@ -155,6 +155,7 @@ export function seedDB(): DryTrackDB {
     erstbericht: [],
     gefaehrdungsbeurteilung: [],
     schadenmeldung: [],
+    leistungsposition: [],
     stundenlohnbericht: [],
     termin: [
       { id: "t-1", projekt_id: "p-1", datum: datum(0), uhrzeit: "08:30", mitarbeiter_id: "u-monteur", beschreibung: "TRO Abbau / Strömungskontrolle / WH aufnehmen", erledigt: false, erstellt_von: "u-dispo", erstellt_am: tage(2) },

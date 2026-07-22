@@ -628,6 +628,26 @@ export interface Schadenmeldung {
   erstellt_am: string;
 }
 
+// Positionsauflistung über ausgeführte Leistungen (Alt-System sprint., PO-Fotos 22.07.):
+// Aufmaß/Mengengerüst — Positionen je Gewerk mit Aufmaß-Formeln je Bezug (Decke/Wände…).
+// BEWUSST OHNE PREISE (kein ERP): reiner Mengennachweis; Preise/Rechnung bleiben im Büro.
+export interface AufmassZeile { bezug: string; formel: string }
+export interface Leistungsposition {
+  id: string;
+  projekt_id: string;
+  gewerk: string | null; // z. B. "Trocknung", "Malerarbeiten", "Baustelleneinrichtung"
+  artikel_nr: string | null; // z. B. "001.010"
+  kurztext: string;
+  langtext: string | null;
+  raum_id: string | null;
+  einheit: string | null; // Stck | qm | Std | cbm …
+  aufmass_zeilen: AufmassZeile[];
+  menge: number | null; // Summe der Formeln oder manuell
+  bemerkung: string | null;
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 // Kundenzufriedenheit (Alt-System): Bewertung der Leistung durch den Kunden (1–5) + Unterschrift.
 export interface Kundenzufriedenheit {
   id: string;
@@ -711,6 +731,7 @@ export interface DryTrackDB {
   erstbericht: Erstbericht[];
   gefaehrdungsbeurteilung: Gefaehrdungsbeurteilung[];
   schadenmeldung: Schadenmeldung[];
+  leistungsposition: Leistungsposition[];
   stundenlohnbericht: Stundenlohnbericht[];
   termin: Termin[];
   trocknungsergebnis: Trocknungsergebnis[];
