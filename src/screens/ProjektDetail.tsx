@@ -14,6 +14,7 @@ import {
   DOKUMENT_TYP_LABEL, FEED_KATEGORIE_LABEL, FEED_URSPRUNG_LABEL, KONTAMINATION_LABEL,
   KOSTENTRAEGER_LABEL, KOSTENTRAEGER_STATUS_LABEL, BETEILIGTER_ROLLE_LABEL, URSACHE_QUELLE_LABEL,
   PROJEKT_STATUS_LABEL, PROJEKT_STATUS_REIHENFOLGE, BEFUND_KATEGORIEN, BEFUND_KAT_MAP, befundBereich,
+  LEISTUNGSKATALOG,
 } from "../app/labels";
 import { fmtDatum, fmtDatumZeit, fmtZahl, relativZeit } from "../app/format";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "../domain/einsatz";
@@ -615,6 +616,19 @@ function MassnahmenCard({ projektId, userId }: { projektId: string; userId: stri
 
       {can.projektBearbeiten && (
         <div className="massnahme-add" style={{ marginTop: 10 }}>
+          {/* Leistungskatalog (F17): echte Positionstexte aus dem Alt-System — die
+              Formulierung passt dann 1:1 zur späteren Abrechnung. Auswahl füllt das
+              Textfeld vor und bleibt frei anpassbar. */}
+          <label className="field"><span>Aus dem Leistungskatalog <span className="muted small">(optional — füllt den Text vor)</span></span>
+            <select value="" onChange={(e) => { if (e.target.value) setText(e.target.value); }}>
+              <option value="">— Position wählen —</option>
+              {LEISTUNGSKATALOG.map((g) => (
+                <optgroup key={g.key} label={g.label}>
+                  {g.positionen.map((p) => <option key={p} value={p}>{p}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </label>
           <label className="field"><span>Neue Maßnahme</span>
             <input value={text} onChange={(e) => setText(e.target.value)} placeholder='z. B. "Tür Bad demontieren" / "Hängeschränke Küche abbauen"' />
           </label>

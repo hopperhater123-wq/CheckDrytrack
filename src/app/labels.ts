@@ -184,12 +184,17 @@ export const BEFUND_KATEGORIEN: BefundKategorie[] = [
   { key: "schacht",        label: "Schachttrocknung",         form: "punkt",   farbe: "#0369a1", bereich: "trocknung" },
   { key: "fensterschott",  label: "Fensterschott",            form: "punkt",   farbe: "#a21caf", bereich: "trocknung" },
   { key: "einbauschrank",  label: "Schrank demontiert (Hänge-/Einbau)", form: "punkt", farbe: "#78716c", bereich: "trocknung" },
+  { key: "ceravogue_bohrung", label: "CeraVogue-Bohrung (inkl. Einleger)", form: "punkt", farbe: "#155e75", bereich: "trocknung" },
+  { key: "abschottung",    label: "Abschottung / Staubschutzwand", form: "linie", farbe: "#6b21a8", bereich: "trocknung" },
+  { key: "infrarot",       label: "Infrarot-Trocknung",       form: "flaeche", farbe: "#7e22ce", bereich: "trocknung" },
   { key: "befund",         label: "Befund / Hinweis",         form: "punkt",   farbe: "#334155", bereich: "trocknung" },
   // ---- Sanierung (Aufgaben für den Sanierer → Maßnahmenliste) ----
   { key: "malern_iso",     label: "Malern + Iso",             form: "linie",   farbe: "#9333ea", bereich: "sanierung" },
   { key: "sockel_setzen",  label: "Sockelleisten setzen",     form: "linie",   farbe: "#db2777", bereich: "sanierung" },
-  { key: "ceravogue_setzen",   label: "Cera Vogue setzen",    form: "linie",   farbe: "#be185d", bereich: "sanierung" },
-  { key: "ceravogue_bestellen", label: "Cera Vogue bestellen", form: "punkt",  farbe: "#831843", bereich: "sanierung" },
+  // CeraVogue: die BOHRUNG (durch die Fliese, mit Keramik-Einleger) ist Trocknung —
+  // das spätere Setzen/Bestellen des Einlegers ist Wiederherstellung (Alt-System-Katalog).
+  { key: "ceravogue_setzen",   label: "CeraVogue-Einleger setzen",    form: "punkt", farbe: "#be185d", bereich: "sanierung" },
+  { key: "ceravogue_bestellen", label: "CeraVogue-Einleger bestellen", form: "punkt", farbe: "#831843", bereich: "sanierung" },
   { key: "bodenbelag",     label: "Bodenbelag einsetzen (Laminat/Parkett/Teppich/Fliese)", form: "flaeche", farbe: "#6d28d9", bereich: "sanierung" },
   { key: "boden_schleifen", label: "Boden schleifen (Kleberreste)", form: "flaeche", farbe: "#8b5e34", bereich: "sanierung" },
   { key: "schrank_montieren", label: "Schrank wieder montieren", form: "punkt", farbe: "#57534e", bereich: "sanierung" },
@@ -209,6 +214,120 @@ export function befundBereich(kategorie?: string | null, zielgruppe?: string): B
   if (k) return k.bereich;
   return zielgruppe === "sanierer" ? "sanierung" : "trocknung";
 }
+
+// Leistungskatalog (F17, PO 21.07.): die echten Positionstexte aus dem Alt-System
+// (Tablet-Fotos, Tabs ABB/TRO/ANA/WDH/HAUS). Maßnahmen aus dem Katalog wählen
+// heißt: die Formulierung passt später 1:1 zur Abrechnung. Bewusst reine Textliste —
+// kein Aufmaß, keine Preise (kein ERP).
+export interface LeistungsGewerk { key: string; label: string; positionen: string[] }
+export const LEISTUNGSKATALOG: LeistungsGewerk[] = [
+  {
+    key: "abb", label: "Abbruch / Demontage (wir)", positionen: [
+      "Abdecken der Laufwege mit Vlies",
+      "Abdecken Boden mit Folie",
+      "Abschottung (Abbruch) erstellen (mit/ohne Tür)",
+      "Fliesen zerstörungsfrei ausbauen (Bodenfliese)",
+      "Sockelfliesen zerstörungsfrei ausbauen",
+      "Sockelfliesen demontieren (zerbrochen)",
+      "Fliesen im Dünnbett demontieren",
+      "Fliesen im Dickbett demontieren",
+      "Naturstein-Belag demontieren",
+      "Tapeten – 1-lagig – demontieren",
+      "Tapeten – mehrlagig oder wasserfest – demontieren",
+      "Putz entfernen",
+      "Gipskarton-Platten/Fermacell/Paneele demontieren (mit Erhalt der Unterkonstruktion)",
+      "Gipskarton-Platten/Fermacell/Paneele demontieren (ohne Erhalt der Unterkonstruktion)",
+      "Gipskarton-Verbundplatten (GK+Styropor) demontieren",
+      "Spanplatte/OSB-Platte demontieren",
+      "Dämmung entfernen (Styropor/Mineralwolle)",
+      "Sockelleiste (Holz, PVC, Textil) demontieren",
+      "Sockelleiste (Holz, PVC, Textil) zerstörungsfrei demontieren",
+      "Bodenbelag – lose – (Linoleum, PVC, Teppich, Laminat, Parkett) demontieren",
+      "Bodenbelag – verklebt – demontieren",
+      "Estrich demontieren",
+      "Estrich fräsen (alten Kleber und Ausgleich abfräsen, diffusionsoffene Oberfläche)",
+      "Schüttung aus Holzbalkendecke demontieren",
+      "Styropordeckenplatten demontieren",
+      "Odenwalddecke (OWA) demontieren",
+      "Schilfrohrmattendecke demontieren",
+      "Einbauküche ausbauen (Ober-/Unter-/Hochschränke)",
+      "Baumischabfall entsorgen",
+      "Persönliche Schutzausrüstung",
+    ],
+  },
+  {
+    key: "tro", label: "Trocknung (wir)", positionen: [
+      "Estrichdämmschicht-Trocknung ohne Erhalt des Fußbodenoberbelags",
+      "Estrichdämmschicht-Trocknung mit Erhalt des Fußbodenoberbelags",
+      "Mehraufwand wegen Fußbodenheizung / Leitungen unter dem Estrich",
+      "Holzbalkendecken-Trocknung (von oben/unten)",
+      "Wandflächentrocknung (Länge/Höhe)",
+      "Raum-Trocknung (ohne Dämmschichttrocknung)",
+      "Schacht-Trocknung",
+      "Hohlraum-Trocknung (Wanne/Decke/Wand)",
+      "Deckenmax-Bohrung",
+      "Brandschutzstopfen",
+      "Abschottung (Trocknung) erstellen (mit/ohne Türe)",
+      "Infrarot-Trocknung",
+      "Ventilator",
+      "CeraVogue-Bohrung inkl. Einleger",
+      "Notdienst",
+    ],
+  },
+  {
+    key: "ana", label: "Antimikrobielle Maßnahmen (wir)", positionen: [
+      "Absaugen mit H-Sauger",
+      "Desinfektion mit Ethanol/Wasserstoffperoxid",
+      "Unterdruckhaltung",
+      "Luftreiniger-Einsatz",
+      "Estrichdesinfektion",
+      "Kaltnebelverfahren",
+      "Geruchsbehandlung",
+      "Feinreinigung",
+      "Persönliche Schutzausrüstung",
+    ],
+  },
+  {
+    key: "wdh", label: "Wiederherstellung (Sanierer)", positionen: [
+      "Öffnung in Boden/Wand/Decke verschließen",
+      "Dämmung einbringen (Styropor/Mineralwolle)",
+      "Estrich liefern und einbringen",
+      "Trockenestrich herstellen",
+      "Bodenbeschichtung aufbringen",
+      "Fliesen (Ersatzfliese vorhanden) wieder einsetzen",
+      "Fliesen (neu) verlegen",
+      "Naturstein-Belag verlegen",
+      "Sockelfliesen verlegen",
+      "Silikonfuge herstellen",
+      "Spanplatte/OSB verlegen",
+      "Oberbelag – lose – (Teppich/PVC/Linoleum, Laminat, Parkett) verlegen",
+      "Oberbelag – verklebt – verlegen",
+      "Parkett schleifen und versiegeln",
+      "Sockelleisten verlegen (liefern/vorhanden)",
+      "Trockenbau (Gipskarton …) montieren (mit/ohne UK)",
+      "Gipskarton-Verbundplatten (GK+Styropor) einbringen",
+      "Putz aufbringen",
+      "Wand- bzw. Deckenflächen spachteln",
+      "Strukturputz aufbringen",
+      "Isolieranstrich/Sperrgrund auftragen",
+      "Tapete neu (Rauhfaser, Glasfaser, Malervlies, Muster-/Vinyltapete)",
+      "Anstrich neu (Farbe, Latex …)",
+      "Paneel-/Holzverkleidung erneuern (Decke/Wand, mit/ohne UK)",
+      "Odenwalddecke (OWA) erneuern",
+      "Tür mit Rahmen erneuern",
+      "Einbauküche einbauen (Ober-/Unter-/Hochschränke)",
+    ],
+  },
+  {
+    key: "haus", label: "Hausrat", positionen: [
+      "Verpackungseinheiten",
+      "Möbel demontieren",
+      "Bewegungsarbeiten im Gebäude",
+      "Auslagerung von Hausrat",
+      "Entsorgung und Dokumentation",
+    ],
+  },
+];
 
 // Beteiligte je Projekt (F3): Rollen der externen Parteien.
 export const BETEILIGTER_ROLLE_LABEL: Record<import("../domain/types").BeteiligterRolle, string> = {
