@@ -30,8 +30,11 @@ in diesem Projekt gearbeitet wird. Es gilt für alle KI-Agenten und menschlichen
 - **Tests vor Push:** `npm test` (vitest) und `npm run e2e` (Golden Path, headless Chromium).
   Der E2E-Test ist hermetisch — er blockiert Supabase-Requests; das muss so bleiben,
   sonst syncen CI-Läufe Testdaten in die geteilte Demo-Datenbank.
-- **Deploy:** `npm run build` → Inhalt von `dist/` nach `hosting/` kopieren → committen +
-  pushen. GitHub Pages liefert `hosting/` aus. Niemals von Hand in `hosting/` editieren.
+- **Deploy:** `VITE_AUTH_REQUIRED=true npm run build` → Inhalt von `dist/` nach `hosting/`
+  kopieren → committen + pushen. GitHub Pages liefert `hosting/` aus. Niemals von Hand in
+  `hosting/` editieren. **Wichtig:** Das `VITE_AUTH_REQUIRED=true` NICHT weglassen — sonst
+  liefert der Produktions-Build die App ohne Pflicht-Login aus (Zugangssperre wäre offen).
+  Der E2E-/CI-Build nutzt bewusst `npm run build` ohne die Variable (Login aus, hermetisch).
 - **Supabase:** Schema-Änderungen nur additiv als Migration (`ADD COLUMN IF NOT EXISTS`,
   neue Tabellen mit Text-PK, GRANT + RLS-Policy + Realtime-Publication). Seed-/Demo-Daten
   nicht ohne Grund verändern. **Jede neue Migration zusätzlich als Datei nach
