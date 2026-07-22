@@ -3,7 +3,7 @@ import { AnimatePresence, motion, EASE, Modal } from "../ui/motion";
 import { QrCode } from "../ui/QrCode";
 import {
   strombriefHtml, abschlussberichtHtml, projektDossierHtml, aundvHtml, vollmachtHtml,
-  zusatzerklaerungHtml, organschaftHtml, merkblattHochwasserHtml, printHtml,
+  zusatzerklaerungHtml, organschaftHtml, auftragSchadenbeseitigungHtml, einwilligungBefragungHtml, merkblattHochwasserHtml, printHtml,
 } from "../domain/report";
 import { SignaturPad } from "../ui/SignaturPad";
 import { useDB } from "../app/useStore";
@@ -899,6 +899,8 @@ function DokumenteTab({ projektId, kostenSichtbar, benutzerName, userId }: { pro
     else if (typ === "abschlussbericht") printHtml(abschlussberichtHtml(projekt, db));
     else if (typ === "zusatzerklaerung") printHtml(zusatzerklaerungHtml(projekt, db));
     else if (typ === "organschaft") printHtml(organschaftHtml(projekt, db));
+    else if (typ === "auftrag_schadenbeseitigung") printHtml(auftragSchadenbeseitigungHtml(projekt, db));
+    else if (typ === "einwilligung_befragung") printHtml(einwilligungBefragungHtml(projekt));
     else if (typ === "merkblatt_hochwasser") printHtml(merkblattHochwasserHtml(projekt));
   };
 
@@ -921,6 +923,8 @@ function DokumenteTab({ projektId, kostenSichtbar, benutzerName, userId }: { pro
       <div className="btn-row" style={{ marginBottom: 12, flexWrap: "wrap" }}>
         <button className="btn btn-sm" onClick={() => erzeuge("zusatzerklaerung", zusatzerklaerungHtml(projekt, db))}>Zusatzerklärung</button>
         <button className="btn btn-sm" onClick={() => erzeuge("organschaft", organschaftHtml(projekt, db))}>Organschaft</button>
+        <button className="btn btn-sm" onClick={() => erzeuge("auftrag_schadenbeseitigung", auftragSchadenbeseitigungHtml(projekt, db))}>Auftrag Schadenbeseitigung</button>
+        <button className="btn btn-sm" onClick={() => erzeuge("einwilligung_befragung", einwilligungBefragungHtml(projekt))}>Einwilligung Befragung</button>
         <button className="btn btn-sm" onClick={() => erzeuge("merkblatt_hochwasser", merkblattHochwasserHtml(projekt))}>Merkblatt Hochwasser</button>
       </div>
       {dokumente.length === 0 && <p className="muted">Noch keine Dokumente. Abschlussbericht fasst Trocknungsergebnis, Geräteeinsätze und Verbrauch zusammen; der Strombrief listet Einsatzdauer und Stromverbrauch je Gerät.</p>}

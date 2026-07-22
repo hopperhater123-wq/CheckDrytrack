@@ -64,6 +64,8 @@ export type DokumentTyp =
   | "stundenlohnbericht"
   | "zusatzerklaerung"
   | "organschaft"
+  | "auftrag_schadenbeseitigung"
+  | "einwilligung_befragung"
   | "merkblatt_hochwasser"
   | "kva"
   | "strombrief";

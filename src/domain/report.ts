@@ -1247,6 +1247,81 @@ export function organschaftHtml(projekt: Projekt, db: DryTrackDB): string {
   `);
 }
 
+// Auftrag zur Schadenbeseitigung (Alt-System-Hefter, PO-Fotos 22.07.): der VN
+// beauftragt die Versicherung mit der Beseitigung des Schadens; die Versicherung
+// darf Fachfirmen einschalten. Checkboxen/Zeilen werden auf dem Ausdruck vor Ort
+// ausgefüllt und unterschrieben (wie Zusatzerklärung/Organschaft).
+export function auftragSchadenbeseitigungHtml(projekt: Projekt, db: DryTrackDB): string {
+  const versicherung = db.versicherung.find((v) => v.id === projekt.versicherung_id)?.name ?? "die Versicherung";
+  return einfachesDokument("Auftrag zur Schadenbeseitigung", projekt, `
+    <h3>1 · Angaben zum Versicherungsnehmer</h3>
+    <p><b>Name:</b> ${esc(projekt.ansprechpartner ?? "")}${projekt.ansprechpartner ? "" : "<span class='zeile' style='display:inline-block;width:60%'></span>"}<br>
+       <b>Anschrift:</b> ${esc(projekt.adresse)}<br>
+       <b>Telefon (privat und beruflich):</b> ${esc(projekt.telefon ?? "")}</p>
+
+    <h3>2 · Angaben zum Schaden</h3>
+    <p><b>Schadennummer / Vertragsnummer:</b></p><div class="zeile"></div>
+    <p><b>Schadenort:</b> ${esc(projekt.adresse)} · <b>Projektnummer:</b> ${esc(projekt.projektnummer)}</p>
+
+    <h3>3 · Angaben zur Schadenbeseitigung</h3>
+    <p><b>3.1</b> Der Versicherungsnehmer beauftragt ${esc(versicherung)} zu oben genannter
+    Schaden-/Vertragsnummer mit der Beseitigung des Schadens für folgende Arbeiten:</p>
+    <p><span class="check"></span> <b>Trocknung / Demontage</b></p>
+    <p><span class="check"></span> <b>Gebäude</b> (Installation / Wiederherstellung / Reinigung / Entsorgung)</p>
+    <p><span class="check"></span> <b>Hausrat / Inhalt</b> (Reinigung / Entsorgung / Transport und Lagerung)</p>
+    <p><span class="check"></span> <b>nach Angebot Nr.</b></p><div class="zeile"></div>
+    <p><span class="check"></span> <b>Sonstiges</b></p><div class="zeile"></div>
+    <p><b>3.2</b> Der Auftrag zur Schadenbeseitigung gilt <b>nicht</b> für folgende Arbeiten / Gewerke / Positionen des Angebots:</p>
+    <div class="zeile"></div><div class="zeile"></div>
+
+    <p style="margin-top:14px">${esc(versicherung)} ist berechtigt, andere Unternehmen — insbesondere die beauftragte
+    Fachfirma — mit der Schadenbeseitigung zu beauftragen. Änderungen am Auftragsumfang bedürfen eines neuen
+    Auftrags zur Schadenbeseitigung. Soweit die Versicherung die Arbeiten durchführt oder durchführen lässt,
+    erfüllt sie damit insoweit ihre Verpflichtungen aus dem Versicherungsvertrag; ein Anspruch auf Entschädigung
+    in Geld besteht für die unter 3.1 aufgeführten Arbeiten insoweit nicht. Für nicht versicherte Schäden,
+    Leistungen im Rahmen von Selbstbeteiligungen oder nicht im direkten Zusammenhang mit dem Schadenereignis
+    stehende Arbeiten erklärt sich der Versicherungsnehmer damit einverstanden, dass die Fachfirma diese direkt
+    mit ihm abrechnet. Bei der Gesamtabrechnung des Schadens werden die vertraglichen Vereinbarungen
+    (z. B. Selbstbeteiligung) berücksichtigt.</p>
+
+    <div class="sig-grid">
+      <div><div class="sig-linie"></div><div class="sig-label">Ort, Datum · Unterschrift Auftraggeber/Versicherungsnehmer</div></div>
+      <div><div class="sig-linie"></div><div class="sig-label">Ort, Datum · Fachfirma in Vertretung der ${esc(versicherung)}</div></div>
+    </div>
+    <p style="font-size:10px;color:#98a1b0;margin-top:12px">Vorlage nach Alt-System-Muster — Inhalte vor dem Echteinsatz juristisch prüfen.</p>
+  `);
+}
+
+// Einwilligung zur Kundenzufriedenheitsbefragung (DSGVO, Alt-System-Hefter):
+// Information zur Datenverarbeitung + freiwillige, widerrufliche Einwilligung.
+export function einwilligungBefragungHtml(projekt: Projekt): string {
+  return einfachesDokument("Einwilligung Kundenzufriedenheitsbefragung", projekt, `
+    <h3>Informationen zur Datenverarbeitung</h3>
+    <p>Zur kontinuierlichen Verbesserung unseres Services möchten wir nach Abschluss der Arbeiten eine
+    Kundenzufriedenheitsbefragung durchführen. Dazu verarbeiten wir personenbezogene Daten (Name,
+    Telefonnummer, E-Mail-Adresse, Schadennummer, Angaben im Rahmen der Umfrage). Die Befragung erfolgt
+    telefonisch, per E-Mail oder in unserem Auftrag. Rechtsgrundlage ist Ihre freiwillige Einwilligung
+    (Art. 6 Abs. 1 lit. a DSGVO).</p>
+    <p>Ihnen stehen die Betroffenenrechte der Datenschutz-Grundverordnung zu: Auskunft (Art. 15),
+    Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18) und
+    Datenübertragbarkeit (Art. 20 DSGVO). Die Einwilligung kann jederzeit ohne Angabe von Gründen mit
+    Wirkung für die Zukunft widerrufen werden. Zudem besteht ein Beschwerderecht bei der zuständigen
+    Datenschutz-Aufsichtsbehörde.</p>
+
+    <h3>Einwilligung in die Datenverarbeitung zur Kundenzufriedenheitsbefragung</h3>
+    <p><b>Projekt:</b> ${esc(projekt.projektnummer)} · <b>Auftraggeber/Versicherungsnehmer:</b> ${esc(projekt.ansprechpartner ?? "")} · ${esc(projekt.adresse)}</p>
+    <p>Ich erkläre mich mit der Verarbeitung meiner Daten zur Durchführung der oben beschriebenen
+    Kundenzufriedenheitsbefragung einverstanden. Mir ist bewusst, dass ich diese Einwilligung jederzeit
+    mit Wirkung für die Zukunft widerrufen kann.</p>
+    <p style="margin:14px 0"><span class="check"></span> <b>Ja</b> &nbsp;&nbsp; <span class="check"></span> <b>Nein</b></p>
+    <div class="sig-grid">
+      <div><div class="sig-linie"></div><div class="sig-label">Ort, Datum · Unterschrift des Auftraggebers/Versicherungsnehmers</div></div>
+      <div></div>
+    </div>
+    <p style="font-size:10px;color:#98a1b0;margin-top:12px">Vorlage nach Alt-System-Muster — Inhalte (inkl. verantwortliche Stelle/Datenschutzbeauftragter) vor dem Echteinsatz juristisch prüfen und ergänzen.</p>
+  `);
+}
+
 // Merkblatt für Überschwemmungs- und Hochwasserschäden mit Empfangsbestätigung.
 export function merkblattHochwasserHtml(projekt: Projekt): string {
   return einfachesDokument("Merkblatt für Überschwemmungs- und Hochwasserschäden", projekt, `
