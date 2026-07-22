@@ -114,7 +114,7 @@ class Store {
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messpunkt: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
-      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [], erstbericht: [], gefaehrdungsbeurteilung: [],
+      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [], erstbericht: [], gefaehrdungsbeurteilung: [], schadenmeldung: [],
       termin: [], trocknungsergebnis: [], firmen_einstellung: [], beteiligter: [], ursache_eintrag: [],
       massnahme: [],
     };
@@ -854,6 +854,23 @@ class Store {
       }
       const p = db.projekt.find((x) => x.id === projekt_id);
       if (p) p.gefaehrdungsbeurteilung_abgeschlossen = true;
+    });
+  }
+
+  /** Schadenmeldung speichern (eine je Projekt, Upsert) — der Meldeweg vor dem Erstbericht. */
+  upsertSchadenmeldung(projekt_id: string, daten: Omit<import("./types").Schadenmeldung, "id" | "projekt_id" | "erstellt_von" | "erstellt_am">, autor_id: string) {
+    this.commit((db) => {
+      const bestehend = db.schadenmeldung.find((s) => s.projekt_id === projekt_id);
+      if (bestehend) {
+        Object.assign(bestehend, daten);
+      } else {
+        db.schadenmeldung.push({
+          id: uid("sm"), projekt_id, ...daten,
+          erstellt_von: autor_id, erstellt_am: new Date().toISOString(),
+        });
+        db.feed_eintrag.push(autoFeed(projekt_id, null, "manuell", autor_id,
+          "Schadenmeldung erfasst (Hergang, Wohnungen, externe Nummern).", "dispo"));
+      }
     });
   }
 

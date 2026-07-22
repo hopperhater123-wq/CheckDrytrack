@@ -5,7 +5,7 @@ import { useSession } from "../app/session";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
-import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, erstberichtHtml, gefaehrdungsbeurteilungHtml, printHtml } from "../domain/report";
+import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, erstberichtHtml, gefaehrdungsbeurteilungHtml, schadenmeldungHtml, printHtml } from "../domain/report";
 import { ABNAHME_STATUS_LABEL, BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL, GB_BT_TAETIGKEITEN, GB_STOFFE, GB_SCHUTZ } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
 import { Icon } from "../ui/Icon";
@@ -53,6 +53,8 @@ export function BerichteTab({ projektId, userId }: { projektId: string; userId: 
 
   return (
     <>
+      <SchadenmeldungCard projektId={projektId} userId={userId} />
+
       <ErstberichtCard projektId={projektId} userId={userId} />
 
       <GefaehrdungsbeurteilungCard projektId={projektId} userId={userId} />
@@ -1217,6 +1219,127 @@ function GbForm({ projektId, userId, onClose }: { projektId: string; userId: str
         datum: new Date().toISOString().slice(0, 10), bearbeiter: benutzer?.name ?? "", asbest: null,
         bt_taetigkeiten: [], stoffe: [], schutz: [], notiz: null,
       }])}><Icon name="plus" size={14} /> Neubewertung</button>
+
+      <div className="modal-actions">
+        <button className="btn" onClick={onClose}>Abbrechen</button>
+        <button className="btn btn-primary" onClick={speichern}>Speichern</button>
+      </div>
+    </Modal>
+  );
+}
+
+// --- Schadenmeldung (GWG-/Wohnungswirtschafts-Vorlage, PO-Fotos 22.07.) -------
+// Der Meldeweg VOR dem Erstbericht: wer hat wann was gemeldet, welche Wohnung
+// verursacht, welche sind geschädigt. Eine je Projekt (Upsert).
+
+const LEERE_WOHNUNG: import("../domain/types").SmWohnung = { nr: "", lage: "", mieter: "", telefon: "" };
+
+function SchadenmeldungCard({ projektId, userId }: { projektId: string; userId: string }) {
+  const db = useDB();
+  const [offen, setOffen] = useState(false);
+  const projekt = db.projekt.find((p) => p.id === projektId);
+  const sm = db.schadenmeldung.find((s) => s.projekt_id === projektId);
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Schadenmeldung</h2>
+        <div className="btn-row">
+          {sm && projekt && (
+            <button className="btn btn-sm" onClick={() => printHtml(schadenmeldungHtml(sm, projekt, db))}>
+              <Icon name="fileText" size={14} /> PDF
+            </button>
+          )}
+          <button className="btn btn-sm btn-primary" onClick={() => setOffen(true)}>{sm ? "Bearbeiten" : "+ Schadenmeldung"}</button>
+        </div>
+      </div>
+      {sm
+        ? <p className="muted small">
+            {sm.schadenart ? `${sm.schadenart} · ` : ""}eingetreten {sm.eintritt_datum ? fmtDatum(sm.eintritt_datum) : "—"}
+            {sm.geschaedigte_wohnungen?.length ? ` · ${sm.geschaedigte_wohnungen.length} geschädigte Wohnung(en)` : ""}
+            {sm.nur_ursache_klaeren ? " · ⚠ nur Ursache klären (Gewährleistung)" : ""}
+          </p>
+        : <p className="muted">Wie kam der Schaden herein? Hergang, externe Nummern (Schaden-/Vertrags-/Auftragsnummer), verursachende und geschädigte Wohnungen mit Mieter-Kontakten.</p>}
+      <AnimatePresence>{offen && <SchadenmeldungForm projektId={projektId} userId={userId} onClose={() => setOffen(false)} />}</AnimatePresence>
+    </section>
+  );
+}
+
+function SmWohnungFelder({ titel, w, onChange, onRemove }: {
+  titel: string; w: import("../domain/types").SmWohnung;
+  onChange: (w: import("../domain/types").SmWohnung) => void; onRemove?: () => void;
+}) {
+  return (
+    <div style={{ border: "1px solid var(--hairline)", borderRadius: 10, padding: "8px 12px", marginBottom: 8 }}>
+      <div className="card-head"><h3 style={{ margin: 0 }}>{titel}</h3>
+        {onRemove && <button className="iconbtn" onClick={onRemove} aria-label="Wohnung entfernen"><Icon name="trash" size={14} /></button>}
+      </div>
+      <div className="two-col">
+        <label className="field"><span>Whg-Nr.</span>
+          <input value={w.nr} onChange={(e) => onChange({ ...w, nr: e.target.value })} placeholder="z. B. 083" /></label>
+        <label className="field"><span>Lage</span>
+          <input value={w.lage} onChange={(e) => onChange({ ...w, lage: e.target.value })} placeholder="z. B. 1. OG rechts" /></label>
+      </div>
+      <div className="two-col">
+        <label className="field"><span>Mieter</span>
+          <input value={w.mieter} onChange={(e) => onChange({ ...w, mieter: e.target.value })} /></label>
+        <label className="field"><span>Telefon</span>
+          <input value={w.telefon} onChange={(e) => onChange({ ...w, telefon: e.target.value })} /></label>
+      </div>
+    </div>
+  );
+}
+
+function SchadenmeldungForm({ projektId, userId, onClose }: { projektId: string; userId: string; onClose: () => void }) {
+  const db = useDB();
+  const vorhanden = db.schadenmeldung.find((s) => s.projekt_id === projektId);
+  type Werte = Omit<import("../domain/types").Schadenmeldung, "id" | "projekt_id" | "erstellt_von" | "erstellt_am">;
+  const [w, setW] = useState<Werte>(() => vorhanden ? { ...vorhanden, verursachende_wohnung: { ...LEERE_WOHNUNG, ...vorhanden.verursachende_wohnung } } : {
+    schadenart: null, schadennummer: null, vertragsnummer: null, auftragsnummer: null,
+    eintritt_datum: null, gemeldet_am: new Date().toISOString().slice(0, 10), meldeweg: null,
+    hergang: null, verursachende_wohnung: { ...LEERE_WOHNUNG }, geschaedigte_wohnungen: [],
+    hausrat_info: null, nur_ursache_klaeren: false, sonstiges: null,
+  });
+  const set = <K extends keyof Werte>(k: K, v: Werte[K]) => setW((x) => ({ ...x, [k]: v }));
+  const txt = (label: string, k: keyof Werte, platz = "") => (
+    <label className="field"><span>{label}</span>
+      <input value={(w[k] as string | null) ?? ""} onChange={(e) => set(k, (e.target.value || null) as never)} placeholder={platz} />
+    </label>
+  );
+  const speichern = () => { store.upsertSchadenmeldung(projektId, w, userId); onClose(); };
+
+  return (
+    <Modal onClose={onClose}>
+      <h2>Schadenmeldung</h2>
+      <div className="two-col">{txt("Schadenart", "schadenart", "z. B. Leitungswasser / Trocknung")}{txt("Schadennummer", "schadennummer")}</div>
+      <div className="two-col">{txt("Versicherungsschein-/Vertragsnummer", "vertragsnummer")}{txt("Auftragsnummer (extern)", "auftragsnummer")}</div>
+      <div className="two-col">
+        <label className="field"><span>Schaden eingetreten am</span>
+          <input type="date" value={w.eintritt_datum ?? ""} onChange={(e) => set("eintritt_datum", e.target.value || null)} /></label>
+        <label className="field"><span>Gemeldet am</span>
+          <input type="date" value={w.gemeldet_am ?? ""} onChange={(e) => set("gemeldet_am", e.target.value || null)} /></label>
+      </div>
+      {txt("Meldeweg", "meldeweg", 'z. B. "Ticket 64-260629-00359 durch Hausmeister"')}
+      <label className="field"><span>Was genau ist passiert / was wurde beschädigt?</span>
+        <textarea rows={3} value={w.hergang ?? ""} onChange={(e) => set("hergang", e.target.value || null)}
+          placeholder="z. B. Schlauch zur Eiswürfelmaschine geplatzt; Wohnung darunter ebenfalls betroffen." />
+      </label>
+
+      <SmWohnungFelder titel="Schaden-verursachende Wohnung" w={w.verursachende_wohnung}
+        onChange={(x) => set("verursachende_wohnung", x)} />
+      {w.geschaedigte_wohnungen.map((gw, i) => (
+        <SmWohnungFelder key={i} titel={`Geschädigte Wohnung ${i + 1}`} w={gw}
+          onChange={(x) => set("geschaedigte_wohnungen", w.geschaedigte_wohnungen.map((y, j) => (j === i ? x : y)))}
+          onRemove={() => set("geschaedigte_wohnungen", w.geschaedigte_wohnungen.filter((_, j) => j !== i))} />
+      ))}
+      <button className="btn btn-sm" style={{ marginBottom: 10 }} onClick={() => set("geschaedigte_wohnungen", [...w.geschaedigte_wohnungen, { ...LEERE_WOHNUNG }])}>
+        <Icon name="plus" size={14} /> Geschädigte Wohnung
+      </button>
+
+      <label className="toggle">
+        <input type="checkbox" checked={w.nur_ursache_klaeren} onChange={(e) => set("nur_ursache_klaeren", e.target.checked)} />
+        Gewährleistung: vorerst NUR Schadenursache ermitteln und an den Auftraggeber zurückmelden
+      </label>
+      {txt("Hausrat-/Haftpflichtversicherung der Mieter/Eigentümer", "hausrat_info")}
+      {txt("Sonstige Informationen", "sonstiges", "z. B. Aktenzeichen bei Aufnahme durch Polizei")}
 
       <div className="modal-actions">
         <button className="btn" onClick={onClose}>Abbrechen</button>

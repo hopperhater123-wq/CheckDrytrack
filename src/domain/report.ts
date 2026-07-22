@@ -1247,6 +1247,43 @@ export function organschaftHtml(projekt: Projekt, db: DryTrackDB): string {
   `);
 }
 
+// Schadenmeldung (GWG-/Wohnungswirtschafts-Vorlage, PO-Fotos 22.07.): der Meldeweg
+// vor dem Erstbericht — Hergang, verursachende vs. geschädigte Wohnung(en), Nummern.
+export function schadenmeldungHtml(m: import("./types").Schadenmeldung, projekt: Projekt, db: DryTrackDB): string {
+  const vs = db.versicherung.find((v) => v.id === projekt.versicherung_id)?.name ?? "—";
+  const d = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("de-DE") : "—");
+  const absatz = (t: string) => esc(t).replace(/\n/g, "<br>");
+  const wohnung = (w: import("./types").SmWohnung) =>
+    [w.nr && `Whg-Nr. ${w.nr}`, w.lage, w.mieter, w.telefon].filter(Boolean).map(esc).join(" · ") || "—";
+  return einfachesDokument("Schadenmeldung", projekt, `
+    <h3>Allgemeines</h3>
+    <dl class="facts" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;margin:6px 0">
+      <div><dt>Schadenart</dt><dd>${esc(m.schadenart ?? "—")}</dd></div>
+      <div><dt>Versicherung</dt><dd>${esc(vs)}</dd></div>
+      <div><dt>Schadennummer</dt><dd>${esc(m.schadennummer ?? "—")}</dd></div>
+      <div><dt>Versicherungsschein-/Vertragsnummer</dt><dd>${esc(m.vertragsnummer ?? "—")}</dd></div>
+      <div><dt>Auftragsnummer</dt><dd>${esc(m.auftragsnummer ?? "—")}</dd></div>
+      <div><dt>Projektnummer</dt><dd>${esc(projekt.projektnummer)}</dd></div>
+      <div><dt>Schadenort</dt><dd>${esc(projekt.adresse)}</dd></div>
+      <div><dt>Ansprechpartner vor Ort</dt><dd>${esc(projekt.ansprechpartner ?? "—")}${projekt.telefon ? ` · ${esc(projekt.telefon)}` : ""}</dd></div>
+      <div><dt>Schaden eingetreten am</dt><dd>${d(m.eintritt_datum)}</dd></div>
+      <div><dt>Gemeldet am / Meldeweg</dt><dd>${d(m.gemeldet_am)}${m.meldeweg ? ` · ${esc(m.meldeweg)}` : ""}</dd></div>
+    </dl>
+
+    <h3>Schadenursache / -hergang</h3>
+    <div class="text">${absatz(m.hergang ?? "—")}</div>
+    <p><b>Schaden-verursachende Wohnung:</b> ${wohnung(m.verursachende_wohnung)}</p>
+    ${(m.geschaedigte_wohnungen ?? []).map((w, i) => `<p><b>Geschädigte Wohnung ${i + 1}:</b> ${wohnung(w)}</p>`).join("")}
+
+    ${m.nur_ursache_klaeren ? `<p style="border:1.5px solid #0E7C86;border-radius:8px;padding:8px 12px"><b>Hinweis Gewährleistung:</b>
+      In diesem Objekt bestehen Gewährleistungsansprüche. Bitte vorerst lediglich die Schadenursache ermitteln und an den
+      Auftraggeber zurückmelden — der Auftraggeber prüft dann, ob die Schadenbeseitigung durch uns oder die bauausführende
+      Firma erfolgt.</p>` : ""}
+    ${m.hausrat_info ? `<p><b>Hausrat-/Haftpflichtversicherung der Mieter/Eigentümer:</b> ${esc(m.hausrat_info)}</p>` : ""}
+    ${m.sonstiges ? `<p><b>Sonstige Informationen:</b> ${esc(m.sonstiges)}</p>` : ""}
+  `);
+}
+
 // Auftrag zur Schadenbeseitigung (Alt-System-Hefter, PO-Fotos 22.07.): der VN
 // beauftragt die Versicherung mit der Beseitigung des Schadens; die Versicherung
 // darf Fachfirmen einschalten. Checkboxen/Zeilen werden auf dem Ausdruck vor Ort
@@ -1269,6 +1306,8 @@ export function auftragSchadenbeseitigungHtml(projekt: Projekt, db: DryTrackDB):
     <p><span class="check"></span> <b>Trocknung / Demontage</b></p>
     <p><span class="check"></span> <b>Gebäude</b> (Installation / Wiederherstellung / Reinigung / Entsorgung)</p>
     <p><span class="check"></span> <b>Hausrat / Inhalt</b> (Reinigung / Entsorgung / Transport und Lagerung)</p>
+    <p><span class="check"></span> <b>Messtechnik</b> (Feuchtigkeitsmessung)</p>
+    <p><span class="check"></span> <b>Einbruch</b> (Beseitigung Einbruchschaden)</p>
     <p><span class="check"></span> <b>nach Angebot Nr.</b></p><div class="zeile"></div>
     <p><span class="check"></span> <b>Sonstiges</b></p><div class="zeile"></div>
     <p><b>3.2</b> Der Auftrag zur Schadenbeseitigung gilt <b>nicht</b> für folgende Arbeiten / Gewerke / Positionen des Angebots:</p>

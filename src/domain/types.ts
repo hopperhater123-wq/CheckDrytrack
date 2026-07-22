@@ -604,6 +604,30 @@ export interface Gefaehrdungsbeurteilung {
   erstellt_am: string;
 }
 
+// Schadenmeldung (GWG-/Wohnungswirtschafts-Vorlage, PO-Fotos 22.07.): der Meldeweg
+// VOR dem Erstbericht — wer hat wann was gemeldet, welche Wohnung verursacht,
+// welche sind geschädigt. Eine je Projekt, Upsert.
+export interface SmWohnung { nr: string; lage: string; mieter: string; telefon: string }
+export interface Schadenmeldung {
+  id: string;
+  projekt_id: string;
+  schadenart: string | null; // z. B. "40 Maler/Gipser Trock"
+  schadennummer: string | null;
+  vertragsnummer: string | null; // Versicherungsschein-/Vertragsnummer
+  auftragsnummer: string | null; // z. B. BTS-/interne Auftragsnummer
+  eintritt_datum: string | null; // wann ist der Schaden eingetreten
+  gemeldet_am: string | null;
+  meldeweg: string | null; // z. B. "Ticket 64-260629-00359 durch Hausmeister"
+  hergang: string | null; // was genau ist passiert / was wurde beschädigt
+  verursachende_wohnung: SmWohnung;
+  geschaedigte_wohnungen: SmWohnung[];
+  hausrat_info: string | null; // Hausrat-/Haftpflichtversicherung der Mieter/Eigentümer
+  nur_ursache_klaeren: boolean; // Gewährleistung: erst Ursache ermitteln + zurückmelden!
+  sonstiges: string | null;
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 // Kundenzufriedenheit (Alt-System): Bewertung der Leistung durch den Kunden (1–5) + Unterschrift.
 export interface Kundenzufriedenheit {
   id: string;
@@ -686,6 +710,7 @@ export interface DryTrackDB {
   notdiensteinsatzbericht: Notdiensteinsatzbericht[];
   erstbericht: Erstbericht[];
   gefaehrdungsbeurteilung: Gefaehrdungsbeurteilung[];
+  schadenmeldung: Schadenmeldung[];
   stundenlohnbericht: Stundenlohnbericht[];
   termin: Termin[];
   trocknungsergebnis: Trocknungsergebnis[];
