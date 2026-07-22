@@ -93,6 +93,11 @@ export const MESSANLASS_LABEL: Record<Messanlass, string> = {
   eingangsmessung: "Eingangsmessung", freimessung: "Freimessung",
 };
 
+// Kontrolltermin-Entscheidung (F8): das Gate am Ende von „in 2 Wochen schauen".
+export const KONTROLL_ERGEBNIS_LABEL: Record<import("../domain/types").KontrollErgebnis, string> = {
+  erfolg: "Erfolg — trocken", verlaengern: "Verlängern", methode_aendern: "Methode ändern",
+};
+
 export const DOKUMENT_TYP_LABEL: Record<DokumentTyp, string> = {
   messprotokoll: "Messprotokoll", schadensaufnahme_doku: "Schadensaufnahme-Doku", erstbericht: "Erstbericht",
   abschlussbericht: "Abschlussbericht", abnahmeprotokoll: "Abnahmeprotokoll",

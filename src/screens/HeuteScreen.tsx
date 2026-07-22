@@ -6,8 +6,10 @@ import { useNav } from "../app/nav";
 import { store } from "../domain/store";
 import { Icon } from "../ui/Icon";
 import { spiele } from "../ui/sound";
-import { MITNEHMEN_LABEL } from "../app/labels";
+import { MITNEHMEN_LABEL, KONTROLL_ERGEBNIS_LABEL } from "../app/labels";
 import { briefingStatus, hatBriefing } from "../domain/termin";
+import { KontrollGate, brauchtKontrollGate } from "./KontrollGate";
+import { AnimatePresence } from "../ui/motion";
 import type { Termin } from "../domain/types";
 
 // „Mein Tag" — Startpunkt des Monteurs. Der Tag ist die Route: Termine in
@@ -23,6 +25,7 @@ export function HeuteScreen() {
   const { user } = useSession();
   const nav = useNav();
   const [nurMeine, setNurMeine] = useState(user.rolle === "monteur");
+  const [gateFuer, setGateFuer] = useState<Termin | null>(null); // Kontroll-Entscheidung (F8)
 
   const heute = new Date();
   const heuteIso = isoTag(heute);
@@ -87,7 +90,11 @@ export function HeuteScreen() {
                   <span className="tour-uhr">{t.uhrzeit ?? "—"}</span>
                   <button
                     className={`termin-check${t.erledigt ? " on" : ""}`}
-                    onClick={() => { store.setTerminErledigt(t.id, !t.erledigt); if (!t.erledigt) spiele("tick"); }}
+                    onClick={() => {
+                      // Kontrolltermin (F8): erst entscheiden, dann Häkchen.
+                      if (!t.erledigt && brauchtKontrollGate(t)) { setGateFuer(t); return; }
+                      store.setTerminErledigt(t.id, !t.erledigt); if (!t.erledigt) spiele("tick");
+                    }}
                     aria-label={t.erledigt ? "Als offen markieren" : "Als erledigt markieren"}
                   >
                     {t.erledigt && <Icon name="check" size={13} />}
@@ -100,7 +107,18 @@ export function HeuteScreen() {
                       <span className="muted small">{p ? `${p.projektnummer} · ${p.bezeichnung}` : "Projekt?"}</span>
                     </div>
                     {t.mitarbeiter_id === null && <span className="chip small chip-warn">nicht zugewiesen</span>}
+                    {t.kontrolle && (
+                      t.kontrolle_ergebnis
+                        ? <span className="chip small chip-neutral">{KONTROLL_ERGEBNIS_LABEL[t.kontrolle_ergebnis]}</span>
+                        : <span className="chip small chip-warn">Kontrolle</span>
+                    )}
                   </div>
+                  {/* Besuch hat den Termin geschlossen, Entscheidung fehlt noch → nachholen */}
+                  {t.erledigt && brauchtKontrollGate(t) && (
+                    <button className="btn btn-sm" style={{ marginTop: 8 }} onClick={() => setGateFuer(t)}>
+                      Kontrolle entscheiden (Erfolg / verlängern / Methode)
+                    </button>
+                  )}
 
                   {/* Auftrags-Briefing (F1): was das Büro vorgibt — vor der Abfahrt sichtbar. */}
                   <BriefingBlock termin={t} />
@@ -151,6 +169,8 @@ export function HeuteScreen() {
           })}
         </section>
       )}
+
+      <AnimatePresence>{gateFuer && <KontrollGate termin={gateFuer} userId={user.id} onClose={() => setGateFuer(null)} />}</AnimatePresence>
     </div>
   );
 }

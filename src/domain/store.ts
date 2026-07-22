@@ -852,6 +852,7 @@ class Store {
   addTermin(params: {
     projekt_id: string; datum: string; uhrzeit: string | null; mitarbeiter_id: string | null;
     beschreibung: string; erstellt_von: string; briefing?: string | null; mitnehmen?: string[];
+    kontrolle?: boolean;
   }) {
     this.commit((db) => {
       const jetzt = new Date().toISOString();
@@ -862,6 +863,7 @@ class Store {
         erledigt: false,
         briefing: params.briefing?.trim() || null, mitnehmen: params.mitnehmen ?? [],
         briefing_stand: hatBriefing ? jetzt : null, briefing_quittiert: null,
+        kontrolle: params.kontrolle ?? false, kontrolle_ergebnis: null, kontrolle_notiz: null,
         erstellt_von: params.erstellt_von, erstellt_am: jetzt,
       });
     });
@@ -871,6 +873,23 @@ class Store {
     this.commit((db) => {
       const t = db.termin.find((x) => x.id === termin_id);
       if (t) t.erledigt = erledigt;
+    });
+  }
+
+  /** Kontrolltermin entscheiden (F8): Erfolg / verlängern / Methode ändern.
+   *  Schließt den Termin und protokolliert die Entscheidung im Projekt-Feed. */
+  setKontrollErgebnis(params: { termin_id: string; ergebnis: import("./types").KontrollErgebnis; notiz?: string; autor_id: string }) {
+    this.commit((db) => {
+      const t = db.termin.find((x) => x.id === params.termin_id);
+      if (!t) return;
+      t.erledigt = true;
+      t.kontrolle_ergebnis = params.ergebnis;
+      t.kontrolle_notiz = params.notiz?.trim() || null;
+      const label = params.ergebnis === "erfolg" ? "Erfolg — Freimessung/Abbau planen"
+        : params.ergebnis === "verlaengern" ? "Trocknung verlängern"
+        : "Methode ändern";
+      db.feed_eintrag.push(autoFeed(t.projekt_id, null, "manuell", params.autor_id,
+        `Kontrolltermin entschieden: ${label}${params.notiz?.trim() ? ` — ${params.notiz.trim()}` : ""}.`, "dispo"));
     });
   }
 

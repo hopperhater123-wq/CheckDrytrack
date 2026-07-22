@@ -895,6 +895,13 @@ textarea:focus { outline: none; border-color: var(--accent); background: var(--s
 .befund-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .befund-gruppe { font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--muted); margin: 10px 0 6px; }
+
+/* Kontrolltermin-Entscheidungs-Gate (F8) */
+.kontroll-optionen { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.kontroll-option { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 11px 14px;
+  border: 1px solid var(--hairline); border-radius: 10px; background: var(--surface); cursor: pointer; }
+.kontroll-option:hover { border-color: var(--accent); }
+.kontroll-titel { font-weight: 700; color: var(--text); }
 .befund-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px;
   border: 1px solid var(--hairline); background: var(--surface); font-size: 0.82rem; font-weight: 600; color: var(--text); cursor: pointer; }
 .befund-chip.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }

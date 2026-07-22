@@ -404,9 +404,15 @@ export interface Termin {
   mitnehmen?: string[]; // Schlüssel aus MITNEHMEN_OPTIONEN (z. B. "ausweis")
   briefing_stand?: string | null; // ISO-Zeitpunkt der letzten Büro-Änderung
   briefing_quittiert?: string | null; // ISO-Zeitpunkt „vom Monteur zur Kenntnis genommen"
+  // Kontrolltermin mit Entscheidungs-Gate (F8): „in 2 Wochen schauen" ist kein
+  // Merkzettel im Kopf — beim Erledigen ist eine Entscheidung fällig.
+  kontrolle?: boolean;
+  kontrolle_ergebnis?: KontrollErgebnis | null;
+  kontrolle_notiz?: string | null;
   erstellt_von: string;
   erstellt_am: string;
 }
+export type KontrollErgebnis = "erfolg" | "verlaengern" | "methode_aendern";
 
 // Besuchsbericht mit Stundennachweis (Alt-System-Analyse 13.07.2026, Backlog ①).
 export interface Besuchsbericht {

@@ -5,8 +5,9 @@ import { useSession } from "../app/session";
 import { useNav } from "../app/nav";
 import { store } from "../domain/store";
 import { Icon } from "../ui/Icon";
-import { MITNEHMEN_OPTIONEN, BEFUND_KAT_MAP, befundBereich } from "../app/labels";
+import { MITNEHMEN_OPTIONEN, BEFUND_KAT_MAP, befundBereich, KONTROLL_ERGEBNIS_LABEL } from "../app/labels";
 import { briefingStatus, hatBriefing } from "../domain/termin";
+import { KontrollGate, brauchtKontrollGate } from "./KontrollGate";
 import type { Termin } from "../domain/types";
 
 // Termin-Wochenansicht (Alt-System "Terminübersicht", Backlog ③).
@@ -100,7 +101,7 @@ export function TermineScreen() {
               {tagIso === heuteIso && <span className="chip small">Heute</span>}
             </div>
             {termine.length === 0 && <p className="muted small" style={{ margin: 0 }}>Keine Termine.</p>}
-            {termine.map((t) => <TerminZeile key={t.id} termin={t} projektNr={projekt(t.projekt_id)?.projektnummer} projektName={projekt(t.projekt_id)?.bezeichnung} mitarbeiter={mitarbeiter(t.mitarbeiter_id)} onOpen={() => nav({ name: "projekt", id: t.projekt_id })} onBriefing={darfBriefing ? () => setBriefingFuer(t) : undefined} />)}
+            {termine.map((t) => <TerminZeile key={t.id} termin={t} projektNr={projekt(t.projekt_id)?.projektnummer} projektName={projekt(t.projekt_id)?.bezeichnung} mitarbeiter={mitarbeiter(t.mitarbeiter_id)} userId={user.id} onOpen={() => nav({ name: "projekt", id: t.projekt_id })} onBriefing={darfBriefing ? () => setBriefingFuer(t) : undefined} />)}
           </motion.section>
         );
       })}
@@ -200,15 +201,21 @@ function PlantafelZeile({ zeile, tagIsos, heuteIso, zelle, ueber, setUeber, able
   );
 }
 
-function TerminZeile({ termin, projektNr, projektName, mitarbeiter, onOpen, onBriefing }: {
-  termin: Termin; projektNr?: string; projektName?: string; mitarbeiter: string | null; onOpen: () => void; onBriefing?: () => void;
+function TerminZeile({ termin, projektNr, projektName, mitarbeiter, userId, onOpen, onBriefing }: {
+  termin: Termin; projektNr?: string; projektName?: string; mitarbeiter: string | null; userId: string; onOpen: () => void; onBriefing?: () => void;
 }) {
   const status = briefingStatus(termin);
+  const [gate, setGate] = useState(false);
+  // Kontrolltermin (F8): das Häkchen führt zum Entscheidungs-Gate statt still zu schließen.
+  const abhaken = () => {
+    if (!termin.erledigt && brauchtKontrollGate(termin)) { setGate(true); return; }
+    store.setTerminErledigt(termin.id, !termin.erledigt);
+  };
   return (
     <motion.div layout className={`termin${termin.erledigt ? " erledigt" : ""}`}>
       <button
         className={`termin-check${termin.erledigt ? " on" : ""}`}
-        onClick={() => store.setTerminErledigt(termin.id, !termin.erledigt)}
+        onClick={abhaken}
         aria-label={termin.erledigt ? "Als offen markieren" : "Als erledigt markieren"}
       >
         {termin.erledigt && <Icon name="check" size={13} />}
@@ -219,6 +226,11 @@ function TerminZeile({ termin, projektNr, projektName, mitarbeiter, onOpen, onBr
           <b>{termin.beschreibung}</b>
           <span className="muted small">{projektNr} · {projektName}{mitarbeiter ? ` · ${mitarbeiter}` : " · nicht zugewiesen"}</span>
         </span>
+        {termin.kontrolle && (
+          termin.kontrolle_ergebnis
+            ? <span className="chip small chip-neutral" title="Kontroll-Entscheidung">{KONTROLL_ERGEBNIS_LABEL[termin.kontrolle_ergebnis]}</span>
+            : <span className="chip small chip-warn" title="Kontrolltermin — Entscheidung fällig">Kontrolle</span>
+        )}
         {hatBriefing(termin) && (
           <span className={`chip small ${status === "aktuell" ? "chip-neutral" : "chip-warn"}`} title="Auftrags-Briefing hinterlegt">
             {status === "neu" ? "neu" : status === "geaendert" ? "geändert" : status === "aktuell" ? "gesehen" : "Auftrag"}
@@ -226,9 +238,14 @@ function TerminZeile({ termin, projektNr, projektName, mitarbeiter, onOpen, onBr
         )}
         <Icon name="chevronRight" size={16} />
       </button>
+      {/* Termin schon zu (z. B. via Besuch), aber Entscheidung offen → nachholen */}
+      {termin.erledigt && brauchtKontrollGate(termin) && (
+        <button className="btn btn-sm" onClick={() => setGate(true)}>Entscheiden</button>
+      )}
       {onBriefing && (
         <button className="iconbtn" onClick={onBriefing} title="Auftrag/Briefing bearbeiten" aria-label="Auftrag bearbeiten"><Icon name="pen" size={15} /></button>
       )}
+      <AnimatePresence>{gate && <KontrollGate termin={termin} userId={userId} onClose={() => setGate(false)} />}</AnimatePresence>
     </motion.div>
   );
 }
@@ -245,6 +262,7 @@ function TerminForm({ userId, rolle, onClose }: { userId: string; rolle: string;
   const [beschreibung, setBeschreibung] = useState("");
   const [briefing, setBriefing] = useState("");
   const [mitnehmen, setMitnehmen] = useState<string[]>([]);
+  const [kontrolle, setKontrolle] = useState(false); // F8: Entscheidungs-Gate beim Erledigen
 
   const gueltig = projektId && datum && beschreibung.trim() && mitarbeiterId;
   const speichern = () => {
@@ -252,7 +270,7 @@ function TerminForm({ userId, rolle, onClose }: { userId: string; rolle: string;
     store.addTermin({
       projekt_id: projektId, datum, uhrzeit: uhrzeit || null,
       mitarbeiter_id: mitarbeiterId || null, beschreibung: beschreibung.trim(), erstellt_von: userId,
-      briefing: briefing.trim() || null, mitnehmen,
+      briefing: briefing.trim() || null, mitnehmen, kontrolle,
     });
     onClose();
   };
@@ -282,6 +300,11 @@ function TerminForm({ userId, rolle, onClose }: { userId: string; rolle: string;
         {!mitarbeiterId && <p className="muted small" style={{ margin: "-4px 0 8px" }}>Wer fährt hin? Die Person bekommt den Termin in ihre Wochentafel.</p>}
         <label className="field"><span>Was ist zu tun? *</span>
           <input value={beschreibung} onChange={(e) => setBeschreibung(e.target.value)} placeholder="z. B. TRO Abbau / WH aufnehmen" />
+        </label>
+
+        <label className="toggle" style={{ marginBottom: 10 }}>
+          <input type="checkbox" checked={kontrolle} onChange={(e) => setKontrolle(e.target.checked)} />
+          Kontrolltermin — beim Erledigen ist eine Entscheidung fällig (Erfolg / verlängern / Methode ändern)
         </label>
 
         <BriefingFelder briefing={briefing} setBriefing={setBriefing} mitnehmen={mitnehmen} setMitnehmen={setMitnehmen} />
