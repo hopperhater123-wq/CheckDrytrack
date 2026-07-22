@@ -25,7 +25,7 @@ describe("erzeugePositionsvorschlaege", () => {
     db.leistungsposition.push({
       id: "lp-x", projekt_id: "p-1", gewerk: "Trocknung", artikel_nr: null,
       kurztext: "Raum-Trocknung", langtext: null, raum_id: "r-1", einheit: "Stck",
-      aufmass_zeilen: [], menge: 1, bemerkung: null, erstellt_von: "u-dispo", erstellt_am: "x",
+      aufmass_zeilen: [], menge: 1, einzelpreis: null, bemerkung: null, erstellt_von: "u-dispo", erstellt_am: "x",
     });
     const kuerzel = erzeugePositionsvorschlaege(db, "p-1").map((x) => `${x.kurztext}@${x.raum_id}`);
     expect(kuerzel).not.toContain("Raum-Trocknung@r-1");

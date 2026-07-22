@@ -5,7 +5,8 @@ import { useSession } from "../app/session";
 import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
-import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, erstberichtHtml, gefaehrdungsbeurteilungHtml, schadenmeldungHtml, positionsauflistungHtml, printHtml } from "../domain/report";
+import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, erstberichtHtml, gefaehrdungsbeurteilungHtml, schadenmeldungHtml, positionsauflistungHtml, kvaHtml, printHtml } from "../domain/report";
+import { euro, kvaSummen, positionsGesamt, preisVorschlag } from "../domain/kva";
 import { ABNAHME_STATUS_LABEL, BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL, GB_BT_TAETIGKEITEN, GB_STOFFE, GB_SCHUTZ, LEISTUNGSKATALOG } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
 import { berechneAufmass, summeAufmass } from "../domain/aufmass";
@@ -1369,6 +1370,9 @@ function PositionsauflistungCard({ projektId, userId }: { projektId: string; use
   const positionen = db.leistungsposition.filter((p) => p.projekt_id === projektId);
   const gewerke = [...new Set(positionen.map((p) => p.gewerk || "Sonstiges"))];
   const [vorschlagInfo, setVorschlagInfo] = useState<string | null>(null);
+  // KVA-Modul (PO 22.07.2026): Preise sieht/pflegt nur das Büro — der Monteur nicht.
+  const darfPreise = (db.benutzer.find((u) => u.id === userId)?.rolle ?? "monteur") !== "monteur";
+  const summen = kvaSummen(positionen);
   // Regelbasierter Vorschlag (kein Automatismus): ergänzt nur, überschreibt nichts.
   const vorschlagen = () => {
     const v = erzeugePositionsvorschlaege(db, projektId);
@@ -1386,13 +1390,19 @@ function PositionsauflistungCard({ projektId, userId }: { projektId: string; use
               <Icon name="fileText" size={14} /> PDF
             </button>
           )}
+          {darfPreise && positionen.length > 0 && projekt && (
+            <button className="btn btn-sm" onClick={() => printHtml(kvaHtml(projekt, db, benutzerName(userId)))}
+              title="Kostenvoranschlag mit Preisen (nur Büro)">
+              <Icon name="fileText" size={14} /> KVA
+            </button>
+          )}
           <button className="btn btn-sm" onClick={vorschlagen} title="Aus Geräte-Einsätzen, Plan-Zeichnung, Stunden und Maßnahmen ableiten">
             <Icon name="spark" size={14} /> Vorschlagen
           </button>
           <button className="btn btn-sm btn-primary" onClick={() => setNeu(true)}>+ Position</button>
         </div>
       </div>
-      {positionen.length === 0 && <p className="muted">Mengennachweis der ausgeführten Leistungen — Position je Gewerk mit Aufmaß-Formel (z. B. „(3,97*3,77)+(1,55*2,15)"). Bewusst ohne Preise. „Vorschlagen" leitet Positionen aus Geräten, Plan-Zeichnung, Stunden und Maßnahmen ab.</p>}
+      {positionen.length === 0 && <p className="muted">Mengennachweis der ausgeführten Leistungen — Position je Gewerk mit Aufmaß-Formel (z. B. „(3,97*3,77)+(1,55*2,15)"). „Vorschlagen" leitet Positionen aus Geräten, Plan-Zeichnung, Stunden und Maßnahmen ab.{darfPreise ? " Mit Preisen (nur Büro sichtbar) wird daraus der Kostenvoranschlag (KVA)." : ""}</p>}
       {vorschlagInfo && <p className="muted small" style={{ margin: "0 0 6px" }}>{vorschlagInfo}</p>}
       {gewerke.map((g) => (
         <div key={g}>
@@ -1408,15 +1418,26 @@ function PositionsauflistungCard({ projektId, userId }: { projektId: string; use
                 </span>
               </div>
               <span className="chip small chip-neutral">{p.menge != null ? p.menge.toLocaleString("de-DE") : "—"} {p.einheit ?? ""}</span>
+              {darfPreise && (
+                <span className="chip small chip-neutral" title={p.einzelpreis != null ? `EP ${euro(p.einzelpreis)}${p.einheit ? ` je ${p.einheit}` : ""}` : "Noch kein Preis — im Stift-Dialog bepreisen"}>
+                  {positionsGesamt(p) != null ? euro(positionsGesamt(p)!) : p.einzelpreis != null ? euro(p.einzelpreis) : "€ offen"}
+                </span>
+              )}
               <button className="iconbtn" onClick={() => setBearbeite(p)} title="Bearbeiten" aria-label="Bearbeiten"><Icon name="pen" size={14} /></button>
               <button className="iconbtn" onClick={() => store.removeLeistungsposition(p.id)} title="Entfernen" aria-label="Entfernen"><Icon name="trash" size={14} /></button>
             </div>
           ))}
         </div>
       ))}
+      {darfPreise && summen.bewertet > 0 && (
+        <p className="muted small" style={{ margin: "10px 0 0", textAlign: "right" }}>
+          Netto {euro(summen.netto)} · USt {euro(summen.mwst)} · <b>Brutto {euro(summen.brutto)}</b>
+          {summen.offen > 0 ? ` · ${summen.offen} Position(en) ohne Preis/Menge` : ""}
+        </p>
+      )}
       <AnimatePresence>
         {(neu || bearbeite) && (
-          <LeistungspositionForm projektId={projektId} userId={userId} vorhanden={bearbeite}
+          <LeistungspositionForm projektId={projektId} userId={userId} vorhanden={bearbeite} darfPreise={darfPreise}
             onClose={() => { setNeu(false); setBearbeite(null); }} />
         )}
       </AnimatePresence>
@@ -1424,8 +1445,8 @@ function PositionsauflistungCard({ projektId, userId }: { projektId: string; use
   );
 }
 
-function LeistungspositionForm({ projektId, userId, vorhanden, onClose }: {
-  projektId: string; userId: string; vorhanden: import("../domain/types").Leistungsposition | null; onClose: () => void;
+function LeistungspositionForm({ projektId, userId, vorhanden, darfPreise, onClose }: {
+  projektId: string; userId: string; vorhanden: import("../domain/types").Leistungsposition | null; darfPreise: boolean; onClose: () => void;
 }) {
   const db = useDB();
   const raeume = db.raum.filter((r) => r.projekt_id === projektId);
@@ -1438,6 +1459,9 @@ function LeistungspositionForm({ projektId, userId, vorhanden, onClose }: {
   const [zeilen, setZeilen] = useState<import("../domain/types").AufmassZeile[]>(vorhanden?.aufmass_zeilen?.length ? vorhanden.aufmass_zeilen : [{ bezug: "", formel: "" }]);
   const [mengeManuell, setMengeManuell] = useState<string>(vorhanden?.menge != null ? String(vorhanden.menge).replace(".", ",") : "");
   const [bemerkung, setBemerkung] = useState(vorhanden?.bemerkung ?? "");
+  const [preis, setPreis] = useState<string>(vorhanden?.einzelpreis != null ? String(vorhanden.einzelpreis).replace(".", ",") : "");
+  // Preis-Gedächtnis: zuletzt verwendeter Einzelpreis für denselben Kurztext.
+  const preisMerker = darfPreise && !preis.trim() ? preisVorschlag(db, kurztext) : null;
 
   const summe = summeAufmass(zeilen.map((z) => z.formel));
   const num = (s: string) => { const n = parseFloat(s.replace(",", ".")); return Number.isFinite(n) ? n : null; };
@@ -1451,6 +1475,8 @@ function LeistungspositionForm({ projektId, userId, vorhanden, onClose }: {
       kurztext: kurztext.trim(), langtext: langtext.trim() || null, raum_id: raumId || null,
       einheit: einheit || null, aufmass_zeilen: zeilen.filter((z) => z.formel.trim() || z.bezug.trim()),
       menge, bemerkung: bemerkung.trim() || null, erstellt_von: userId,
+      // Monteur-Bearbeitung darf den (für ihn unsichtbaren) Büro-Preis nicht löschen.
+      einzelpreis: darfPreise ? (preis.trim() ? num(preis) : null) : (vorhanden?.einzelpreis ?? null),
     };
     if (vorhanden) store.updateLeistungsposition(vorhanden.id, daten);
     else store.addLeistungsposition(daten);
@@ -1524,6 +1550,17 @@ function LeistungspositionForm({ projektId, userId, vorhanden, onClose }: {
           <input value={bemerkung} onChange={(e) => setBemerkung(e.target.value)} />
         </label>
       </div>
+      {darfPreise && (
+        <label className="field"><span>Einzelpreis netto (€{einheit ? ` je ${einheit}` : ""}) <span className="muted small">— nur fürs Büro sichtbar, Grundlage fürs KVA</span></span>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <input style={{ flex: 1 }} inputMode="decimal" value={preis} onChange={(e) => setPreis(e.target.value)} placeholder="z. B. 12,50" />
+            {preisMerker != null && (
+              <button className="btn btn-sm" onClick={() => setPreis(String(preisMerker).replace(".", ","))}
+                title="Zuletzt verwendeter Preis für diesen Kurztext">zuletzt {euro(preisMerker)}</button>
+            )}
+          </div>
+        </label>
+      )}
 
       <div className="modal-actions">
         <button className="btn" onClick={onClose}>Abbrechen</button>

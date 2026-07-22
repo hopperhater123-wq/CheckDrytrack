@@ -5,6 +5,7 @@ import { BEFUND_KAT_MAP, befundBereich, GB_BT_TAETIGKEITEN, GB_STOFFE, GB_SCHUTZ
 import { bewerteMessung, BEWERTUNG_LABEL } from "./mess";
 import { arbeitszeitMin, minutenZuText } from "./zeit";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "./einsatz";
+import { euro, kvaSummen, MWST_SATZ, positionsGesamt } from "./kva";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -1316,7 +1317,52 @@ export function positionsauflistungHtml(projekt: Projekt, db: DryTrackDB, erstel
       </tr></thead>
       <tbody>${zeilen}</tbody>
     </table>
-    <p style="font-size:10px;color:#98a1b0;margin-top:10px">Mengennachweis der ausgeführten Leistungen — ohne Preise; die Bewertung erfolgt in der Abrechnung des Büros.</p>
+    <p style="font-size:10px;color:#98a1b0;margin-top:10px">Mengennachweis der ausgeführten Leistungen — ohne Preise; die Bewertung erfolgt im Kostenvoranschlag (KVA) des Büros.</p>
+  `);
+}
+
+// Kostenvoranschlag (KVA) — PO-Entscheidung 22.07.2026 (plancraft-Vergleich):
+// dieselben Positionen wie die Positionsauflistung, aber MIT Einzel-/Gesamtpreisen
+// und Summenblock (Netto/USt/Brutto). Nur Büro-Rollen erzeugen dieses Dokument;
+// Rechnungen/Mahnwesen bleiben bewusst draußen.
+export function kvaHtml(projekt: Projekt, db: DryTrackDB, erstelltVon: string): string {
+  const positionen = db.leistungsposition.filter((p) => p.projekt_id === projekt.id);
+  const raumName = (rid: string | null) => (rid ? db.raum.find((r) => r.id === rid)?.bezeichnung ?? "" : "");
+  const summen = kvaSummen(positionen);
+  const gewerke = [...new Set(positionen.map((p) => p.gewerk || "Sonstiges"))];
+  const zeilen = gewerke.map((g, gi) => {
+    const gruppe = positionen.filter((p) => (p.gewerk || "Sonstiges") === g);
+    const kopf = `<tr style="background:#eef2f4;font-weight:700"><td>${String(gi + 1).padStart(3, "0")}</td><td colspan="6">${esc(g)}</td></tr>`;
+    const rows = gruppe.map((p) => {
+      const gp = positionsGesamt(p);
+      return `<tr>
+        <td>${esc(p.artikel_nr ?? "")}</td>
+        <td><b>${esc(p.kurztext)}</b>${p.langtext ? `<br><span style="font-size:11px;color:#475569">${esc(p.langtext)}</span>` : ""}</td>
+        <td>${esc(raumName(p.raum_id))}</td>
+        <td style="text-align:right">${p.menge != null ? p.menge.toLocaleString("de-DE") : "<i>offen</i>"}</td>
+        <td>${esc(p.einheit ?? "")}</td>
+        <td style="text-align:right">${p.einzelpreis != null ? euro(p.einzelpreis) : "<i>offen</i>"}</td>
+        <td style="text-align:right">${gp != null ? euro(gp) : "—"}</td>
+      </tr>`;
+    }).join("");
+    return kopf + rows;
+  }).join("");
+  return einfachesDokument("Kostenvoranschlag", projekt, `
+    <p><b>KVA-Nr.:</b> KVA-${esc(projekt.projektnummer)} · <b>Datum:</b> ${new Date().toLocaleDateString("de-DE")} · <b>Erstellt von:</b> ${esc(erstelltVon)}</p>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="text-align:left">
+        <th>Artikel-Nr</th><th>Leistung</th><th>Raum</th><th style="text-align:right">Menge</th><th>Einheit</th><th style="text-align:right">EP netto</th><th style="text-align:right">GP netto</th>
+      </tr></thead>
+      <tbody>${zeilen}</tbody>
+    </table>
+    <table style="margin:14px 0 0 auto;font-size:13px;border-collapse:collapse">
+      <tr><td style="padding:2px 18px 2px 0">Summe netto</td><td style="text-align:right">${euro(summen.netto)}</td></tr>
+      <tr><td style="padding:2px 18px 2px 0">zzgl. ${Math.round(MWST_SATZ * 100)} % USt</td><td style="text-align:right">${euro(summen.mwst)}</td></tr>
+      <tr style="font-weight:700;border-top:1.5px solid #0b0d12"><td style="padding:4px 18px 2px 0">Gesamt brutto</td><td style="text-align:right">${euro(summen.brutto)}</td></tr>
+    </table>
+    ${summen.offen > 0 ? `<p style="border:1.5px solid #0E7C86;border-radius:8px;padding:8px 12px;margin-top:12px"><b>Hinweis:</b> ${summen.offen} Position(en) sind noch ohne Preis oder ohne Menge und fehlen im Summenblock.</p>` : ""}
+    <p style="font-size:10px;color:#98a1b0;margin-top:10px">Kostenvoranschlag — freibleibend und unverbindlich; Ausführung nach tatsächlichem Aufmaß.
+    Vorlage — vor Echteinsatz prüfen (Pflichtangaben, USt-Satz, AGB/Bindefrist).</p>
   `);
 }
 

@@ -643,6 +643,7 @@ export interface Leistungsposition {
   einheit: string | null; // Stck | qm | Std | cbm …
   aufmass_zeilen: AufmassZeile[];
   menge: number | null; // Summe der Formeln oder manuell
+  einzelpreis: number | null; // € netto je Einheit — KVA-Modul; sieht/pflegt nur das Büro
   bemerkung: string | null;
   erstellt_von: string;
   erstellt_am: string;

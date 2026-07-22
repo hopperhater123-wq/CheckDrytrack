@@ -33,7 +33,8 @@ export function erzeugePositionsvorschlaege(db: DryTrackDB, projektId: string): 
     vorhanden.add(key);
     vorschlaege.push({ projekt_id: projektId, ...v });
   };
-  const leer = { gewerk: "Trocknung", artikel_nr: null, langtext: null, aufmass_zeilen: [] as { bezug: string; formel: string }[], bemerkung: null };
+  // einzelpreis bleibt leer: bepreist wird im Büro (KVA-Modul), nicht vom Generator.
+  const leer = { gewerk: "Trocknung", artikel_nr: null, langtext: null, aufmass_zeilen: [] as { bezug: string; formel: string }[], einzelpreis: null, bemerkung: null };
 
   // --- 1 · Geräte-Einsätze: die stärkste Quelle -------------------------------
   const einsaetze = db.einsatz.filter((e) => e.projekt_id === projektId);
