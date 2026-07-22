@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { euro, kvaSummen, positionsGesamt, preisVorschlag } from "./kva";
+import { aufmassStunden, erfassteStundenMin, erstelleKvaSnapshot, euro, kvaNummerText, kvaSummen, naechsteKvaNummer, positionsGesamt, preisVorschlag } from "./kva";
 import { seedDB } from "./seed";
 import type { Leistungsposition } from "./types";
 
@@ -46,6 +46,40 @@ describe("preisVorschlag", () => {
     );
     expect(preisVorschlag(db, " raum-trocknung ")).toBe(99);
     expect(preisVorschlag(db, "Unbekannte Position")).toBeNull();
+  });
+});
+
+describe("KVA-Verwaltung (Snapshot, Nummer, Nachkalkulation)", () => {
+  it("friert Positionen samt Raumname und Summen als Snapshot ein", () => {
+    const db = seedDB();
+    db.leistungsposition.push(
+      pos({ id: "lp-1", raum_id: "r-1", menge: 2, einzelpreis: 100 }),
+      pos({ id: "lp-2", kurztext: "Sockelleiste demontieren", einheit: "lfm", menge: null, einzelpreis: 3.5 }),
+    );
+    const s = erstelleKvaSnapshot(db, "p-1");
+    expect(s.positionen).toHaveLength(2);
+    expect(s.positionen[0].raum).toBe(db.raum.find((r) => r.id === "r-1")?.bezeichnung);
+    expect(s.positionen[0].gesamt).toBe(200);
+    expect(s.positionen[1].gesamt).toBeNull(); // ohne Menge → offen
+    expect(s.netto).toBe(200);
+    expect(s.brutto).toBe(238);
+  });
+  it("vergibt laufende Nummern je Projekt und formatiert sie", () => {
+    const db = seedDB();
+    expect(naechsteKvaNummer(db, "p-1")).toBe(1);
+    db.kva.push({
+      id: "kva-1", projekt_id: "p-1", nummer: 1, status: "versendet", datum: "2026-07-22",
+      positionen: [], netto: 0, mwst: 0, brutto: 0, erstellt_von: "u-dispo", erstellt_am: "x",
+    });
+    expect(naechsteKvaNummer(db, "p-1")).toBe(2);
+    expect(naechsteKvaNummer(db, "p-2")).toBe(1);
+    const projekt = db.projekt.find((p) => p.id === "p-1")!;
+    expect(kvaNummerText(projekt, { nummer: 2 })).toBe(`KVA-${projekt.projektnummer}-02`);
+  });
+  it("Nachkalkulation light: erfasste Minuten und Std-Positionen", () => {
+    const db = seedDB();
+    expect(erfassteStundenMin(db, "p-1")).toBe(690); // 11,5 h aus dem Seed-Besuchsbericht
+    expect(aufmassStunden([pos({ einheit: "Std", menge: 11.5 }), pos({ einheit: "qm", menge: 4 })])).toBe(11.5);
   });
 });
 

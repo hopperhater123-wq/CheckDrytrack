@@ -6,8 +6,8 @@ import { store } from "../domain/store";
 import { fmtDatum } from "../app/format";
 import { arbeitszeitMin, minutenZuText } from "../domain/zeit";
 import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kundenzufriedenheitHtml, notdiensteinsatzberichtHtml, stundenlohnberichtHtml, erstberichtHtml, gefaehrdungsbeurteilungHtml, schadenmeldungHtml, positionsauflistungHtml, kvaHtml, printHtml } from "../domain/report";
-import { euro, kvaSummen, positionsGesamt, preisVorschlag } from "../domain/kva";
-import { ABNAHME_STATUS_LABEL, BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL, GB_BT_TAETIGKEITEN, GB_STOFFE, GB_SCHUTZ, LEISTUNGSKATALOG } from "../app/labels";
+import { aufmassStunden, erfassteStundenMin, euro, kvaNummerText, kvaSummen, positionsGesamt, preisVorschlag } from "../domain/kva";
+import { ABNAHME_STATUS_LABEL, BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL, GB_BT_TAETIGKEITEN, GB_STOFFE, GB_SCHUTZ, KVA_STATUS_LABEL, LEISTUNGSKATALOG } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
 import { berechneAufmass, summeAufmass } from "../domain/aufmass";
 import { erzeugePositionsvorschlaege } from "../domain/positionsvorschlag";
@@ -1373,6 +1373,15 @@ function PositionsauflistungCard({ projektId, userId }: { projektId: string; use
   // KVA-Modul (PO 22.07.2026): Preise sieht/pflegt nur das Büro — der Monteur nicht.
   const darfPreise = (db.benutzer.find((u) => u.id === userId)?.rolle ?? "monteur") !== "monteur";
   const summen = kvaSummen(positionen);
+  // KVA-Verwaltung (plancraft-Analyse): festgeschriebene Angebote mit Nummer + Status.
+  const kvas = db.kva.filter((k) => k.projekt_id === projektId).sort((a, b) => b.nummer - a.nummer);
+  const kvaErstellen = () => {
+    const kva = store.addKva(projektId, userId);
+    if (projekt) printHtml(kvaHtml(projekt, db, kva));
+  };
+  // Nachkalkulation light: erfasste Stunden vs. Std-Positionen im Aufmaß.
+  const erfasstMin = erfassteStundenMin(db, projektId);
+  const stdImAufmass = aufmassStunden(positionen);
   // Regelbasierter Vorschlag (kein Automatismus): ergänzt nur, überschreibt nichts.
   const vorschlagen = () => {
     const v = erzeugePositionsvorschlaege(db, projektId);
@@ -1391,9 +1400,9 @@ function PositionsauflistungCard({ projektId, userId }: { projektId: string; use
             </button>
           )}
           {darfPreise && positionen.length > 0 && projekt && (
-            <button className="btn btn-sm" onClick={() => printHtml(kvaHtml(projekt, db, benutzerName(userId)))}
-              title="Kostenvoranschlag mit Preisen (nur Büro)">
-              <Icon name="fileText" size={14} /> KVA
+            <button className="btn btn-sm" onClick={kvaErstellen}
+              title="Kostenvoranschlag festschreiben: Snapshot der Positionen mit laufender Nummer (nur Büro)">
+              <Icon name="fileText" size={14} /> KVA erstellen
             </button>
           )}
           <button className="btn btn-sm" onClick={vorschlagen} title="Aus Geräte-Einsätzen, Plan-Zeichnung, Stunden und Maßnahmen ableiten">
@@ -1434,6 +1443,39 @@ function PositionsauflistungCard({ projektId, userId }: { projektId: string; use
           Netto {euro(summen.netto)} · USt {euro(summen.mwst)} · <b>Brutto {euro(summen.brutto)}</b>
           {summen.offen > 0 ? ` · ${summen.offen} Position(en) ohne Preis/Menge` : ""}
         </p>
+      )}
+      {darfPreise && erfasstMin > 0 && (
+        <p className="muted small" style={{ margin: "4px 0 0", textAlign: "right" }}
+          title="Nachkalkulation light: Stunden aus den Besuchsberichten gegen die Std-Positionen im Aufmaß">
+          Nachkalkulation: erfasst {minutenZuText(erfasstMin)} · im Aufmaß {stdImAufmass.toLocaleString("de-DE")} Std
+        </p>
+      )}
+      {darfPreise && kvas.length > 0 && projekt && (
+        <div style={{ marginTop: 12 }}>
+          <h3 style={{ margin: "0 0 4px" }}>Kostenvoranschläge</h3>
+          {kvas.map((k) => (
+            <div key={k.id} className="listrow static">
+              <div className="listrow-main">
+                <span className="listrow-title">{kvaNummerText(projekt, k)}</span>
+                <span className="listrow-sub">{fmtDatum(k.datum)} · {k.positionen.length} Positionen · brutto {euro(k.brutto)}</span>
+              </div>
+              <select value={k.status} aria-label={`Status von ${kvaNummerText(projekt, k)}`} style={{ width: "auto" }}
+                onChange={(e) => store.setKvaStatus(k.id, e.target.value as import("../domain/types").KvaStatus, userId)}>
+                {(Object.keys(KVA_STATUS_LABEL) as (keyof typeof KVA_STATUS_LABEL)[]).map((s) => (
+                  <option key={s} value={s}>{KVA_STATUS_LABEL[s]}</option>
+                ))}
+              </select>
+              <button className="iconbtn" onClick={() => printHtml(kvaHtml(projekt, db, k))} title="PDF öffnen" aria-label="PDF öffnen">
+                <Icon name="fileText" size={14} />
+              </button>
+              {k.status === "entwurf" && (
+                <button className="iconbtn" onClick={() => store.removeKva(k.id)} title="Entwurf entfernen" aria-label="Entwurf entfernen">
+                  <Icon name="trash" size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
       )}
       <AnimatePresence>
         {(neu || bearbeite) && (

@@ -5,7 +5,7 @@ import { BEFUND_KAT_MAP, befundBereich, GB_BT_TAETIGKEITEN, GB_STOFFE, GB_SCHUTZ
 import { bewerteMessung, BEWERTUNG_LABEL } from "./mess";
 import { arbeitszeitMin, minutenZuText } from "./zeit";
 import { berechneVerbrauch, einsatzTage, istLaufend } from "./einsatz";
-import { euro, kvaSummen, MWST_SATZ, positionsGesamt } from "./kva";
+import { euro, kvaNummerText, MWST_SATZ } from "./kva";
 
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -1322,33 +1322,37 @@ export function positionsauflistungHtml(projekt: Projekt, db: DryTrackDB, erstel
 }
 
 // Kostenvoranschlag (KVA) — PO-Entscheidung 22.07.2026 (plancraft-Vergleich):
-// dieselben Positionen wie die Positionsauflistung, aber MIT Einzel-/Gesamtpreisen
-// und Summenblock (Netto/USt/Brutto). Nur Büro-Rollen erzeugen dieses Dokument;
-// Rechnungen/Mahnwesen bleiben bewusst draußen.
-export function kvaHtml(projekt: Projekt, db: DryTrackDB, erstelltVon: string): string {
-  const positionen = db.leistungsposition.filter((p) => p.projekt_id === projekt.id);
-  const raumName = (rid: string | null) => (rid ? db.raum.find((r) => r.id === rid)?.bezeichnung ?? "" : "");
-  const summen = kvaSummen(positionen);
+// festgeschriebener Positions-Snapshot MIT Einzel-/Gesamtpreisen, laufender Nummer
+// und Firmendaten-Kopf (Einstellungen → Firmendaten). Nur Büro-Rollen erzeugen
+// dieses Dokument; Rechnungen/Mahnwesen bleiben bewusst draußen.
+export function kvaHtml(projekt: Projekt, db: DryTrackDB, kva: import("./types").Kva): string {
+  const erstelltVon = db.benutzer.find((b) => b.id === kva.erstellt_von)?.name ?? "—";
+  const firma = (schluessel: string) => db.firmen_einstellung.find((f) => f.schluessel === schluessel)?.wert?.trim() || null;
+  const firmaZeile = [firma("firma_name"), firma("firma_adresse"), firma("firma_telefon"), firma("firma_email"), firma("firma_ustid")]
+    .filter(Boolean).map((t) => esc(t!)).join(" · ");
+  const positionen = kva.positionen;
   const gewerke = [...new Set(positionen.map((p) => p.gewerk || "Sonstiges"))];
   const zeilen = gewerke.map((g, gi) => {
     const gruppe = positionen.filter((p) => (p.gewerk || "Sonstiges") === g);
     const kopf = `<tr style="background:#eef2f4;font-weight:700"><td>${String(gi + 1).padStart(3, "0")}</td><td colspan="6">${esc(g)}</td></tr>`;
-    const rows = gruppe.map((p) => {
-      const gp = positionsGesamt(p);
-      return `<tr>
+    const rows = gruppe.map((p) => `<tr>
         <td>${esc(p.artikel_nr ?? "")}</td>
         <td><b>${esc(p.kurztext)}</b>${p.langtext ? `<br><span style="font-size:11px;color:#475569">${esc(p.langtext)}</span>` : ""}</td>
-        <td>${esc(raumName(p.raum_id))}</td>
+        <td>${esc(p.raum ?? "")}</td>
         <td style="text-align:right">${p.menge != null ? p.menge.toLocaleString("de-DE") : "<i>offen</i>"}</td>
         <td>${esc(p.einheit ?? "")}</td>
         <td style="text-align:right">${p.einzelpreis != null ? euro(p.einzelpreis) : "<i>offen</i>"}</td>
-        <td style="text-align:right">${gp != null ? euro(gp) : "—"}</td>
-      </tr>`;
-    }).join("");
+        <td style="text-align:right">${p.gesamt != null ? euro(p.gesamt) : "—"}</td>
+      </tr>`).join("");
     return kopf + rows;
   }).join("");
+  const summen = { netto: kva.netto, mwst: kva.mwst, brutto: kva.brutto,
+    offen: positionen.filter((p) => p.gesamt == null).length };
   return einfachesDokument("Kostenvoranschlag", projekt, `
-    <p><b>KVA-Nr.:</b> KVA-${esc(projekt.projektnummer)} · <b>Datum:</b> ${new Date().toLocaleDateString("de-DE")} · <b>Erstellt von:</b> ${esc(erstelltVon)}</p>
+    ${firmaZeile ? `<p style="font-size:11px;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:6px">${firmaZeile}</p>`
+      : `<p style="font-size:10px;color:#98a1b0">Hinweis: Firmendaten fehlen — in Torrek unter Einstellungen → Firmendaten pflegen.</p>`}
+    <p><b>Empfänger:</b> ${esc(projekt.ansprechpartner ?? "—")} · ${esc(projekt.adresse)}</p>
+    <p><b>KVA-Nr.:</b> ${esc(kvaNummerText(projekt, kva))} · <b>Datum:</b> ${new Date(kva.datum).toLocaleDateString("de-DE")} · <b>Erstellt von:</b> ${esc(erstelltVon)}</p>
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr style="text-align:left">
         <th>Artikel-Nr</th><th>Leistung</th><th>Raum</th><th style="text-align:right">Menge</th><th>Einheit</th><th style="text-align:right">EP netto</th><th style="text-align:right">GP netto</th>

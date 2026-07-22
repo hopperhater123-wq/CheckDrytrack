@@ -151,6 +151,45 @@ function TorrekScanCard({ sichtbar }: { sichtbar: boolean }) {
   );
 }
 
+// Firmendaten für den Dokumentkopf (plancraft-Analyse 22.07.: Unternehmensdetails/
+// Briefpapier). Erscheinen im KVA — ohne sie ist ein Angebot nicht versandfähig.
+// Schlüssel/Wert in firmen_einstellung (synct wie alles andere), Pflege nur Admin/GF.
+const FIRMA_FELDER: [string, string, string][] = [
+  ["firma_name", "Firmenname", "z. B. Mustermann Trocknungstechnik GmbH"],
+  ["firma_adresse", "Adresse", "Straße Nr., PLZ Ort"],
+  ["firma_telefon", "Telefon", "z. B. 040 123456"],
+  ["firma_email", "E-Mail", "info@firma.de"],
+  ["firma_ustid", "USt-IdNr. / Steuernummer", "DE …"],
+];
+
+function FirmendatenCard({ sichtbar }: { sichtbar: boolean }) {
+  const db = useDB();
+  const [werte, setWerte] = useState<Record<string, string>>(() =>
+    Object.fromEntries(FIRMA_FELDER.map(([s]) => [s, db.firmen_einstellung.find((f) => f.schluessel === s)?.wert ?? ""])));
+  const [gespeichert, setGespeichert] = useState(false);
+  if (!sichtbar) return null;
+  const speichern = () => {
+    for (const [s] of FIRMA_FELDER) store.setFirmenEinstellung(s, (werte[s] ?? "").trim());
+    setGespeichert(true);
+    setTimeout(() => setGespeichert(false), 2500);
+  };
+  return (
+    <section className="card">
+      <div className="card-head"><h2>Firmendaten (Dokumentkopf)</h2>
+        {gespeichert && <span className="chip chip-live">gespeichert</span>}
+      </div>
+      <p className="muted small">Erscheinen im Kopf des Kostenvoranschlags (KVA). Nur Admin/GF kann sie ändern.</p>
+      {FIRMA_FELDER.map(([s, label, platzhalter]) => (
+        <label key={s} className="field"><span>{label}</span>
+          <input value={werte[s] ?? ""} placeholder={platzhalter}
+            onChange={(e) => setWerte((w) => ({ ...w, [s]: e.target.value }))} />
+        </label>
+      ))}
+      <button className="btn btn-primary" onClick={speichern}>Firmendaten speichern</button>
+    </section>
+  );
+}
+
 // Rollen-Verwaltung (FR-ROLE-002): nur für Rollen mit mitarbeiterVerwalten (Admin/GF).
 // Die Rolle steuert die Berechtigungen (Rollen-Rechte-Matrix, 04 · Rollenmodell) —
 // z. B. wer Bestellstatus ändern oder Projekte bearbeiten darf.
@@ -242,6 +281,8 @@ export function Einstellungen() {
           <div><dt>Freigabegrenze</dt><dd>{freigabegrenze ? `${Number(freigabegrenze).toLocaleString("de-DE")} €` : "—"} (FR-PROJ-011)</dd></div>
         </dl>
       </section>
+
+      <FirmendatenCard sichtbar={can.mitarbeiterVerwalten} />
 
       <MitarbeiterCard sichtbar={can.mitarbeiterVerwalten} />
 

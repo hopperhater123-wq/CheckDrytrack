@@ -7,6 +7,7 @@ import type {
   MessStatusCheckliste, Messverfahren, Projekt, ProjektStatus, Raum, Rolle, SchichtTyp,
 } from "./types";
 import { absoluteFeuchteGKg } from "./mess";
+import { erstelleKvaSnapshot, euro, kvaNummerText, naechsteKvaNummer } from "./kva";
 import { seedDB } from "./seed";
 import { diffAusStaenden, pkVon, pushDiff, starteSync, type TabelleName } from "./remote";
 import { idbHolen, idbLoeschen, idbSetzen } from "./localdb";
@@ -114,7 +115,7 @@ class Store {
       einsatz: [], feed_eintrag: [], feed_kommentar: [], dokument: [], materialdatenbank: [],
       bodenaufbau_schicht: [], messpunkt: [], messung: [], grundriss: [], grundriss_markierung: [],
       bemusterung: [], raum_foto: [], besuchsbericht: [], stunden_eintrag: [], abnahmeprotokoll: [],
-      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [], erstbericht: [], gefaehrdungsbeurteilung: [], schadenmeldung: [], leistungsposition: [],
+      ersatzfliesenbericht: [], kundenzufriedenheit: [], notdiensteinsatzbericht: [], stundenlohnbericht: [], erstbericht: [], gefaehrdungsbeurteilung: [], schadenmeldung: [], leistungsposition: [], kva: [],
       termin: [], trocknungsergebnis: [], firmen_einstellung: [], beteiligter: [], ursache_eintrag: [],
       massnahme: [],
     };
@@ -905,6 +906,55 @@ class Store {
   /** Leistungsposition entfernen. */
   removeLeistungsposition(id: string) {
     this.commit((db) => { db.leistungsposition = db.leistungsposition.filter((x) => x.id !== id); });
+  }
+
+  /** KVA festschreiben: Snapshot der aktuellen Positionen + laufende Nummer (nur Büro). */
+  addKva(projektId: string, autorId: string): import("./types").Kva {
+    const id = uid("kva");
+    let angelegt!: import("./types").Kva;
+    this.commit((db) => {
+      const snapshot = erstelleKvaSnapshot(db, projektId);
+      angelegt = {
+        id, projekt_id: projektId, nummer: naechsteKvaNummer(db, projektId),
+        status: "entwurf", datum: new Date().toISOString().slice(0, 10),
+        ...snapshot, erstellt_von: autorId, erstellt_am: new Date().toISOString(),
+      };
+      db.kva.push(angelegt);
+      const projekt = db.projekt.find((p) => p.id === projektId);
+      if (projekt) {
+        db.feed_eintrag.push(autoFeed(projektId, null, "manuell", autorId,
+          `${kvaNummerText(projekt, angelegt)} festgeschrieben (${angelegt.positionen.length} Positionen, brutto ${euro(angelegt.brutto)}).`, "dispo"));
+      }
+    });
+    return angelegt;
+  }
+
+  /** KVA-Status pflegen (Entwurf → Versendet → Beauftragt/Abgelehnt), mit Feed-Protokoll. */
+  setKvaStatus(id: string, status: import("./types").KvaStatus, autorId: string) {
+    this.commit((db) => {
+      const k = db.kva.find((x) => x.id === id);
+      if (!k || k.status === status) return;
+      k.status = status;
+      const projekt = db.projekt.find((p) => p.id === k.projekt_id);
+      if (projekt) {
+        db.feed_eintrag.push(autoFeed(k.projekt_id, null, "manuell", autorId,
+          `${kvaNummerText(projekt, k)} → Status „${status}".`, "dispo"));
+      }
+    });
+  }
+
+  /** KVA entfernen — die UI erlaubt das nur im Status Entwurf. */
+  removeKva(id: string) {
+    this.commit((db) => { db.kva = db.kva.filter((x) => x.id !== id); });
+  }
+
+  /** Firmendaten/Firmen-Einstellung setzen (Schlüssel/Wert, z. B. firma_name fürs KVA). */
+  setFirmenEinstellung(schluessel: string, wert: string) {
+    this.commit((db) => {
+      const e = db.firmen_einstellung.find((f) => f.schluessel === schluessel);
+      if (e) e.wert = wert;
+      else db.firmen_einstellung.push({ schluessel, wert });
+    });
   }
 
   /** Stundenlohnbericht anlegen (Regie-/Stundenlohnarbeiten: Stunden + Material + Unterschriften). */

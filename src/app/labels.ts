@@ -143,6 +143,11 @@ export const KONTROLL_ERGEBNIS_LABEL: Record<import("../domain/types").KontrollE
   erfolg: "Erfolg — trocken", verlaengern: "Verlängern", methode_aendern: "Methode ändern",
 };
 
+// KVA-Verwaltung (plancraft-Analyse 22.07.): Angebots-Workflow wie im Büro üblich.
+export const KVA_STATUS_LABEL: Record<import("../domain/types").KvaStatus, string> = {
+  entwurf: "Entwurf", versendet: "Versendet", beauftragt: "Beauftragt", abgelehnt: "Abgelehnt",
+};
+
 export const DOKUMENT_TYP_LABEL: Record<DokumentTyp, string> = {
   messprotokoll: "Messprotokoll", schadensaufnahme_doku: "Schadensaufnahme-Doku", erstbericht: "Erstbericht",
   abschlussbericht: "Abschlussbericht", abnahmeprotokoll: "Abnahmeprotokoll",

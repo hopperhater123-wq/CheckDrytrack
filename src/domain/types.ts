@@ -649,6 +649,35 @@ export interface Leistungsposition {
   erstellt_am: string;
 }
 
+// KVA-Verwaltung (plancraft-Analyse 22.07.): festgeschriebener Kostenvoranschlag.
+// Positionen werden als Snapshot kopiert — das Angebot ändert sich nicht mehr,
+// wenn die Positionsauflistung danach weiterwächst oder Räume umbenannt werden.
+export type KvaStatus = "entwurf" | "versendet" | "beauftragt" | "abgelehnt";
+export interface KvaPosition {
+  gewerk: string | null;
+  artikel_nr: string | null;
+  kurztext: string;
+  langtext: string | null;
+  raum: string | null; // Raumname als Text (Snapshot)
+  menge: number | null;
+  einheit: string | null;
+  einzelpreis: number | null; // € netto
+  gesamt: number | null; // Menge × EP
+}
+export interface Kva {
+  id: string;
+  projekt_id: string;
+  nummer: number; // laufend je Projekt → KVA-<Projektnummer>-01, -02 …
+  status: KvaStatus;
+  datum: string; // ISO-Date
+  positionen: KvaPosition[];
+  netto: number;
+  mwst: number;
+  brutto: number;
+  erstellt_von: string;
+  erstellt_am: string;
+}
+
 // Kundenzufriedenheit (Alt-System): Bewertung der Leistung durch den Kunden (1–5) + Unterschrift.
 export interface Kundenzufriedenheit {
   id: string;
@@ -733,6 +762,7 @@ export interface DryTrackDB {
   gefaehrdungsbeurteilung: Gefaehrdungsbeurteilung[];
   schadenmeldung: Schadenmeldung[];
   leistungsposition: Leistungsposition[];
+  kva: Kva[];
   stundenlohnbericht: Stundenlohnbericht[];
   termin: Termin[];
   trocknungsergebnis: Trocknungsergebnis[];
