@@ -9,6 +9,7 @@ import { besuchsberichtHtml, abnahmeprotokollHtml, ersatzfliesenberichtHtml, kun
 import { ABNAHME_STATUS_LABEL, BEMUSTERUNG_ART_LABEL, BESTELLSTATUS_LABEL, GB_BT_TAETIGKEITEN, GB_STOFFE, GB_SCHUTZ, LEISTUNGSKATALOG } from "../app/labels";
 import { komprimiereBild } from "../ui/foto";
 import { berechneAufmass, summeAufmass } from "../domain/aufmass";
+import { erzeugePositionsvorschlaege } from "../domain/positionsvorschlag";
 import { Icon } from "../ui/Icon";
 import { SignaturPad } from "../ui/SignaturPad";
 import type { AbnahmeStatus, BemusterungArt, Bestellstatus } from "../domain/types";
@@ -1367,6 +1368,15 @@ function PositionsauflistungCard({ projektId, userId }: { projektId: string; use
   const benutzerName = (id: string) => db.benutzer.find((u) => u.id === id)?.name ?? "—";
   const positionen = db.leistungsposition.filter((p) => p.projekt_id === projektId);
   const gewerke = [...new Set(positionen.map((p) => p.gewerk || "Sonstiges"))];
+  const [vorschlagInfo, setVorschlagInfo] = useState<string | null>(null);
+  // Regelbasierter Vorschlag (kein Automatismus): ergänzt nur, überschreibt nichts.
+  const vorschlagen = () => {
+    const v = erzeugePositionsvorschlaege(db, projektId);
+    store.addLeistungspositionen(v, userId);
+    setVorschlagInfo(v.length
+      ? `${v.length} Position(en) aus Geräten/Plan/Stunden ergänzt — Mengen prüfen, Aufmaß nachtragen.`
+      : "Nichts Neues ableitbar — Geräte, Zeichnung, Stunden und Maßnahmen sind schon abgedeckt.");
+  };
   return (
     <section className="card">
       <div className="card-head"><h2>Positionsauflistung (Aufmaß) <span className="count">{positionen.length}</span></h2>
@@ -1376,10 +1386,14 @@ function PositionsauflistungCard({ projektId, userId }: { projektId: string; use
               <Icon name="fileText" size={14} /> PDF
             </button>
           )}
+          <button className="btn btn-sm" onClick={vorschlagen} title="Aus Geräte-Einsätzen, Plan-Zeichnung, Stunden und Maßnahmen ableiten">
+            <Icon name="spark" size={14} /> Vorschlagen
+          </button>
           <button className="btn btn-sm btn-primary" onClick={() => setNeu(true)}>+ Position</button>
         </div>
       </div>
-      {positionen.length === 0 && <p className="muted">Mengennachweis der ausgeführten Leistungen — Position je Gewerk mit Aufmaß-Formel (z. B. „(3,97*3,77)+(1,55*2,15)"). Bewusst ohne Preise.</p>}
+      {positionen.length === 0 && <p className="muted">Mengennachweis der ausgeführten Leistungen — Position je Gewerk mit Aufmaß-Formel (z. B. „(3,97*3,77)+(1,55*2,15)"). Bewusst ohne Preise. „Vorschlagen" leitet Positionen aus Geräten, Plan-Zeichnung, Stunden und Maßnahmen ab.</p>}
+      {vorschlagInfo && <p className="muted small" style={{ margin: "0 0 6px" }}>{vorschlagInfo}</p>}
       {gewerke.map((g) => (
         <div key={g}>
           <h3 style={{ margin: "10px 0 4px" }}>{g}</h3>

@@ -881,6 +881,19 @@ class Store {
     });
   }
 
+  /** Positions-Vorschläge übernehmen (Generator): Batch + Feed-Protokoll. */
+  addLeistungspositionen(vorschlaege: Omit<import("./types").Leistungsposition, "id" | "erstellt_von" | "erstellt_am">[], autor_id: string) {
+    if (!vorschlaege.length) return;
+    this.commit((db) => {
+      const jetzt = new Date().toISOString();
+      for (const v of vorschlaege) {
+        db.leistungsposition.push({ ...v, id: uid("lp"), erstellt_von: autor_id, erstellt_am: jetzt });
+      }
+      db.feed_eintrag.push(autoFeed(vorschlaege[0].projekt_id, null, "manuell", autor_id,
+        `${vorschlaege.length} Aufmaß-Position(en) aus Geräten/Plan/Stunden vorgeschlagen.`, "dispo"));
+    });
+  }
+
   /** Leistungsposition ändern (Modal-Bearbeitung). */
   updateLeistungsposition(id: string, patch: Partial<import("./types").Leistungsposition>) {
     this.commit((db) => {
