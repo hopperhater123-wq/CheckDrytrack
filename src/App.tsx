@@ -39,8 +39,8 @@ export function App() {
     // Globale Motion-Defaults: konsistentes Timing/Easing, Reduced-Motion respektiert.
     <MotionConfig transition={{ duration: DUR, ease: EASE }} reducedMotion="user">
       <SessionProvider users={db.benutzer}>
-        {(login, auth) => (db.benutzer.length && !localStorage.getItem("drytrack.session.userId")
-          ? <Login users={db.benutzer} onLogin={login} ms365Fehler={auth.ms365Fehler} introAktiv={intro} />
+        {(login, auth) => (db.benutzer.length && (!auth.authSession || !localStorage.getItem("drytrack.session.userId"))
+          ? <Login users={db.benutzer} onLogin={login} auth={auth} introAktiv={intro} />
           : <Shell />)}
       </SessionProvider>
       <AnimatePresence>{intro && <Intro onDone={introFertig} />}</AnimatePresence>

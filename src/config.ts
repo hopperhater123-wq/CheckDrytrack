@@ -9,3 +9,10 @@ export const SUPABASE_KEY = "sb_publishable_QIzIK2jrkf-IbPaOlYBAtQ_5tRgAnSP";
 // (Azure-Provider). Aktivierung setzt eine Azure-App-Registrierung + den in Supabase
 // konfigurierten Azure-Provider voraus; erst dann sinnvoll zusammen mit RLS scharf schalten.
 export const MS365_LOGIN = false;
+
+// Pflicht-Anmeldung mit E-Mail/Passwort (Supabase Auth) — schlanke Zugangssperre für den
+// Pilotbetrieb. true ⇒ die App verlangt vor allem anderen ein Login; dadurch wird der
+// öffentliche anon-Key wertlos (RLS auf „nur eingeloggt" umgestellt). Danach wählt man
+// weiterhin seine Rolle für die Ansicht. Steuerung über die Build-Umgebung, damit der
+// hermetische E2E-Test und die eingebettete Demo unangetastet bleiben (Default: aus).
+export const AUTH_REQUIRED = import.meta.env.VITE_AUTH_REQUIRED === "true";

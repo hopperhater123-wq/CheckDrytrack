@@ -1,17 +1,20 @@
 import { useState } from "react";
 import type { Benutzer } from "../domain/types";
+import type { AuthState } from "../app/session";
 import { ROLLEN_LABEL } from "../domain/roles";
 import { ms365Aktiv, ms365Anmelden } from "../domain/auth";
 import { FluidField } from "../ui/FluidField";
 import { AnimatedText } from "../ui/AnimatedText";
 
-// Anmeldung: Single-Sign-On über Microsoft 365 (FR-SEC-001) wenn konfiguriert,
-// sonst Demo-Login (Rolle wählen). Der Demo-Zugang bleibt als Fallback erhalten.
-// Optik: Hero-Moment über dem Feuchteschleier — Plakat-Typo, Karte in Glas.
-export function Login({ users, onLogin, ms365Fehler, introAktiv = false }: { users: Benutzer[]; onLogin: (u: Benutzer) => void; ms365Fehler?: string | null; introAktiv?: boolean }) {
+// Anmeldung: Pflicht-Login per E-Mail/Passwort (AUTH_REQUIRED, Pilot-Zugangssperre) oder
+// Single-Sign-On über Microsoft 365 (FR-SEC-001) wenn konfiguriert, sonst Demo-Login
+// (Rolle wählen). Optik: Hero-Moment über dem Feuchteschleier — Plakat-Typo, Karte in Glas.
+export function Login({ users, onLogin, auth, introAktiv = false }: { users: Benutzer[]; onLogin: (u: Benutzer) => void; auth?: AuthState; introAktiv?: boolean }) {
   const mit365 = ms365Aktiv();
   const [laedt, setLaedt] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  // Pflicht-Login noch offen? Dann zuerst das E-Mail/Passwort-Tor zeigen (vor der Rollenwahl).
+  const brauchtLogin = !!auth?.authAktiv && !auth.authSession;
 
   const anmelden = async () => {
     setFehler(null); setLaedt(true);
@@ -40,12 +43,14 @@ export function Login({ users, onLogin, ms365Fehler, introAktiv = false }: { use
         <div className="login-card">
           <p className="eyebrow">Anmeldung</p>
 
-        {mit365 ? (
+        {brauchtLogin ? (
+          <EmailPasswortFormular login={auth!.emailLogin} />
+        ) : mit365 ? (
           <>
             <button className="btn btn-primary block ms365-btn" onClick={() => void anmelden()} disabled={laedt}>
               <MicrosoftLogo /> {laedt ? "Weiterleitung…" : "Mit Microsoft anmelden"}
             </button>
-            {(fehler || ms365Fehler) && <p className="error">{fehler ?? ms365Fehler}</p>}
+            {(fehler || auth?.ms365Fehler) && <p className="error">{fehler ?? auth?.ms365Fehler}</p>}
             <details className="login-demo">
               <summary>Demo-Zugang (ohne Microsoft)</summary>
               <div className="login-users">
@@ -77,6 +82,38 @@ export function Login({ users, onLogin, ms365Fehler, introAktiv = false }: { use
         </div>
       </div>
     </div>
+  );
+}
+
+// Pilot-Zugangssperre: geteiltes E-Mail/Passwort-Konto (Supabase Auth). Nach erfolgreicher
+// Anmeldung entfällt diese Karte automatisch (die Session-Erkennung schaltet zur Rollenwahl weiter).
+function EmailPasswortFormular({ login }: { login: (email: string, passwort: string) => Promise<{ ok: boolean; error?: string }> }) {
+  const [email, setEmail] = useState("");
+  const [passwort, setPasswort] = useState("");
+  const [laedt, setLaedt] = useState(false);
+  const [fehler, setFehler] = useState<string | null>(null);
+
+  const absenden = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !passwort) return;
+    setFehler(null); setLaedt(true);
+    const res = await login(email, passwort);
+    if (!res.ok) { setFehler(res.error ?? "Anmeldung nicht möglich."); setLaedt(false); }
+    // Erfolg ⇒ die Session-Erkennung in SessionProvider blendet dieses Formular aus.
+  };
+
+  return (
+    <form className="login-form" onSubmit={(e) => void absenden(e)}>
+      <p className="login-hint">Bitte mit dem Firmen-Zugang anmelden.</p>
+      <label className="field"><span>E-Mail</span>
+        <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@firma.de" required />
+      </label>
+      <label className="field"><span>Passwort</span>
+        <input type="password" autoComplete="current-password" value={passwort} onChange={(e) => setPasswort(e.target.value)} required />
+      </label>
+      <button className="btn btn-primary block" type="submit" disabled={laedt}>{laedt ? "Anmelden…" : "Anmelden"}</button>
+      {fehler && <p className="error">{fehler}</p>}
+    </form>
   );
 }
 

@@ -6,7 +6,7 @@
 // weiterhin der Demo-Login (Rolle wählen). So bleibt die App ohne Azure-Konfiguration nutzbar.
 
 import { getSupabaseClient } from "./remote";
-import { MS365_LOGIN } from "../config";
+import { AUTH_REQUIRED, MS365_LOGIN } from "../config";
 import type { Benutzer } from "./types";
 
 export interface AuthIdentitaet {
@@ -38,6 +38,41 @@ export async function ms365Anmelden(): Promise<{ ok: boolean; error?: string }> 
 /** Meldet die Microsoft-365-Session ab (best effort). */
 export async function ms365Abmelden(): Promise<void> {
   await getSupabaseClient()?.auth.signOut();
+}
+
+// --- E-Mail/Passwort-Login (Pilot-Zugangssperre, AUTH_REQUIRED) -----------------
+
+/** Ist die Pflicht-Anmeldung mit E-Mail/Passwort aktiv (konfiguriert)? */
+export function passwortLoginAktiv(): boolean {
+  return AUTH_REQUIRED && !!getSupabaseClient();
+}
+
+/** Meldet mit E-Mail + Passwort an (geteiltes Pilot-Konto, Supabase Auth). */
+export async function emailAnmelden(email: string, passwort: string): Promise<{ ok: boolean; error?: string }> {
+  const sb = getSupabaseClient();
+  if (!sb) return { ok: false, error: "Anmeldung ist nicht konfiguriert." };
+  const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password: passwort });
+  if (!error) return { ok: true };
+  // Supabase-Fehlermeldungen sind englisch — die häufigste verständlich übersetzen.
+  const msg = /invalid login credentials/i.test(error.message)
+    ? "E-Mail oder Passwort stimmt nicht."
+    : /email not confirmed/i.test(error.message)
+      ? "Konto noch nicht bestätigt — bitte im Supabase-Dashboard Auto-Confirm setzen."
+      : error.message;
+  return { ok: false, error: msg };
+}
+
+/** Meldet die E-Mail/Passwort-Session ab (best effort). */
+export async function emailAbmelden(): Promise<void> {
+  await getSupabaseClient()?.auth.signOut();
+}
+
+/** Besteht aktuell überhaupt eine gültige Supabase-Auth-Session (E-Mail oder MS365)? */
+export async function hatAuthSession(): Promise<boolean> {
+  const sb = getSupabaseClient();
+  if (!sb) return false;
+  const { data } = await sb.auth.getSession();
+  return !!data.session;
 }
 
 function ausSupabaseUser(u: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | null | undefined): AuthIdentitaet | null {
